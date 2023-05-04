@@ -136,10 +136,10 @@ class CameraStreamer(QThread):
                 print(output.strip())
             else:
                 print("Stream running")
+                self.videoCapture = cv2.VideoCapture(f'/dev/{self.cameraName}')
+                print(self.videoCapture.isOpened())
+                self.streamRunningSignal.signal.emit()
                 break
-        self.videoCapture = cv2.VideoCapture(f'/dev/{self.cameraName}')
-        print(self.videoCapture.isOpened())
-        self.streamRunningSignal.signal.emit()
 
 class StreamRunningSignal(QObject):
     signal = pyqtSignal()
