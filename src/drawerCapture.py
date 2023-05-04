@@ -30,7 +30,12 @@ class MainWindow(QWidget):
         self.layout.addWidget(self.liveModeButton, 0, 0)
         self.layout.addWidget(self.offlineModeButton, 0, 1)
 
-        # Show the window
+        # Create a new window for live mode
+        self.liveModeWindow = LiveModeWindow()
+        self.liveModeWindow.hide()
+        self.liveModeWindow.liveModeClosedSignal.signal.connect(self.show)
+        
+        # Show main window
         self.show()
 
     def enterOfflineMode(self):
@@ -39,7 +44,6 @@ class MainWindow(QWidget):
     def enterLiveMode(self):
         # create a new window for live mode
         self.hide()
-        self.liveModeWindow = LiveModeWindow()
         self.liveModeWindow.show()
         
 if __name__ == '__main__':

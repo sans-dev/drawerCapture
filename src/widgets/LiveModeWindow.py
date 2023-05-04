@@ -1,12 +1,16 @@
 from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QLabel
-from PyQt6.QtCore import Qt, QObject
+from PyQt6.QtCore import Qt, QObject, pyqtSignal
 
 from widgets.SelectCameraListWidget import SelectCameraListWidget
+
+class LiveModeClosedSignal(QObject):
+    signal = pyqtSignal()
 
 class LiveModeWindow(QWidget):
     def __init__(self):
         # Set the calling window as the parent
         super().__init__()
+        self.liveModeClosedSignal = LiveModeClosedSignal()
         self.initUI()
 
     def initUI(self):
@@ -53,4 +57,6 @@ class LiveModeWindow(QWidget):
         self.selectCameraListWidget.hide()
     
     def exitLiveMode(self):
-        self.close()
+        self.hide()
+        self.liveModeClosedSignal.signal.emit()
+        
