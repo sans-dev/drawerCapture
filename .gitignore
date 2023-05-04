@@ -1,0 +1,13 @@
+.vscode
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+
+# ignore local settings
+.idea
+
+# ignore os generated files
+.DS_Store
+Thumbs.db
