@@ -49,7 +49,7 @@ class MainWindow(QWidget):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     # switch to the Photoxo style
-    app.setStyleSheet(load_combiniear_style_sheet())
+    app.setStyleSheet(load_combinear_style_sheet())
     mainWindow = MainWindow()
     mainWindow.show()
     sys.exit(app.exec())

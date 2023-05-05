@@ -1,9 +1,11 @@
 import subprocess
 from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QLabel
 from PyQt6.QtCore import Qt, QObject, pyqtSignal, QThread, QTimer
-from PyQt6.QtGui import QImage, QPixmap
+from PyQt6.QtGui import QImage, QPixmap, QFont
 import cv2
 from widgets.SelectCameraListWidget import SelectCameraListWidget
+from widgets.DataCollectionTextField import DataCollectionTextField
+import time
 
 class LiveModeClosedSignal(QObject):
     signal = pyqtSignal()
@@ -59,10 +61,17 @@ class LiveModeWindow(QWidget):
         self.selectCameraListWidget.selectedCameraChanged.signal.connect(self.showLivePreviewOnCameraSelect)
         self.selectCameraListWidget.hide()
 
+        self.dataCollectionLabel = QLabel("Data Collection")
+        self.dataCollectionLabel.setFont(QFont("Arial", 20))
+        self.dataCollectionTextField = DataCollectionTextField()
+        self.dataCollectionTextField.show()
+
         # Add the widgets to the layout
         self.layout.addWidget(self.selectCameraButton, 0, 0)
         self.layout.addLayout(self.livePreviewLayout, 1, 0)
         self.layout.addWidget(self.exitModeButton, 2, 0)
+        self.layout.addWidget(self.dataCollectionTextField, 1, 1, alignment=Qt.AlignmentFlag.AlignTop)
+        self.layout.addWidget(self.dataCollectionLabel, 0, 1, alignment=Qt.AlignmentFlag.AlignHCenter)
 
     def selectCamera(self):
         self.selectCameraListWidget.show()
@@ -73,17 +82,23 @@ class LiveModeWindow(QWidget):
     
     def exitLiveMode(self):
         self.hide()
+        self.timer.stop()
+        self.cameraStreamer.quit()
+        self.cameraStreamer.streamRunningSignal.signal.disconnect(self.startTimer)
         self.liveModeClosedSignal.signal.emit()
     
     def startLivePreview(self):
         self.cameraStreamer = CameraStreamer(self.selectCameraListWidget.selectedCameraData)
         self.cameraStreamer.streamRunningSignal.signal.connect(self.startTimer)
+        self.cameraStreamer.streamRunningSignal.signal.connect(self.livePreviewLabel.show)
+        self.cameraStreamer.streamRunningSignal.signal.connect(self.startLivePreviewButton.hide)
         self.cameraStreamer.start()
 
     def startTimer(self):
         self.timer.start(1)
 
     def updateLivePreview(self):
+        print("updating live preview")
         ret, frame = self.cameraStreamer.videoCapture.read()
         if ret:
             rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -105,41 +120,36 @@ class CameraStreamer(QThread):
     def run(self):
         print(self.cameraName)
         print(self.cameraPort)
+        self._stopGphoto2Slaves()
 
-        cmd = [
-            'gphoto2', 
-            '--capture-movie', 
-            '--stdout', 
-            f'--port={self.cameraPort}', 
-            '|',
-            'ffmpeg', 
-            '-i', 
-            '-', 
-            '-vcodec', 
-            'rawvideo', 
-            '-pix_fmt', 
-            'yuv720p', 
-            '-threads',
-            '0',
-            '-f',
-            'v4l2',
-            f'/dev/{self.cameraName[0]}'
-        ]
+        cmd = ['bash', 'src/cmds/open_video_stream.bash']
+        print(cmd)
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        while True:
-            output = proc.stdout.readline()
-            if proc.poll() is not None:
-                print("Process ended")
-                print(output.strip())
-                break
-            if output:
-                print(output.strip())
-            else:
-                print("Stream running")
-                self.videoCapture = cv2.VideoCapture(f'/dev/{self.cameraName}')
-                print(self.videoCapture.isOpened())
-                self.streamRunningSignal.signal.emit()
-                break
+        print(f"started process with id {proc.pid}")
+        time.sleep(4)
+        self.streamRunningSignal.signal.emit()
+        self.videoCapture = cv2.VideoCapture('/dev/video2')
+
+    def _stopGphoto2Slaves(self):
+        # get the process id of the gphoto2 slave processes using pgrep -fla gphoto2
+        # kill the processes using kill -9 <pid>
+        cmd = ['pgrep', '-fla', 'gphoto2']
+        
+        output = subprocess.run(cmd, capture_output=True)
+        output = output.stdout.decode('utf-8')
+        # loop over output and filter processes that containing gphoto2
+        # get the pid and kill the process
+        for line in output.split('\n'):
+            if 'gphoto2' in line:
+                pid = line.split(' ')[0]
+                print(pid)
+                cmd = [
+                    'kill',
+                    '-9',
+                    pid
+                ]
+                subprocess.run(cmd)
+
 
 class StreamRunningSignal(QObject):
     signal = pyqtSignal()

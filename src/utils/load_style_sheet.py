@@ -9,6 +9,6 @@ def load_style_sheet(style_name: str):
         return f.read()
     
 load_photoxo_style_sheet = lambda: load_style_sheet("Photoxo")
-load_combiniear_style_sheet = lambda: load_style_sheet("Combinear")
-load_diffness_style_sheet = lambda: load_style_sheet("Diffness")
-load_sysnet_style_sheet = lambda: load_style_sheet("SysNet")
+load_combinear_style_sheet = lambda: load_style_sheet("Combinear")
+load_diffnes_style_sheet = lambda: load_style_sheet("Diffnes")
+load_synet_style_sheet = lambda: load_style_sheet("SyNet")
