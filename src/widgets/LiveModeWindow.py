@@ -1,11 +1,16 @@
 import subprocess
+import time
+from pathlib import Path
+import cv2
+from datetime import datetime
+
 from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QLabel
 from PyQt6.QtCore import Qt, QObject, pyqtSignal, QThread, QTimer
 from PyQt6.QtGui import QImage, QPixmap, QFont
-import cv2
+
 from widgets.SelectCameraListWidget import SelectCameraListWidget
 from widgets.DataCollectionTextField import DataCollectionTextField
-import time
+from widgets.SpinnerWidget import LoadingSpinner 
 
 class LiveModeClosedSignal(QObject):
     signal = pyqtSignal()
@@ -17,6 +22,7 @@ class LiveModeWindow(QWidget):
         self.liveModeClosedSignal = LiveModeClosedSignal()
         self.timer = QTimer()
         self.timer.timeout.connect(self.updateLivePreview)
+        self.cameraStreamer = None
 
         self.initUI()
 
@@ -38,23 +44,33 @@ class LiveModeWindow(QWidget):
 
         # create a live preview for a video stream using label 
         self.livePreviewLabel = QLabel("Live Preview")
-        self.livePreviewLabel.setFixedSize(400, 300)
+        self.livePreviewLabel.setFixedSize(int(1920/2), int(1080/2))
         self.livePreviewLabel.setFrameStyle(1)
         self.livePreviewLabel.setLineWidth(1)
         self.livePreviewLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
         # disable and hide the label
         self.livePreviewLabel.setEnabled(False)
-        self.livePreviewLabel.hide()
+        # self.livePreviewLabel.hide()
+
+        # create a waiting spinner
+        self.spinner = LoadingSpinner()
+        self.spinner.hide()
 
         # add a button to start the live preview
         self.startLivePreviewButton = QPushButton("Start Live Preview")
         self.startLivePreviewButton.clicked.connect(self.startLivePreview)
         self.startLivePreviewButton.setEnabled(False)
 
+        self.stopLivePreviewButton = QPushButton("Stop Live Preview")
+        self.stopLivePreviewButton.clicked.connect(self.stopLivePreview)
+        self.stopLivePreviewButton.setEnabled(False)
+
         # add the preview and the button into a grid layout in the same cell
         self.livePreviewLayout = QGridLayout()
-        self.livePreviewLayout.addWidget(self.livePreviewLabel, 0, 0)
-        self.livePreviewLayout.addWidget(self.startLivePreviewButton, 0, 0, Qt.AlignmentFlag.AlignCenter)
+        # self.livePreviewLayout.addWidget(self.livePreviewLabel, 0, 0)
+        self.livePreviewLayout.addWidget(self.startLivePreviewButton, 1, 0, Qt.AlignmentFlag.AlignCenter)
+        self.livePreviewLayout.addWidget(self.spinner, 0, 0, Qt.AlignmentFlag.AlignCenter)
+        self.livePreviewLayout.addWidget(self.stopLivePreviewButton, 2, 0, Qt.AlignmentFlag.AlignCenter)
 
         # create a list widget to select the camera
         self.selectCameraListWidget = SelectCameraListWidget()
@@ -66,39 +82,75 @@ class LiveModeWindow(QWidget):
         self.dataCollectionTextField = DataCollectionTextField()
         self.dataCollectionTextField.show()
 
+        # add button to capture an image 
+        self.captureImageButton = QPushButton("Capture Image")
+        self.captureImageButton.clicked.connect(self.captureImage)
+
         # Add the widgets to the layout
         self.layout.addWidget(self.selectCameraButton, 0, 0)
-        self.layout.addLayout(self.livePreviewLayout, 1, 0)
-        self.layout.addWidget(self.exitModeButton, 2, 0)
-        self.layout.addWidget(self.dataCollectionTextField, 1, 1, alignment=Qt.AlignmentFlag.AlignTop)
-        self.layout.addWidget(self.dataCollectionLabel, 0, 1, alignment=Qt.AlignmentFlag.AlignHCenter)
+        self.layout.addWidget(self.livePreviewLabel, 1, 0)
+        self.layout.addLayout(self.livePreviewLayout, 2, 0)
+        self.layout.addWidget(self.exitModeButton, 3, 0)
+        self.layout.addWidget(self.dataCollectionTextField, 1, 2, alignment=Qt.AlignmentFlag.AlignTop)
+        self.layout.addWidget(self.dataCollectionLabel, 0, 2, alignment=Qt.AlignmentFlag.AlignHCenter)
+        self.layout.addWidget(self.captureImageButton, 3, 2, alignment=Qt.AlignmentFlag.AlignBottom)
 
+    def captureImage(self):
+        if self.cameraStreamer is not None:
+            captureDir = 'data/captures'
+            Path(captureDir).mkdir(parents=True, exist_ok=True)
+            imageName = f'{datetime.now().date().isoformat()}.raf'
+            self.cameraStreamer.captureImage(captureDir, imageName)
+    
     def selectCamera(self):
         self.selectCameraListWidget.show()
 
     def showLivePreviewOnCameraSelect(self, cameraName):
+        self.cameraStreamer = CameraStreamer(self.selectCameraListWidget.selectedCameraData)
         self.livePreviewLabel.setText(cameraName)
         self.startLivePreviewButton.setEnabled(True)
     
+    def stopLivePreview(self):
+        self.cameraStreamer.quit()
+        self.cameraStreamer.streamRunningSignal.signal.disconnect(self.startTimer)
+        self.cameraStreamer.buildingStreamSignal.signal.disconnect(self.spinner.show)
+        self.cameraStreamer.buildingStreamSignal.signal.disconnect(self.spinner.start)
+        self.cameraStreamer.buildingStreamSignal.signal.disconnect(self.livePreviewLabel.show)
+        self.cameraStreamer.buildingStreamSignal.signal.disconnect(self.startLivePreviewButton.hide)
+        self.cameraStreamer.streamRunningSignal.signal.disconnect(self.spinner.stop)
+        self.cameraStreamer.streamRunningSignal.signal.disconnect(self.spinner.hide)
+        self.livePreviewLabel.hide()
+        self.startLivePreviewButton.show()
+        self.stopLivePreviewButton.setEnabled(False)
+        self.spinner.stop()
+        self.spinner.hide()
+        self.timer.stop()
+
     def exitLiveMode(self):
         self.hide()
         self.timer.stop()
-        self.cameraStreamer.quit()
-        self.cameraStreamer.streamRunningSignal.signal.disconnect(self.startTimer)
+        if self.cameraStreamer:
+            self.stopLivePreview()
         self.liveModeClosedSignal.signal.emit()
     
     def startLivePreview(self):
-        self.cameraStreamer = CameraStreamer(self.selectCameraListWidget.selectedCameraData)
         self.cameraStreamer.streamRunningSignal.signal.connect(self.startTimer)
-        self.cameraStreamer.streamRunningSignal.signal.connect(self.livePreviewLabel.show)
-        self.cameraStreamer.streamRunningSignal.signal.connect(self.startLivePreviewButton.hide)
+        self.cameraStreamer.buildingStreamSignal.signal.connect(self.spinner.show)
+        self.cameraStreamer.buildingStreamSignal.signal.connect(self.spinner.start)
+        self.cameraStreamer.buildingStreamSignal.signal.connect(self.livePreviewLabel.show)
+        self.cameraStreamer.buildingStreamSignal.signal.connect(self.startLivePreviewButton.hide)
+        self.cameraStreamer.streamRunningSignal.signal.connect(self.spinner.hide)
+        self.cameraStreamer.streamRunningSignal.signal.connect(self.spinner.stop)
+        self.stopLivePreviewButton.setEnabled(True)
         self.cameraStreamer.start()
 
     def startTimer(self):
         self.timer.start(1)
 
     def updateLivePreview(self):
-        print("updating live preview")
+        while self.cameraStreamer.videoCapture.isOpened() == False:
+            print("waiting for video capture")
+            time.sleep(1)
         ret, frame = self.cameraStreamer.videoCapture.read()
         if ret:
             rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -108,27 +160,48 @@ class LiveModeWindow(QWidget):
             pixmap = QPixmap.fromImage(qt_image)
             self.livePreviewLabel.setPixmap(pixmap)
 
-
 class CameraStreamer(QThread):
     def __init__(self, cameraData):
         super().__init__()
         self.cameraName = cameraData.split('usb')[0]
         self.cameraPort = f"usb{cameraData.split('usb')[-1]}"
-        self.videoCapture = None
+        self.videoCapture = cv2.VideoCapture()
         self.streamRunningSignal = StreamRunningSignal()
+        self.buildingStreamSignal = BuildingStreamSignal()
+        self.videoStreamDir = Path('/dev/video2')
+        self.startStreamCmd = ['bash', 'src/cmds/open_video_stream.bash']
+        self.captureImgCmd = ['bash', 'src/cmds/capture_image.bash']
 
     def run(self):
-        print(self.cameraName)
-        print(self.cameraPort)
+        self._stopGphoto2Slaves()
+        self.proc = subprocess.Popen(self.startStreamCmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.buildingStreamSignal.signal.emit()
+        print("starting video stream with id {}".format(self.proc.pid))
+        while not self.videoStreamDir.exists():
+            print("waiting for video stream to open")
+            time.sleep(1)
+        self.videoCapture.open(self.videoStreamDir.as_posix())
+
+        if self.videoCapture.isOpened():
+            print("video stream opened")
+            self.streamRunningSignal.signal.emit()
+        else:
+            print("video stream failed to open")
+            self._stopGphoto2Slaves()
+            return
+
+    def quit(self):
+        self.proc.terminate()
+        self.proc.wait()
+        self.videoCapture.release()
         self._stopGphoto2Slaves()
 
-        cmd = ['bash', 'src/cmds/open_video_stream.bash']
-        print(cmd)
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        print(f"started process with id {proc.pid}")
-        time.sleep(4)
-        self.streamRunningSignal.signal.emit()
-        self.videoCapture = cv2.VideoCapture('/dev/video2')
+    def captureImage(self, captureDir, captureName):
+        self._stopGphoto2Slaves()
+        self.captureImgCmd.append(captureDir)
+        self.captureImgCmd.append(captureName)
+        subprocess.run(self.captureImgCmd)
+        self._stopGphoto2Slaves()
 
     def _stopGphoto2Slaves(self):
         # get the process id of the gphoto2 slave processes using pgrep -fla gphoto2
@@ -154,6 +227,5 @@ class CameraStreamer(QThread):
 class StreamRunningSignal(QObject):
     signal = pyqtSignal()
 
-
-
-        
+class BuildingStreamSignal(QObject):
+    signal = pyqtSignal()        

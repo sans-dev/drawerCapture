@@ -20,9 +20,10 @@ class MainWindow(QMainWindow):
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_frame)
-        self.timer.start(1)
 
-        self.video = cv2.VideoCapture(2)
+        self.video = cv2.VideoCapture('/dev/video2')
+        self.show()
+        self.timer.start(1)
 
     def update_frame(self):
         ret, frame = self.video.read()
@@ -36,8 +37,7 @@ class MainWindow(QMainWindow):
 
     def start_live_view():
         cmd = "gphoto2 --stdout --capture-movie | ffmpeg -i - -vcodec rawvideo -pix_fmt yuv420p -threads 0 -f v4l2 /dev/video2"
-        subprocess.Popen(cmd, shell=True)
-    
+        subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE) 
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

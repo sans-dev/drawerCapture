@@ -34,14 +34,17 @@ class DataCollectionTextField(QWidget):
         labels.append(QLabel("Species Name"))
         text_inputs.append(QLineEdit())
 
-
+        # set size of text input fields
+        for text_input in text_inputs:
+            text_input.setFixedWidth(300)
+        
         # Add the labels and text input fields to the sub layouts
         for subLayout in subLayouts:
             # adjust spacing between widgets
-            subLayout.setContentsMargins(15,5,15,5)
+            subLayout.setContentsMargins(15,5,40,5)
             subLayout.setSpacing(5)
             subLayout.addWidget(labels.pop(0), alignment=Qt.AlignmentFlag.AlignLeft)
-            subLayout.addWidget(text_inputs.pop(0), alignment=Qt.AlignmentFlag.AlignCenter)
+            subLayout.addWidget(text_inputs.pop(0), alignment=Qt.AlignmentFlag.AlignRight)
 
         # Add the sub layouts to the main layout
         for subLayout in subLayouts:

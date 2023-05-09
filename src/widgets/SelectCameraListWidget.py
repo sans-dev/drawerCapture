@@ -41,8 +41,8 @@ class SelectCameraListWidget(QWidget):
     def confirmSelection(self):
         selected_item = self.cameraListWidget.currentItem()
         if selected_item is not None:
-            self.selectedCameraChanged.signal.emit(selected_item.text())
             self.selectedCameraData  = self.cameraFetcher.getCameraData(selected_item.text())
+            self.selectedCameraChanged.signal.emit(selected_item.text())
         self.hide()
 
     def refreshButtonClicked(self):

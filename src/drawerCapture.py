@@ -1,6 +1,6 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QGridLayout, QLabel, QComboBox
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QGridLayout, QMainWindow, QLabel, QComboBox
+from PyQt6.QtGui import QScreen
 
 from utils.load_style_sheet import *
 from widgets.LiveModeWindow import LiveModeWindow
@@ -14,7 +14,7 @@ class MainWindow(QWidget):
     def initUI(self):
         # Set the window title and size
         self.setWindowTitle("DrawerCapture")
-        self.setGeometry(100, 100, 800, 800)
+        self.setGeometry(1000, 500, 800, 800)
 
         # Create the layout
         self.layout = QGridLayout()
@@ -34,9 +34,16 @@ class MainWindow(QWidget):
         self.liveModeWindow = LiveModeWindow()
         self.liveModeWindow.hide()
         self.liveModeWindow.liveModeClosedSignal.signal.connect(self.show)
-        
-        # Show main window
         self.show()
+        self.centerWindowMainMonitor()
+        
+
+    def centerWindowMainMonitor(self):
+        # Get the screen resolution
+        screen_geometry = QScreen.availableGeometry(QApplication.primaryScreen())
+        window_geometry = self.frameGeometry()
+        window_geometry.moveCenter(screen_geometry.center())
+        self.move(window_geometry.topLeft())
 
     def enterOfflineMode(self):
         pass

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    /* Paste the CSS code of the spinner here */
+    /* ... */
+  </style>
+</head>
+<body>
+  <div class="lds-roller">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gif.js/dist/gif.js"></script>
+  <script>
+    // Capture the spinner as an image using html2canvas
+    html2canvas(document.body).then(canvas => {
+      // Convert the captured image to a GIF using gif.js
+      const gif = new GIF({
+        workers: 2,
+        quality: 10
+      });
+
+      gif.addFrame(canvas, { delay: 120 });
+
+      // Set the number of frames to match the desired animation length
+      const numFrames = 30;
+      const delay = 120;
+
+      for (let i = 0; i < numFrames; i++) {
+        // Rotate the spinner by modifying the style
+        const deg = (i / numFrames) * 360;
+        const spinner = document.querySelector('.lds-roller');
+        spinner.style.transform = `rotate(${deg}deg)`;
+
+        html2canvas(document.body).then(canvas => {
+          gif.addFrame(canvas, { delay });
+          if (i === numFrames - 1) {
+            // Finish creating the GIF
+            gif.render();
+          }
+        });
+      }
+
+      gif.on('finished', (blob) => {
+        // Save the GIF as a file
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'spinner.gif';
+        link.click();
+      });
+    });
+  </script>
+</body>
+</html>
