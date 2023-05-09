@@ -16,6 +16,26 @@ class LiveModeClosedSignal(QObject):
     signal = pyqtSignal()
 
 class LiveModeWidget(QWidget):
+    def __init__(self, parent=None, modeSignal=None):
+        super().__init__()
+        self.parent = parent
+        self.modeSignal = modeSignal
+        self.initUI()
+
+    def initUI(self):
+        # setup grid layout
+        self.layout = QGridLayout()
+        self.setLayout(self.layout)
+
+        # add an close button
+        self.closeButton = QPushButton("Close")
+        self.closeButton.clicked.connect(self.closeLiveMode)
+        self.layout.addWidget(self.closeButton, 0, 0, Qt.AlignmentFlag.AlignRight)
+
+    def closeLiveMode(self):
+        self.modeSignal.modeChanged.emit(self.parent)
+
+class LivePreviewWidget(QWidget):
     def __init__(self):
         # Set the calling window as the parent
         super().__init__()
