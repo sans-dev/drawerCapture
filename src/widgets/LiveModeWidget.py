@@ -15,7 +15,7 @@ from widgets.SpinnerWidget import LoadingSpinner
 class LiveModeClosedSignal(QObject):
     signal = pyqtSignal()
 
-class LiveModeWindow(QWidget):
+class LiveModeWidget(QWidget):
     def __init__(self):
         # Set the calling window as the parent
         super().__init__()
