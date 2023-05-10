@@ -1,13 +1,13 @@
 from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout
+from PyQt6.QtCore import pyqtSignal
+from widgets.LiveWidget import LiveModeWidget
+from signals.WidgetSignal import WidgetSignal
 
-from widgets.LiveModeWidget import LiveModeWidget
+class MainWidget(QWidget):
+    changed = pyqtSignal(str)
 
-class MainWindowWidget(QWidget):
-
-    def __init__(self, modeSignal=None):
+    def __init__(self):
         super().__init__()
-        self.modeSignal = modeSignal
-
         self.initUI()
 
     def initUI(self):
@@ -23,13 +23,9 @@ class MainWindowWidget(QWidget):
         # Add the widgets to the layout
         self.layout.addWidget(self.liveModeButton, 0, 0)
         self.layout.addWidget(self.offlineModeButton, 0, 1)
-        self.liveMode = LiveModeWidget(parent=self, modeSignal=self.modeSignal)
-
+        
     def enterOfflineMode(self):
         pass
 
     def enterLiveMode(self):
-        self.modeSignal.modeChanged.emit(self.liveMode)
-
-    def show(self):
-        self.modeSignal.modeChanged.emit(self)
+        self.changed.emit("live")

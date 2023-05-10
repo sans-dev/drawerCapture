@@ -12,14 +12,13 @@ from widgets.SelectCameraListWidget import SelectCameraListWidget
 from widgets.DataCollectionTextField import DataCollectionTextField
 from widgets.SpinnerWidget import LoadingSpinner 
 
-class LiveModeClosedSignal(QObject):
-    signal = pyqtSignal()
+from signals.WidgetSignal import WidgetSignal
 
-class LiveModeWidget(QWidget):
-    def __init__(self, parent=None, modeSignal=None):
+class LiveWidget(QWidget):
+    changed = pyqtSignal(str)
+
+    def __init__(self):
         super().__init__()
-        self.parent = parent
-        self.modeSignal = modeSignal
         self.initUI()
 
     def initUI(self):
@@ -33,8 +32,8 @@ class LiveModeWidget(QWidget):
         self.layout.addWidget(self.closeButton, 0, 0, Qt.AlignmentFlag.AlignRight)
 
     def closeLiveMode(self):
-        self.modeSignal.modeChanged.emit(self.parent)
-
+        self.changed.emit("main")
+'''
 class LivePreviewWidget(QWidget):
     def __init__(self):
         # Set the calling window as the parent
@@ -248,4 +247,6 @@ class StreamRunningSignal(QObject):
     signal = pyqtSignal()
 
 class BuildingStreamSignal(QObject):
-    signal = pyqtSignal()        
+    signal = pyqtSignal()
+
+''' 
