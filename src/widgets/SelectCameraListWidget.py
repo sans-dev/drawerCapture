@@ -40,6 +40,8 @@ class SelectCameraListWidget(QWidget):
         self.setLayout(layout)
 
         self.cameraListWidget.itemSelectionChanged.connect(self.enableConfirmButton)
+        self.cameraFetcher.finished.connect(self.updateCameraList)
+        self.cameraFetcher.finished.connect(self.enableRefrehsButton)
 
     def confirmSelection(self):
         selected_item = self.cameraListWidget.currentItem()
@@ -61,7 +63,11 @@ class SelectCameraListWidget(QWidget):
             self.cameraListWidget.addItem(camera)
 
     def enableConfirmButton(self):
-        self.confirmButton.setEnabled(True)
+        if self.cameraListWidget.currentItem().text() != 'No cameras found':
+            self.confirmButton.setEnabled(True)
+
+    def enableRefrehsButton(self):
+        self.refreshButton.setEnabled(True)
 
     def close(self):
         self.closed.emit()

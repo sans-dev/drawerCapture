@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QHBoxLayout, QVBoxLayout, QLabel
+from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QHBoxLayout, QVBoxLayout, QLabel, QStackedLayout
 from PyQt6.QtCore import Qt, QObject, pyqtSignal, QTimer
 from PyQt6.QtGui import QImage, QPixmap, QFont
 
@@ -44,6 +44,11 @@ class LiveWidget(QWidget):
         self.stopLivePreviewButton.clicked.connect(self.stopPreview)
         self.stopLivePreviewButton.hide()
 
+        # stack start and stop preview buttons
+        self.startStopStackLayout = QStackedLayout()
+        self.startStopStackLayout.addWidget(self.startLivePreviewButton)
+        self.startStopStackLayout.addWidget(self.stopLivePreviewButton)
+        
         # add an close button
         self.closeButton = QPushButton("Close")
         self.closeButton.clicked.connect(self.closeLiveMode)
@@ -74,7 +79,7 @@ class LiveWidget(QWidget):
         # add start live preview button and capture image button to a horizontal layout
         self.buttonLayout = QHBoxLayout()
         self.buttonLayout.addWidget(self.selectCameraButton)
-        self.buttonLayout.addWidget(self.startLivePreviewButton)
+        self.buttonLayout.addLayout(self.startStopStackLayout, Qt.AlignmentFlag.AlignLeft)
         self.buttonLayout.addWidget(self.captureImageButton)
         
         # arange widgets in grid layout
@@ -94,9 +99,14 @@ class LiveWidget(QWidget):
         self.selectCameraListWidget.confirmButton.clicked.connect(self._showPanelWidgets)
         self.selectCameraListWidget.confirmButton.clicked.connect(self._updatePreviewLabel)
 
-        self.selectCameraListWidget.confirmButton.clicked.connect(self.selectCameraButton.setEnabled)
-        self.selectCameraListWidget.confirmButton.clicked.connect(self.startLivePreviewButton.setEnabled)
+        self.selectCameraListWidget.confirmButton.clicked.connect(self.enableSelectCameraButton)
+        self.selectCameraListWidget.confirmButton.clicked.connect(self.enableStartLivePreviewButton)
 
+    def enableStartLivePreviewButton(self):
+        self.startLivePreviewButton.setEnabled(True)
+
+    def enableSelectCameraButton(self):
+        self.selectCameraButton.setEnabled(True)
 
     def selectCamera(self):
         self._hidePanelWidgets()
@@ -113,6 +123,8 @@ class LiveWidget(QWidget):
         self.selectCameraButton.setEnabled(False)
         self.selectCameraListWidget.setEnabled(False)
         self.loadingSpinner.start()
+        self.loadingSpinner.show()
+        self.startStopStackLayout.setCurrentIndex(1)
         #self.previewPanel.startPreview()
 
     def stopPreview(self):
@@ -122,7 +134,9 @@ class LiveWidget(QWidget):
         self.captureImageButton.setEnabled(False)
         self.selectCameraButton.setEnabled(True)
         self.selectCameraListWidget.setEnabled(True)
+        self.loadingSpinner.hide()
         self.loadingSpinner.stop()
+        self.startStopStackLayout.setCurrentIndex(0)
         #self.previewPanel.stopPreview()
 
     def closeLiveMode(self):
