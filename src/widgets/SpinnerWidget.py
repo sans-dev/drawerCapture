@@ -1,5 +1,6 @@
 from PyQt6.QtGui import QMovie
 from PyQt6.QtWidgets import  QLabel, QVBoxLayout, QWidget
+from PyQt6.QtCore import QSize
 
 
 class LoadingSpinner(QWidget):
@@ -18,6 +19,8 @@ class LoadingSpinner(QWidget):
 
         # Load and start the GIF animation
         self.movie = QMovie("resources/assets/Spinner-1s-200px.gif")
+        # make movie smaller
+        self.movie.setScaledSize(QSize(100, 100))
         self.label.setMovie(self.movie)
 
     def start(self):

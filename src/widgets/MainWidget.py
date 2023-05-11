@@ -1,7 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout
 from PyQt6.QtCore import pyqtSignal
-from widgets.LiveWidget import LiveModeWidget
-from signals.WidgetSignal import WidgetSignal
 
 class MainWidget(QWidget):
     changed = pyqtSignal(str)
@@ -11,6 +9,8 @@ class MainWidget(QWidget):
         self.initUI()
 
     def initUI(self):
+        self.setWindowTitle("DrawerCapture")
+
         self.layout = QGridLayout()
         self.setLayout(self.layout)
 

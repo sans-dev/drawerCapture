@@ -1,11 +1,12 @@
 import subprocess
-from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QListWidget
-from PyQt6.QtCore import pyqtSignal, QObject, QThread
-
-class SelectCameraSignal(QObject):
-    signal = pyqtSignal(str)
+from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QListWidget, QLabel
+from PyQt6.QtCore import pyqtSignal, QThread, Qt
 
 class SelectCameraListWidget(QWidget):
+    selectedCameraChanged = pyqtSignal(str)
+    closed = pyqtSignal()
+    refreshing = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.cameraFetcher = CameraFetcher()
@@ -26,38 +27,45 @@ class SelectCameraListWidget(QWidget):
         self.refreshButton = QPushButton('Refresh')
         self.refreshButton.clicked.connect(self.refreshButtonClicked)
 
+        # add a label to the widget with bigger text
+        self.widgetLabel = QLabel('Select a camera')
+        self.widgetLabel.setStyleSheet('font-size: 20px;')
+
         layout = QVBoxLayout()
-        layout.addWidget(self.refreshButton)
+        layout.addWidget(self.widgetLabel, alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.cameraListWidget)
+        layout.addWidget(self.refreshButton)
         layout.addWidget(self.confirmButton)
         layout.addWidget(self.exitButton)
         self.setLayout(layout)
 
-        # add a wait for response widget while camera list is being fetched
-
-        # add a signal to emit when a camera is selected
-        self.selectedCameraChanged = SelectCameraSignal()
+        self.cameraListWidget.itemSelectionChanged.connect(self.enableConfirmButton)
 
     def confirmSelection(self):
         selected_item = self.cameraListWidget.currentItem()
         if selected_item is not None:
             self.selectedCameraData  = self.cameraFetcher.getCameraData(selected_item.text())
-            self.selectedCameraChanged.signal.emit(selected_item.text())
+            self.selectedCameraChanged.emit(selected_item.text())
         self.hide()
 
     def refreshButtonClicked(self):
         self.refreshButton.setEnabled(False)
         self.confirmButton.setEnabled(False)
         self.cameraFetcher.finished.connect(self.updateCameraList)
+        self.refreshing.emit()
         self.cameraFetcher.start()
 
     def updateCameraList(self, cameras):
         self.cameraListWidget.clear()
-        if not cameras[0] == 'No cameras found':
-            self.confirmButton.setEnabled(True)
         for camera in cameras:
             self.cameraListWidget.addItem(camera)
-        self.refreshButton.setEnabled(True)
+
+    def enableConfirmButton(self):
+        self.confirmButton.setEnabled(True)
+
+    def close(self):
+        self.closed.emit()
+        super().close()
 
 class CameraFetcher(QThread):
     finished  = pyqtSignal(list)

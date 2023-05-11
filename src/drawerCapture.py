@@ -22,7 +22,7 @@ class MainWindow(QMainWindow):
     def initUI(self):
         # Set the window title and size
         self.setWindowTitle("DrawerCapture")
-        self.setGeometry(1500, 1000, 1200, 1200)
+        self.setGeometry(1500, 1000, 1200, 500)
 
         self.setCentralWidget(self.stackedWidget)
 

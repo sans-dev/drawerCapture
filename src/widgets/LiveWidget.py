@@ -1,38 +1,150 @@
-import subprocess
-import time
-from pathlib import Path
-import cv2
 from datetime import datetime
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QLabel
-from PyQt6.QtCore import Qt, QObject, pyqtSignal, QThread, QTimer
+from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QHBoxLayout, QVBoxLayout, QLabel
+from PyQt6.QtCore import Qt, QObject, pyqtSignal, QTimer
 from PyQt6.QtGui import QImage, QPixmap, QFont
 
 from widgets.SelectCameraListWidget import SelectCameraListWidget
 from widgets.DataCollectionTextField import DataCollectionTextField
 from widgets.SpinnerWidget import LoadingSpinner 
-
-from signals.WidgetSignal import WidgetSignal
+from widgets.PreviewPanel import PreviewPanel
 
 class LiveWidget(QWidget):
     changed = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
+        self.timer = QTimer()
+
         self.initUI()
 
     def initUI(self):
+        self.setWindowTitle("Live Mode")
         # setup grid layout
         self.layout = QGridLayout()
         self.setLayout(self.layout)
 
+        # add select camera button
+        self.selectCameraButton = QPushButton("Select Camera")
+        self.selectCameraButton.clicked.connect(self.selectCamera)
+
+        # add capture image button
+        self.captureImageButton = QPushButton("Capture Image")
+        self.captureImageButton.clicked.connect(self.captureImage)
+        self.captureImageButton.setEnabled(False)
+
+        # add a disabled button to start live preview
+        self.startLivePreviewButton = QPushButton("Start Live Preview")
+        self.startLivePreviewButton.setEnabled(False)
+        self.startLivePreviewButton.clicked.connect(self.startPreview)
+        self.startLivePreviewButton.show()
+
+        # add a stop preview button at the bottom of the preview panel
+        self.stopLivePreviewButton = QPushButton("Stop Live Preview")
+        self.stopLivePreviewButton.clicked.connect(self.stopPreview)
+        self.stopLivePreviewButton.hide()
+
         # add an close button
         self.closeButton = QPushButton("Close")
         self.closeButton.clicked.connect(self.closeLiveMode)
-        self.layout.addWidget(self.closeButton, 0, 0, Qt.AlignmentFlag.AlignRight)
+
+        # add camera selection list widget
+        self.selectCameraListWidget = SelectCameraListWidget()
+        self.selectCameraListWidget.hide()
+
+        # add a loading spinner to the preview panel
+        self.loadingSpinner = LoadingSpinner()
+
+        # add preview panel
+        self.previewPanel = PreviewPanel()
+        self.previewPanelLabel = QLabel("Live Preview")
+        self.previewPanelLabel.setStyleSheet('font-size: 20px;')
+        self.panelLayout = QVBoxLayout()
+        self.panelLayout.addWidget(self.previewPanelLabel, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.panelLayout.addWidget(self.previewPanel)
+        
+        # add data collection text field
+        self.dataCollectionTextField = DataCollectionTextField()
+        self.dataCollectionLabel = QLabel("Data Collection")
+        self.dataCollectionLabel.setStyleSheet('font-size: 20px;')
+        self.dataCollectionLayout = QVBoxLayout()
+        self.dataCollectionLayout.addWidget(self.dataCollectionLabel, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.dataCollectionLayout.addWidget(self.dataCollectionTextField)
+
+        # add start live preview button and capture image button to a horizontal layout
+        self.buttonLayout = QHBoxLayout()
+        self.buttonLayout.addWidget(self.selectCameraButton)
+        self.buttonLayout.addWidget(self.startLivePreviewButton)
+        self.buttonLayout.addWidget(self.captureImageButton)
+        
+        # arange widgets in grid layout
+        self.layout.addWidget(self.selectCameraListWidget, 0, 0, Qt.AlignmentFlag.AlignTop)
+        self.layout.addLayout(self.panelLayout, 0, 0, Qt.AlignmentFlag.AlignCenter)
+        self.layout.addWidget(self.loadingSpinner, 0, 0, Qt.AlignmentFlag.AlignCenter)
+        self.layout.addLayout(self.dataCollectionLayout, 0, 1, Qt.AlignmentFlag.AlignTop)
+        self.layout.addWidget(self.closeButton, 1, 1, Qt.AlignmentFlag.AlignBottom)
+        self.layout.addLayout(self.buttonLayout, 1, 0, Qt.AlignmentFlag.AlignLeft)
+
+        # connect signals 
+        self.selectCameraListWidget.closed.connect(self._showPanelWidgets)
+        self.selectCameraListWidget.cameraFetcher.started.connect(self.loadingSpinner.start)
+        self.selectCameraListWidget.cameraFetcher.started.connect(self.loadingSpinner.show)
+        self.selectCameraListWidget.cameraFetcher.finished.connect(self.loadingSpinner.stop)
+        self.selectCameraListWidget.cameraFetcher.finished.connect(self.loadingSpinner.hide)
+        self.selectCameraListWidget.confirmButton.clicked.connect(self._showPanelWidgets)
+        self.selectCameraListWidget.confirmButton.clicked.connect(self._updatePreviewLabel)
+
+        self.selectCameraListWidget.confirmButton.clicked.connect(self.selectCameraButton.setEnabled)
+        self.selectCameraListWidget.confirmButton.clicked.connect(self.startLivePreviewButton.setEnabled)
+
+
+    def selectCamera(self):
+        self._hidePanelWidgets()
+        self.selectCameraListWidget.show()
+    
+    def captureImage(self):
+        pass
+
+    def startPreview(self):
+        self.timer.start(1000)
+        self.startLivePreviewButton.hide()
+        self.stopLivePreviewButton.show()
+        self.captureImageButton.setEnabled(True)
+        self.selectCameraButton.setEnabled(False)
+        self.selectCameraListWidget.setEnabled(False)
+        self.loadingSpinner.start()
+        #self.previewPanel.startPreview()
+
+    def stopPreview(self):
+        self.timer.stop()
+        self.stopLivePreviewButton.hide()
+        self.startLivePreviewButton.show()
+        self.captureImageButton.setEnabled(False)
+        self.selectCameraButton.setEnabled(True)
+        self.selectCameraListWidget.setEnabled(True)
+        self.loadingSpinner.stop()
+        #self.previewPanel.stopPreview()
 
     def closeLiveMode(self):
         self.changed.emit("main")
+
+    def _hidePanelWidgets(self):
+        self.previewPanel.hide()
+        self.previewPanelLabel.hide()
+        self.selectCameraButton.hide()
+        self.startLivePreviewButton.hide()
+        self.captureImageButton.hide()
+    
+    def _showPanelWidgets(self):
+        self.previewPanel.show()
+        self.previewPanelLabel.show()
+        self.selectCameraButton.show()
+        self.startLivePreviewButton.show()
+        self.captureImageButton.show()
+
+    def _updatePreviewLabel(self):
+        self.previewPanelLabel.setText(f"Live Preview ({self.selectCameraListWidget.selectedCameraData})")
+
 '''
 class LivePreviewWidget(QWidget):
     def __init__(self):
@@ -249,4 +361,4 @@ class StreamRunningSignal(QObject):
 class BuildingStreamSignal(QObject):
     signal = pyqtSignal()
 
-''' 
+'''
