@@ -105,14 +105,16 @@ class LiveWidget(QWidget):
         self.selectCameraButton.clicked.connect(self.selectCameraListWidget.show)
         self.selectCameraButton.clicked.connect(self.selectCameraListWidget.refreshButtonClicked)
 
-        self.startLivePreviewButton.clicked.connect(self.loadingSpinner.start)
-        self.startLivePreviewButton.clicked.connect(self.loadingSpinner.show)
         self.stopLivePreviewButton.clicked.connect(self.loadingSpinner.stop)
         self.stopLivePreviewButton.clicked.connect(self.loadingSpinner.hide)
 
+        self.previewPanel.cameraStreamer.buildingStream.connect(self.loadingSpinner.start)
+        self.previewPanel.cameraStreamer.buildingStream.connect(self.loadingSpinner.show)
+        self.previewPanel.cameraStreamer.streamRunning.connect(self.loadingSpinner.stop)
+        self.previewPanel.cameraStreamer.streamRunning.connect(self.loadingSpinner.hide)
         self.selectCameraListWidget.selectedCameraChanged.connect(self.previewPanel.setCameraData)
 
-        #self.previewPanel.cameraStarted.connect(self.enableCaptureImageButton)
+        self.previewPanel.cameraStarted.connect(self.enableCaptureImageButton)
         #self.previewPanel.cameraStarted.connect(self.enableStopLivePreviewButton)
 
 
@@ -122,18 +124,19 @@ class LiveWidget(QWidget):
     def enableSelectCameraButton(self):
         self.selectCameraButton.setEnabled(True)
 
+    def enableCaptureImageButton(self):
+        self.captureImageButton.setEnabled(True)
+
     def selectCamera(self):
         self._hidePanelWidgets()
     
     def captureImage(self):
-        pass
+        self.previewPanel.captureImage('data/captures','test.jpg') 
 
     def startPreview(self):
         self.selectCameraListWidget.setEnabled(False)
         self.startStopStackLayout.setCurrentIndex(1)
         self.previewPanel.startPreview()
-        self.loadingSpinner.stop()
-        self.loadingSpinner.hide()
 
     def stopPreview(self):
         self.captureImageButton.setEnabled(False)

@@ -6,9 +6,11 @@ from pathlib import Path
 
 
 class CameraStreamer(QThread):
-    streamRunningSignal = pyqtSignal()
-    buildingStreamSignal = pyqtSignal()
-    streamStoppedSignal = pyqtSignal()
+    streamRunning = pyqtSignal()
+    buildingStream = pyqtSignal()
+    streamStopped = pyqtSignal()
+    capturingImage = pyqtSignal()
+    imageCaptured = pyqtSignal()
 
     def __init__(self, cameraData=None):
         super().__init__()
@@ -19,23 +21,29 @@ class CameraStreamer(QThread):
         self.startStreamCmd = ['bash', 'src/cmds/open_video_stream.bash']
         self.captureImgCmd = ['bash', 'src/cmds/capture_image.bash']
 
+        self.capturingImage.connect(self.quit)
+        self.imageCaptured.connect(self.start)
+
     def run(self):
         self._stopGphoto2Slaves()
-        self.buildingStreamSignal.emit()
         self.proc = subprocess.Popen(self.startStreamCmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.buildingStream.emit()
         print("starting video stream with id {}".format(self.proc.pid))
-        print(self.videoStreamDir.exists())
-        # check if cmd was successful
-        # print output of subprocess
-        stdout, stderr = self.proc.communicate()
-        while True:
-            print(stdout)
-        print("before open")
-        opened = self.videoCapture.open(self.videoStreamDir.as_posix())
-        print("after open")
-        self.streamRunningSignal.emit()
+        while not self.videoStreamDir.exists():
+            print("waiting for video stream to open")
+            time.sleep(1)
+        self.videoCapture.open(self.videoStreamDir.as_posix())
+
+        if self.videoCapture.isOpened():
+            print("video stream opened")
+            self.streamRunning.emit()
+        else:
+            print("video stream failed to open")
+            self._stopGphoto2Slaves()
+            return
 
     def quit(self):
+        self.streamStopped.emit()
         self.proc.terminate()
         self.proc.wait()
         self.videoCapture.release()
@@ -43,13 +51,15 @@ class CameraStreamer(QThread):
         super().quit()
         print("video stream closed")
 
-
     def captureImage(self, captureDir, captureName):
-        self._stopGphoto2Slaves()
+        self.capturingImage.emit()
         self.captureImgCmd.append(captureDir)
         self.captureImgCmd.append(captureName)
-        subprocess.run(self.captureImgCmd)
-        self._stopGphoto2Slaves()
+        self.capProc = subprocess.Popen(self.captureImgCmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        while self.capProc.poll() is None:
+            print("waiting for image capture to complete")
+            self.sleep(1)
+        self.imageCaptured.emit()
 
     def setCameraData(self, cameraData):
         self.cameraName = cameraData.split('usb')[0]

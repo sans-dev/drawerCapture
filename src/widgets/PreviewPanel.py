@@ -18,15 +18,15 @@ class PreviewPanel(QLabel):
     
     def initUI(self):
         # set the size of the preview panel
-        panel_size = (int(1920/2), int(1080/2))
+        panel_size = (int(1024), int(680))
         self.setFixedSize(panel_size[0], panel_size[1])
         self.setFrameStyle(1)
         self.setLineWidth(1)
     
     def connectSignals(self):
         self.timer.timeout.connect(self.updatePreview)
-        self.cameraStreamer.streamRunningSignal.connect(self.startTimer)
-        self.cameraStreamer.streamStoppedSignal.connect(self.timer.stop)
+        self.cameraStreamer.streamRunning.connect(self.startTimer)
+        self.cameraStreamer.streamStopped.connect(self.timer.stop)
 
     def updatePreview(self):
         while self.cameraStreamer.videoCapture.isOpened() == False:
@@ -34,6 +34,7 @@ class PreviewPanel(QLabel):
             time.sleep(1)
         ret, frame = self.cameraStreamer.videoCapture.read()
         if ret:
+            print("resolution: {}".format(frame.shape))
             rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             h, w, ch = rgbImage.shape
             bytesPerLine = ch * w            
@@ -54,4 +55,7 @@ class PreviewPanel(QLabel):
     def setCameraData(self, cameraData):
         self.cameraData = cameraData
         self.cameraStreamer.setCameraData(cameraData)
+
+    def captureImage(self, captureDir, captureName):
+        self.cameraStreamer.captureImage(captureDir, captureName)
 
