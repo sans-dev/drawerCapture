@@ -10,10 +10,10 @@ class CameraStreamer(QThread):
     buildingStreamSignal = pyqtSignal()
     streamStoppedSignal = pyqtSignal()
 
-    def __init__(self, cameraData):
+    def __init__(self, cameraData=None):
         super().__init__()
-        self.cameraName = cameraData.split('usb')[0]
-        self.cameraPort = f"usb{cameraData.split('usb')[-1]}"
+        if cameraData:
+            self.setCameraData(cameraData)
         self.videoCapture = cv2.VideoCapture()
         self.videoStreamDir = Path('/dev/video2')
         self.startStreamCmd = ['bash', 'src/cmds/open_video_stream.bash']
@@ -21,27 +21,28 @@ class CameraStreamer(QThread):
 
     def run(self):
         self._stopGphoto2Slaves()
+        self.buildingStreamSignal.emit()
         self.proc = subprocess.Popen(self.startStreamCmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self.buildingStreamSignal.signal.emit()
         print("starting video stream with id {}".format(self.proc.pid))
-        while not self.videoStreamDir.exists():
-            print("waiting for video stream to open")
-            time.sleep(1)
-        self.videoCapture.open(self.videoStreamDir.as_posix())
-
-        if self.videoCapture.isOpened():
-            print("video stream opened")
-            self.streamRunningSignal.signal.emit()
-        else:
-            print("video stream failed to open")
-            self._stopGphoto2Slaves()
-            return
+        print(self.videoStreamDir.exists())
+        # check if cmd was successful
+        # print output of subprocess
+        stdout, stderr = self.proc.communicate()
+        while True:
+            print(stdout)
+        print("before open")
+        opened = self.videoCapture.open(self.videoStreamDir.as_posix())
+        print("after open")
+        self.streamRunningSignal.emit()
 
     def quit(self):
         self.proc.terminate()
         self.proc.wait()
         self.videoCapture.release()
         self._stopGphoto2Slaves()
+        super().quit()
+        print("video stream closed")
+
 
     def captureImage(self, captureDir, captureName):
         self._stopGphoto2Slaves()
@@ -49,6 +50,11 @@ class CameraStreamer(QThread):
         self.captureImgCmd.append(captureName)
         subprocess.run(self.captureImgCmd)
         self._stopGphoto2Slaves()
+
+    def setCameraData(self, cameraData):
+        self.cameraName = cameraData.split('usb')[0]
+        self.cameraPort = f"usb{cameraData.split('usb')[-1]}"
+
 
     def _stopGphoto2Slaves(self):
         # get the process id of the gphoto2 slave processes using pgrep -fla gphoto2

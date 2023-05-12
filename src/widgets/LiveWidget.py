@@ -14,9 +14,9 @@ class LiveWidget(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.timer = QTimer()
 
         self.initUI()
+        self.connectSignals()
 
     def initUI(self):
         self.setWindowTitle("Live Mode")
@@ -90,7 +90,7 @@ class LiveWidget(QWidget):
         self.layout.addWidget(self.closeButton, 1, 1, Qt.AlignmentFlag.AlignBottom)
         self.layout.addLayout(self.buttonLayout, 1, 0, Qt.AlignmentFlag.AlignLeft)
 
-        # connect signals 
+    def connectSignals(self):
         self.selectCameraListWidget.closed.connect(self._showPanelWidgets)
         self.selectCameraListWidget.cameraFetcher.started.connect(self.loadingSpinner.start)
         self.selectCameraListWidget.cameraFetcher.started.connect(self.loadingSpinner.show)
@@ -102,6 +102,20 @@ class LiveWidget(QWidget):
         self.selectCameraListWidget.confirmButton.clicked.connect(self.enableSelectCameraButton)
         self.selectCameraListWidget.confirmButton.clicked.connect(self.enableStartLivePreviewButton)
 
+        self.selectCameraButton.clicked.connect(self.selectCameraListWidget.show)
+        self.selectCameraButton.clicked.connect(self.selectCameraListWidget.refreshButtonClicked)
+
+        self.startLivePreviewButton.clicked.connect(self.loadingSpinner.start)
+        self.startLivePreviewButton.clicked.connect(self.loadingSpinner.show)
+        self.stopLivePreviewButton.clicked.connect(self.loadingSpinner.stop)
+        self.stopLivePreviewButton.clicked.connect(self.loadingSpinner.hide)
+
+        self.selectCameraListWidget.selectedCameraChanged.connect(self.previewPanel.setCameraData)
+
+        #self.previewPanel.cameraStarted.connect(self.enableCaptureImageButton)
+        #self.previewPanel.cameraStarted.connect(self.enableStopLivePreviewButton)
+
+
     def enableStartLivePreviewButton(self):
         self.startLivePreviewButton.setEnabled(True)
 
@@ -110,34 +124,23 @@ class LiveWidget(QWidget):
 
     def selectCamera(self):
         self._hidePanelWidgets()
-        self.selectCameraListWidget.show()
     
     def captureImage(self):
         pass
 
     def startPreview(self):
-        self.timer.start(1000)
-        self.startLivePreviewButton.hide()
-        self.stopLivePreviewButton.show()
-        self.captureImageButton.setEnabled(True)
-        self.selectCameraButton.setEnabled(False)
         self.selectCameraListWidget.setEnabled(False)
-        self.loadingSpinner.start()
-        self.loadingSpinner.show()
         self.startStopStackLayout.setCurrentIndex(1)
-        #self.previewPanel.startPreview()
+        self.previewPanel.startPreview()
+        self.loadingSpinner.stop()
+        self.loadingSpinner.hide()
 
     def stopPreview(self):
-        self.timer.stop()
-        self.stopLivePreviewButton.hide()
-        self.startLivePreviewButton.show()
         self.captureImageButton.setEnabled(False)
         self.selectCameraButton.setEnabled(True)
         self.selectCameraListWidget.setEnabled(True)
-        self.loadingSpinner.hide()
-        self.loadingSpinner.stop()
         self.startStopStackLayout.setCurrentIndex(0)
-        #self.previewPanel.stopPreview()
+        self.previewPanel.stopPreview()
 
     def closeLiveMode(self):
         self.changed.emit("main")
