@@ -4,12 +4,14 @@ from PyQt6.QtGui import QImage, QPixmap
 import cv2
 import time
 from threads.CameraStreamer import CameraStreamer
+from threads.ImageCapture import ImageCapture
 
 class PreviewPanel(QLabel):
     cameraStarted = pyqtSignal()
     def __init__(self):
         super().__init__()
         self.cameraStreamer = CameraStreamer()
+        self.imageCapture = ImageCapture()
         self.cameraData = None
         self.timer = QTimer()        
         
@@ -28,13 +30,15 @@ class PreviewPanel(QLabel):
         self.cameraStreamer.streamRunning.connect(self.startTimer)
         self.cameraStreamer.streamStopped.connect(self.timer.stop)
 
+        self.imageCapture.started.connect(self.stopPreview)
+        self.imageCapture.finished.connect(self.startPreview)
+
     def updatePreview(self):
         while self.cameraStreamer.videoCapture.isOpened() == False:
             print("waiting for video capture")
             time.sleep(1)
         ret, frame = self.cameraStreamer.videoCapture.read()
         if ret:
-            print("resolution: {}".format(frame.shape))
             rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             h, w, ch = rgbImage.shape
             bytesPerLine = ch * w            
@@ -59,7 +63,7 @@ class PreviewPanel(QLabel):
     def setCameraData(self, cameraData):
         self.cameraData = cameraData
         self.cameraStreamer.setCameraData(self.cameraData)
+        self.imageCapture.setCameraData(self.cameraData)
 
     def captureImage(self, captureDir, captureName):
-        self.cameraStreamer.captureImage(captureDir, captureName)
-
+        self.imageCapture.captureImage(captureDir, captureName)
