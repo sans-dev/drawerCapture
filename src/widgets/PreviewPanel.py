@@ -18,7 +18,7 @@ class PreviewPanel(QLabel):
     
     def initUI(self):
         # set the size of the preview panel
-        panel_size = (int(1024), int(680))
+        panel_size = (int(1024), int(780))
         self.setFixedSize(panel_size[0], panel_size[1])
         self.setFrameStyle(1)
         self.setLineWidth(1)
@@ -51,10 +51,14 @@ class PreviewPanel(QLabel):
 
     def stopPreview(self):
         self.cameraStreamer.quit()
+        self.emptyPreview()
+
+    def emptyPreview(self):
+        self.setPixmap(QPixmap())
         
     def setCameraData(self, cameraData):
         self.cameraData = cameraData
-        self.cameraStreamer.setCameraData(cameraData)
+        self.cameraStreamer.setCameraData(self.cameraData)
 
     def captureImage(self, captureDir, captureName):
         self.cameraStreamer.captureImage(captureDir, captureName)

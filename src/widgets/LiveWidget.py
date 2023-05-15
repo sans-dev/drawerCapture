@@ -103,7 +103,6 @@ class LiveWidget(QWidget):
         self.selectCameraListWidget.confirmButton.clicked.connect(self.enableStartLivePreviewButton)
 
         self.selectCameraButton.clicked.connect(self.selectCameraListWidget.show)
-        self.selectCameraButton.clicked.connect(self.selectCameraListWidget.refreshButtonClicked)
 
         self.stopLivePreviewButton.clicked.connect(self.loadingSpinner.stop)
         self.stopLivePreviewButton.clicked.connect(self.loadingSpinner.hide)
@@ -129,6 +128,9 @@ class LiveWidget(QWidget):
 
     def selectCamera(self):
         self._hidePanelWidgets()
+        if not self.selectCameraListWidget.isRefreshed:
+            self.selectCameraListWidget.refreshButtonClicked()
+        #self.selectCameraButton.clicked.disconnect(self.selectCameraListWidget.refreshButtonClicked)
     
     def captureImage(self):
         self.previewPanel.captureImage('data/captures','test.jpg') 
@@ -146,6 +148,7 @@ class LiveWidget(QWidget):
         self.previewPanel.stopPreview()
 
     def closeLiveMode(self):
+        self.previewPanel.stopPreview()
         self.changed.emit("main")
 
     def _hidePanelWidgets(self):
@@ -163,7 +166,7 @@ class LiveWidget(QWidget):
         self.captureImageButton.show()
 
     def _updatePreviewLabel(self):
-        self.previewPanelLabel.setText(f"Live Preview ({self.selectCameraListWidget.selectedCameraData})")
+        self.previewPanelLabel.setText(f"Live Preview ({self.previewPanel.cameraStreamer.getCameraDataAsString()})")
 
 '''
 class LivePreviewWidget(QWidget):

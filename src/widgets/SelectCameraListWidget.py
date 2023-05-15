@@ -12,6 +12,7 @@ class SelectCameraListWidget(QWidget):
         self.cameraFetcher = CameraFetcher()
         self.initUI()
 
+        self.isRefreshed = False
     def initUI(self):
         # apply style sheet
         self.cameraListWidget = QListWidget()
@@ -47,7 +48,7 @@ class SelectCameraListWidget(QWidget):
         selected_item = self.cameraListWidget.currentItem()
         if selected_item is not None:
             self.selectedCameraData  = self.cameraFetcher.getCameraData(selected_item.text())
-            self.selectedCameraChanged.emit(selected_item.text())
+            self.selectedCameraChanged.emit(self.selectedCameraData)
         self.hide()
 
     def refreshButtonClicked(self):
@@ -56,6 +57,7 @@ class SelectCameraListWidget(QWidget):
         self.cameraFetcher.finished.connect(self.updateCameraList)
         self.refreshing.emit()
         self.cameraFetcher.start()
+        self.isRefreshed = True
 
     def updateCameraList(self, cameras):
         self.cameraListWidget.clear()

@@ -24,8 +24,16 @@ class CameraStreamer(QThread):
         self.capturingImage.connect(self.quit)
         self.imageCaptured.connect(self.start)
 
+        self.proc = None
+
     def run(self):
         self._stopGphoto2Slaves()
+        # append camera name and port to the start stream command
+        self.startStreamCmd.append('--name')
+        self.startStreamCmd.append(self.cameraName)
+        self.startStreamCmd.append('--port')
+        self.startStreamCmd.append(self.cameraPort)
+        print(" ".join(self.startStreamCmd))
         self.proc = subprocess.Popen(self.startStreamCmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.buildingStream.emit()
         print("starting video stream with id {}".format(self.proc.pid))
@@ -33,6 +41,7 @@ class CameraStreamer(QThread):
             print("waiting for video stream to open")
             time.sleep(1)
         self.videoCapture.open(self.videoStreamDir.as_posix())
+        print('start capturing video stream')
 
         if self.videoCapture.isOpened():
             print("video stream opened")
@@ -44,8 +53,9 @@ class CameraStreamer(QThread):
 
     def quit(self):
         self.streamStopped.emit()
-        self.proc.terminate()
-        self.proc.wait()
+        if self.proc:
+            self.proc.terminate()
+            self.proc.wait()
         self.videoCapture.release()
         self._stopGphoto2Slaves()
         super().quit()
@@ -62,8 +72,11 @@ class CameraStreamer(QThread):
         self.imageCaptured.emit()
 
     def setCameraData(self, cameraData):
-        self.cameraName = cameraData.split('usb')[0]
-        self.cameraPort = f"usb{cameraData.split('usb')[-1]}"
+        self.cameraName = cameraData.split('usb')[0].strip()
+        self.cameraPort = f"usb{cameraData.split('usb')[-1].strip()}"
+
+    def getCameraDataAsString(self):
+        return f"Camera Name: {self.cameraName}, Port: {self.cameraPort}"
 
 
     def _stopGphoto2Slaves(self):
