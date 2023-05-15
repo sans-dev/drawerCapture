@@ -112,10 +112,7 @@ class LiveWidget(QWidget):
         self.previewPanel.cameraStreamer.streamRunning.connect(self.loadingSpinner.stop)
         self.previewPanel.cameraStreamer.streamRunning.connect(self.loadingSpinner.hide)
         self.selectCameraListWidget.selectedCameraChanged.connect(self.previewPanel.setCameraData)
-
-        self.previewPanel.cameraStarted.connect(self.enableCaptureImageButton)
-        #self.previewPanel.cameraStarted.connect(self.enableStopLivePreviewButton)
-
+        self.selectCameraListWidget.selectedCameraChanged.connect(self.enableCaptureImageButton)
 
     def enableStartLivePreviewButton(self):
         self.startLivePreviewButton.setEnabled(True)
@@ -138,9 +135,11 @@ class LiveWidget(QWidget):
     def startPreview(self):
         self.selectCameraListWidget.setEnabled(False)
         self.startStopStackLayout.setCurrentIndex(1)
+        self.previewPanel.wasStreaming = True
         self.previewPanel.startPreview()
 
     def stopPreview(self):
+        self.previewPanel.wasStreaming = False
         self.captureImageButton.setEnabled(False)
         self.selectCameraButton.setEnabled(True)
         self.selectCameraListWidget.setEnabled(True)

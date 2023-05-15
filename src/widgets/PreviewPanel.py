@@ -7,13 +7,13 @@ from threads.CameraStreamer import CameraStreamer
 from threads.ImageCapture import ImageCapture
 
 class PreviewPanel(QLabel):
-    cameraStarted = pyqtSignal()
     def __init__(self):
         super().__init__()
         self.cameraStreamer = CameraStreamer()
         self.imageCapture = ImageCapture()
         self.cameraData = None
         self.timer = QTimer()        
+        self.wasStreaming = False
         
         self.initUI()
         self.connectSignals()
@@ -47,8 +47,8 @@ class PreviewPanel(QLabel):
             self.setPixmap(pixmap)
         
     def startPreview(self):
-        self.cameraStreamer.start()
-        self.cameraStarted.emit()
+        if self.wasStreaming:
+            self.cameraStreamer.start()
 
     def startTimer(self):
         self.timer.start(100)

@@ -7,11 +7,13 @@ class ImageCapture(CameraThread):
         super().__init__(cameraData=cameraData)
         if cameraData:
             self.setCameraData(cameraData)
-        self.captureImgCmd = ['bash', 'src/cmds/capture_image.bash']
+        self.cmd = ['bash', 'src/cmds/capture_image.bash']
+
+        self.isStreaming = False
 
     def run(self):
         print("starting image capture")
-        self.proc = subprocess.Popen(self.captureImgCmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.proc = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         while self.proc.poll() is None:
             print("waiting for image capture to complete")
             self.sleep(1)
@@ -32,8 +34,10 @@ class ImageCapture(CameraThread):
 
     def captureImage(self, captureDir, captureName):
         super()._stopGphoto2Slaves()
-        self.captureImgCmd.append(captureDir)
-        self.captureImgCmd.append(captureName)
-        print(" ".join(self.captureImgCmd))
+        self.cmd.append(captureDir)
+        self.cmd.append(captureName)
+        self.cmd.append(self.cameraName)
+        self.cmd.append(self.cameraPort)
+        print(" ".join(self.cmd))
         self.start()
         self.quit()
