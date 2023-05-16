@@ -1,4 +1,5 @@
 import subprocess
+import time
 from threads.CameraThread import CameraThread
 
 class ImageCapture(CameraThread):
@@ -9,14 +10,13 @@ class ImageCapture(CameraThread):
             self.setCameraData(cameraData)
         self.cmd = ['bash', 'src/cmds/capture_image.bash']
 
-        self.isStreaming = False
+        self.finished.connect(self.quit)
 
     def run(self):
-        print("starting image capture")
         self.proc = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         while self.proc.poll() is None:
             print("waiting for image capture to complete")
-            self.sleep(1)
+            self.sleep(4)
         # check of proc terminated with exit code 0
         if self.proc.returncode == 0:
             print("image capture completed")
@@ -30,7 +30,7 @@ class ImageCapture(CameraThread):
     def quit(self):
         super()._stopGphoto2Slaves()
         super().quit()
-        print("image capture stopped")
+        print("image capture closed")
 
     def captureImage(self, captureDir, captureName):
         super()._stopGphoto2Slaves()
@@ -38,6 +38,28 @@ class ImageCapture(CameraThread):
         self.cmd.append(captureName)
         self.cmd.append(self.cameraName)
         self.cmd.append(self.cameraPort)
+        self.cmd.append('false')
+        print('starting image capture')
         print(" ".join(self.cmd))
         self.start()
-        self.quit()
+        self._resetCmd()
+
+    def _resetCmd(self):
+        self.cmd = ['bash', 'src/cmds/capture_image.bash']
+
+    def _setUpConfig(self, config: dict):
+        for key, value in config.items():
+            if key == '--image_dir':
+                self.cmd.append(key)
+                self.cmd.append(value)
+            elif key == '--image_name':
+                self.cmd.append(key)
+                self.cmd.append(value)
+            elif key == '--debug':
+                self.cmd.append(key)
+                self.cmd.append(value)
+            else:
+                print("invalid config key: {}".format(key))
+                return False
+
+        

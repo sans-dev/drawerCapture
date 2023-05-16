@@ -18,17 +18,18 @@ class CameraStreamer(CameraThread):
             self.setCameraData(cameraData)
         self.videoCapture = cv2.VideoCapture()
         self.videoStreamDir = Path('/dev/video2')
-        self.startStreamCmd = ['bash', 'src/cmds/open_video_stream.bash']
+        self.cmd = ['bash', 'src/cmds/open_video_stream.bash']
 
     def run(self):
         super()._stopGphoto2Slaves()
         # append camera name and port to the start stream command
-        self.startStreamCmd.append('--name')
-        self.startStreamCmd.append(self.cameraName)
-        self.startStreamCmd.append('--port')
-        self.startStreamCmd.append(self.cameraPort)
-        print(" ".join(self.startStreamCmd))
-        self.proc = subprocess.Popen(self.startStreamCmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cmd = self.cmd.copy()
+        cmd.append('--name')
+        cmd.append(self.cameraName)
+        cmd.append('--port')
+        cmd.append(self.cameraPort)
+        print(" ".join(self.cmd))
+        self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.buildingStream.emit()
         print("starting video stream with id {}".format(self.proc.pid))
         while not self.videoStreamDir.exists():
@@ -54,3 +55,4 @@ class CameraStreamer(CameraThread):
         super()._stopGphoto2Slaves()
         super().quit()
         print("video stream closed")
+        self.finished.emit()

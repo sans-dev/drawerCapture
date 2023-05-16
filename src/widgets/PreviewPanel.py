@@ -54,8 +54,9 @@ class PreviewPanel(QLabel):
         self.timer.start(100)
 
     def stopPreview(self):
-        self.cameraStreamer.quit()
-        self.emptyPreview()
+        if self.wasStreaming:
+            self.cameraStreamer.quit()
+            self.emptyPreview()
 
     def emptyPreview(self):
         self.setPixmap(QPixmap())
