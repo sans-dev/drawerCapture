@@ -30,7 +30,6 @@ class PreviewPanel(QLabel):
         self.cameraStreamer.streamRunning.connect(self.startTimer)
         self.cameraStreamer.streamStopped.connect(self.timer.stop)
 
-        self.imageCapture.started.connect(self.stopPreview)
         self.imageCapture.finished.connect(self.startPreview)
 
     def updatePreview(self):
@@ -67,5 +66,6 @@ class PreviewPanel(QLabel):
         self.imageCapture.setCameraData(self.cameraData)
 
     def captureImage(self, config):
+        self.stopPreview()
         self.imageCapture.setUpConfig(config)
         self.imageCapture.captureImage()

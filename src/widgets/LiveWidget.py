@@ -134,12 +134,13 @@ class LiveWidget(QWidget):
         if not self.selectCameraListWidget.isRefreshed:
             self.selectCameraListWidget.refreshButtonClicked()
     
+    def buildConfig(self, config={}):
+        config['--image_name'] = datetime.now().isoformat().replace(':','_').replace('.','-')
+        config['--image_dir'] = 'data/captures' 
+        return config
+    
     def captureImage(self):
-        isoTimeStamp = datetime.now().isoformat().replace(':','_').replace('.','-')
-        config = {
-            '--image_name' : f'{isoTimeStamp}_test',
-            '--image_dir' : 'data/captures'
-        }
+        config = self.buildConfig()
         self.previewPanel.captureImage(config)
 
     def startPreview(self):
@@ -182,9 +183,11 @@ class LiveWidget(QWidget):
         self.startLivePreviewButton.setEnabled(False)
         self.captureImageButton.setEnabled(False)
         self.closeButton.setEnabled(False)
+        self.stopLivePreviewButton.setEnabled(False)
 
     def _enableAllButtons(self):
         self.selectCameraButton.setEnabled(True)
         self.startLivePreviewButton.setEnabled(True)
         self.captureImageButton.setEnabled(True)
         self.closeButton.setEnabled(True)
+        self.stopLivePreviewButton.setEnabled(True)

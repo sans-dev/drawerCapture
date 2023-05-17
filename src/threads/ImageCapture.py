@@ -1,6 +1,5 @@
 import subprocess
 import shlex
-import time
 from threads.CameraThread import CameraThread
 
 class ImageCapture(CameraThread):

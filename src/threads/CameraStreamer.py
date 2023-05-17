@@ -28,7 +28,6 @@ class CameraStreamer(CameraThread):
         cmd.append(self.cameraName)
         cmd.append('--port')
         cmd.append(self.cameraPort)
-        print(" ".join(self.cmd))
         self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.buildingStream.emit()
         print("starting video stream with id {}".format(self.proc.pid))
