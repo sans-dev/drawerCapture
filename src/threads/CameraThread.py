@@ -10,10 +10,13 @@ class CameraThread(QThread):
         self.cameraName = None
         self.cameraPort = None
         self.proc = None
+        self.config = dict()
 
     def setCameraData(self, cameraData):
         self.cameraName = cameraData.split('usb')[0].strip()
         self.cameraPort = f"usb{cameraData.split('usb')[-1].strip()}"
+        self.config['--camera_name'] = self.cameraName
+        self.config['--port'] = self.cameraPort
 
     def getCameraDataAsString(self):
         return f"Camera Name: {self.cameraName}, Port: {self.cameraPort}"

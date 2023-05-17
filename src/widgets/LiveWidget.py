@@ -136,7 +136,11 @@ class LiveWidget(QWidget):
     
     def captureImage(self):
         isoTimeStamp = datetime.now().isoformat().replace(':','_').replace('.','-')
-        self.previewPanel.captureImage('data/captures',f'{isoTimeStamp}_test.raf')
+        config = {
+            '--image_name' : f'{isoTimeStamp}_test',
+            '--image_dir' : 'data/captures'
+        }
+        self.previewPanel.captureImage(config)
 
     def startPreview(self):
         self.selectCameraListWidget.setEnabled(False)

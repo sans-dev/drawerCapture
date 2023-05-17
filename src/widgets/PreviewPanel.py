@@ -66,5 +66,6 @@ class PreviewPanel(QLabel):
         self.cameraStreamer.setCameraData(self.cameraData)
         self.imageCapture.setCameraData(self.cameraData)
 
-    def captureImage(self, captureDir, captureName):
-        self.imageCapture.captureImage(captureDir, captureName)
+    def captureImage(self, config):
+        self.imageCapture.setUpConfig(config)
+        self.imageCapture.captureImage()

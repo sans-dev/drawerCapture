@@ -1,65 +1,72 @@
 import subprocess
+import shlex
 import time
 from threads.CameraThread import CameraThread
 
 class ImageCapture(CameraThread):
+    IMG_FORMATS = {
+        'Fuji' : '.raf',
+    }
 
     def __init__(self, cameraData=None):
         super().__init__(cameraData=cameraData)
-        if cameraData:
-            self.setCameraData(cameraData)
         self.cmd = ['bash', 'src/cmds/capture_image.bash']
+        self.config = {
+            '--image_dir': '',
+            '--image_name': '',
+            '--image_format': '.raf',
+            '--image_quality': '0',
+            '--camera_name': '' if self.cameraName is None else self.cameraName,
+            '--port': '' if self.cameraPort is None else self.cameraPort,
+            '--debug': 'false'
+        }
 
         self.finished.connect(self.quit)
 
     def run(self):
-        self.proc = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        while self.proc.poll() is None:
-            print("waiting for image capture to complete")
-            self.sleep(4)
-        # check of proc terminated with exit code 0
-        if self.proc.returncode == 0:
-            print("image capture completed")
-        else:
-            print("image capture failed")
-            stout, sterr = self.proc.communicate()
-            print(stout.decode('utf-8'))
-            print(sterr.decode('utf-8'))
-        self.proc = None
+        try:
+            self.proc = subprocess.Popen(
+                self._buildCmd(), 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE,
+                )
+
+            while self.proc.poll() is None:
+                stout, _ = self.proc.communicate()
+                print(stout.decode('utf-8'))
+        except subprocess.CalledProcessError as e:
+            print("Process failed because it did not return a sucessful return code")
+            print("Return cfode={e.returncode} \n {e}")
+        except FileNotFoundError as e:
+            print("Process failed because the executable was not found")
+            print(e)
+            print(self._buildCmd())
+        finally:
+            self.proc = None
         
     def quit(self):
         super()._stopGphoto2Slaves()
         super().quit()
         print("image capture closed")
 
-    def captureImage(self, captureDir, captureName):
+    def captureImage(self):
         super()._stopGphoto2Slaves()
-        self.cmd.append(captureDir)
-        self.cmd.append(captureName)
-        self.cmd.append(self.cameraName)
-        self.cmd.append(self.cameraPort)
-        self.cmd.append('false')
         print('starting image capture')
-        print(" ".join(self.cmd))
         self.start()
-        self._resetCmd()
+
+    def setUpConfig(self, config: dict):
+        for key, value in config.items():
+            try:
+                self.config[key] = value
+            except KeyError:
+                print(f"key {key} not found in config")
 
     def _resetCmd(self):
         self.cmd = ['bash', 'src/cmds/capture_image.bash']
 
-    def _setUpConfig(self, config: dict):
-        for key, value in config.items():
-            if key == '--image_dir':
-                self.cmd.append(key)
-                self.cmd.append(value)
-            elif key == '--image_name':
-                self.cmd.append(key)
-                self.cmd.append(value)
-            elif key == '--debug':
-                self.cmd.append(key)
-                self.cmd.append(value)
-            else:
-                print("invalid config key: {}".format(key))
-                return False
-
-        
+    def _buildCmd(self):
+        cmd = self.cmd.copy()
+        for key, value in self.config.items():
+            cmd.append(key)
+            cmd.append(value)
+        return shlex.split(' '.join(cmd))
