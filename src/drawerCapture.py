@@ -1,7 +1,7 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 
-from utils.load_style_sheet import *
+from utils import load_style_sheet
 from widgets import MainWidget
 from widgets import LiveWidget
 
@@ -31,8 +31,10 @@ class MainWindow(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    STYLES = ["Photoxo", "Combinear", "Diffnes", "SyNet"]
+    CURRENT_STYLE = STYLES[3]
     # switch to the Photoxo style
-    app.setStyleSheet(load_combinear_style_sheet())
+    app.setStyleSheet(load_style_sheet(CURRENT_STYLE))
     mainWindow = MainWindow()
     mainWindow.show()
     sys.exit(app.exec())
