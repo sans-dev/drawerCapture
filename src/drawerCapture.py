@@ -2,8 +2,8 @@ import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 
 from utils.load_style_sheet import *
-from widgets.MainWidget import MainWidget
-from widgets.LiveWidget import LiveWidget
+from widgets import MainWidget
+from widgets import LiveWidget
 
 class MainWindow(QMainWindow):
     def __init__(self):

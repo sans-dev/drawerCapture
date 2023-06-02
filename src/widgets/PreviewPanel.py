@@ -3,8 +3,8 @@ from PyQt6.QtCore import QTimer, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap
 import cv2
 import time
-from threads.CameraStreamer import CameraStreamer
-from threads.ImageCapture import ImageCapture
+
+from threads import CameraStreamer, ImageCapture
 
 class PreviewPanel(QLabel):
     def __init__(self):

@@ -4,7 +4,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from threads.CameraThread import CameraThread
+from threads import CameraThread
 
 
 class CameraStreamer(CameraThread):

@@ -3,10 +3,7 @@ from datetime import datetime
 from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QHBoxLayout, QVBoxLayout, QLabel, QStackedLayout
 from PyQt6.QtCore import Qt, pyqtSignal
 
-from widgets.SelectCameraListWidget import SelectCameraListWidget
-from widgets.DataCollectionTextField import DataCollectionTextField
-from widgets.SpinnerWidget import LoadingSpinner 
-from widgets.PreviewPanel import PreviewPanel
+from widgets import SelectCameraListWidget, PreviewPanel, DataCollectionTextField, LoadingSpinner
 
 class LiveWidget(QWidget):
     changed = pyqtSignal(str)

@@ -1,6 +1,6 @@
 import subprocess
 import shlex
-from threads.CameraThread import CameraThread
+from threads import CameraThread
 
 class ImageCapture(CameraThread):
     IMG_FORMATS = {
