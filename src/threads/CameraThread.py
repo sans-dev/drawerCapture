@@ -12,6 +12,8 @@ class CameraThread(QThread):
         self.proc = None
         self.config = dict()
 
+        self.proc = None
+
     def setCameraData(self, cameraData):
         self.cameraName = cameraData.split('usb')[0].strip()
         self.cameraPort = f"usb{cameraData.split('usb')[-1].strip()}"
@@ -40,3 +42,6 @@ class CameraThread(QThread):
                     pid
                 ]
                 subprocess.run(cmd)
+
+    def _procFinished(self):
+        self.proc = QProcess()

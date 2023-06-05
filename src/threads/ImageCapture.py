@@ -1,4 +1,4 @@
-import subprocess
+from PyQt6.QtCore import QProcess
 import shlex
 from threads import CameraThread
 
@@ -6,11 +6,13 @@ class ImageCapture(CameraThread):
     IMG_FORMATS = {
         'Fuji' : '.raf',
     }
+    WAIT_TIME_MS = 10_000
 
     def __init__(self, cameraData=None):
         super().__init__(cameraData=cameraData)
-        self.cmd = ['bash', 'src/cmds/capture_image.bash']
+        self.cmd = 'bash'
         self.config = {
+            '--script': 'src/cmds/capture_image.bash',
             '--image_dir': '',
             '--image_name': '',
             '--image_format': '.raf',
@@ -23,35 +25,30 @@ class ImageCapture(CameraThread):
         self.finished.connect(self.quit)
 
     def run(self):
-        try:
-            self.proc = subprocess.Popen(
-                self._buildCmd(), 
-                stdout=subprocess.PIPE, 
-                stderr=subprocess.PIPE,
-                )
+        print("image capture started")
+        super()._stopGphoto2Slaves()
+        self._captureImage()
 
-            while self.proc.poll() is None:
-                stout, _ = self.proc.communicate()
-                print(stout.decode('utf-8'))
-        except subprocess.CalledProcessError as e:
-            print("Process failed because it did not return a sucessful return code")
-            print("Return cfode={e.returncode} \n {e}")
-        except FileNotFoundError as e:
-            print("Process failed because the executable was not found")
-            print(e)
-            print(self._buildCmd())
-        finally:
-            self.proc = None
+    def _captureImage(self):
+        if self.proc is None:
+            self.proc = QProcess()
+            self.proc.finished.connect(self._procFinished)
+            self.proc.start(self.cmd, self._buildConfig())
+            started = self.proc.waitForStarted()
+            if not started:
+                print("image capture failed to start")
+                error = self.proc.readAllStandardError().data().decode('utf-8')
+                print(error)
+            self.proc.waitForFinished(-1)
         
+    def _procFinished(self):
+        self.proc = None
+        self.finished.emit()
+
     def quit(self):
         super()._stopGphoto2Slaves()
         super().quit()
         print("image capture closed")
-
-    def captureImage(self):
-        super()._stopGphoto2Slaves()
-        print('starting image capture')
-        self.start()
 
     def setUpConfig(self, config: dict):
         for key, value in config.items():
@@ -60,12 +57,12 @@ class ImageCapture(CameraThread):
             except KeyError:
                 print(f"key {key} not found in config")
 
-    def _resetCmd(self):
-        self.cmd = ['bash', 'src/cmds/capture_image.bash']
-
-    def _buildCmd(self):
-        cmd = self.cmd.copy()
+    def _buildConfig(self):
+        config = []
         for key, value in self.config.items():
-            cmd.append(key)
-            cmd.append(value)
-        return shlex.split(' '.join(cmd))
+            if key == '--script':
+                config.append(value)
+                continue
+            config.append(key)
+            config.append(value)
+        return shlex.split(' '.join(config))

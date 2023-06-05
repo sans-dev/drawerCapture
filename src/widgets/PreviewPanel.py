@@ -68,4 +68,4 @@ class PreviewPanel(QLabel):
     def captureImage(self, config):
         self.stopPreview()
         self.imageCapture.setUpConfig(config)
-        self.imageCapture.captureImage()
+        self.imageCapture.start()
