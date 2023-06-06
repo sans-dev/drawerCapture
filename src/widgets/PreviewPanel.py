@@ -27,16 +27,12 @@ class PreviewPanel(QLabel):
     
     def connectSignals(self):
         self.timer.timeout.connect(self.updatePreview)
-        self.cameraStreamer.streamRunning.connect(self.startTimer)
         self.cameraStreamer.streamStopped.connect(self.timer.stop)
-
+        self.cameraStreamer.videoCapture.deviceOpen.connect(self.startTimer)
         self.imageCapture.finished.connect(self.startPreview)
 
     def updatePreview(self):
-        while self.cameraStreamer.videoCapture.isOpened() == False:
-            print("waiting for video capture")
-            time.sleep(1)
-        ret, frame = self.cameraStreamer.videoCapture.read()
+        ret, frame = self.cameraStreamer.videoCapture.device.read()
         if ret:
             rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             h, w, ch = rgbImage.shape

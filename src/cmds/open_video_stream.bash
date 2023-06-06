@@ -6,15 +6,15 @@
 args=("$@")
 for ((i=0; i<${#args[@]}; i++)); do
     case ${args[i]} in
-        --name) name=${args[i+1]};;
+        --model) model=${args[i+1]};;
         --port) port=${args[i+1]};;
         --dir) dir=${args[i+1]};;
     esac
 done
 # echo name and port 
-echo "name: $name"
+echo "camera: $model"
 echo "port: $port"
 echo "dir: $dir"
 
-gphoto2 --stdout --capture-movie --camera $name --port $port --set-config liveviewsize=0 | ffmpeg -i - -vcodec rawvideo -pix_fmt yuv420p -threads 0 -f v4l2 -s:v 1024x780 -r 25 $dir
+gphoto2 --stdout --capture-movie --camera $model --port $port --set-config liveviewsize=0 | ffmpeg -i - -vcodec rawvideo -pix_fmt yuv420p -threads 0 -f v4l2 -s:v 1024x780 -r 25 $dir
 ``` 

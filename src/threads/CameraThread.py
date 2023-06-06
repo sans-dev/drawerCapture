@@ -7,21 +7,20 @@ class CameraThread(QThread):
         super().__init__()
         if cameraData:
             self.setCameraData(cameraData)
-        self.cameraName = None
-        self.cameraPort = None
-        self.proc = None
+        self.model = None
+        self.port = None
         self.config = dict()
 
         self.proc = None
 
     def setCameraData(self, cameraData):
-        self.cameraName = cameraData.split('usb')[0].strip()
-        self.cameraPort = f"usb{cameraData.split('usb')[-1].strip()}"
-        self.config['--camera_name'] = self.cameraName
-        self.config['--port'] = self.cameraPort
+        self.model = cameraData.split('usb')[0].strip()
+        self.port = f"usb{cameraData.split('usb')[-1].strip()}"
+        self.config['--model'] = self.model
+        self.config['--port'] = self.port
 
     def getCameraDataAsString(self):
-        return f"Camera Name: {self.cameraName}, Port: {self.cameraPort}"
+        return f"Camera Name: {self.model}, Port: {self.port}"
 
     def _stopGphoto2Slaves(self):
         # get the process id of the gphoto2 slave processes using pgrep -fla gphoto2
@@ -44,4 +43,16 @@ class CameraThread(QThread):
                 subprocess.run(cmd)
 
     def _procFinished(self):
-        self.proc = QProcess()
+        self.proc = None
+        self.finished.emit()
+
+    def _buildKwargs(self):
+        kwargs = []
+        for key, value in self.config.items():
+            if key == '--script':
+                kwargs.append(value)
+                continue
+            kwargs.append(key)
+            kwargs.append(value)
+        print(kwargs)
+        return kwargs
