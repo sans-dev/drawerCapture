@@ -44,7 +44,8 @@ class CameraStreamer(CameraThread):
         if self.proc:
             print('Terminate streaming process')
             self.videoCapture.device.release()
-            self.proc.kill()
+            self.proc.terminate()
+            self.proc.waitForFinished()
         super()._stopGphoto2Slaves()
         super().quit()
 

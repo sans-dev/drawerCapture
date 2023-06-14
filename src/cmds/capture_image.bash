@@ -24,8 +24,9 @@ echo "DEBUG: $DEBUG"
 # capture image and download to image dir with full resolution
 # check if debug is enabled
 if [ $DEBUG == "true" ]; then
-    $DEBUG_LOGFILE="logs/capture_$FILE_NAME.log"
-    gphoto2 --set-config movie=0 --set-config imageformat=$IMAGE_FORMAT --camera $MODEL --port $PORT --capture-image-and-download --filename $FILE_NAME --force-overwrite --debug --debug-logfile=$DEBUG_LOGFILE
+    DEBUG_LOGFILE="logs/$IMAGE_NAME-capture.log"
+    echo "DEBUG_LOGFILE: $DEBUG_LOGFILE"
+    gphoto2 --set-config movie=0 --camera $MODEL --port $PORT --capture-image-and-download --filename $FILE_NAME --force-overwrite --debug --debug-logfile=$DEBUG_LOGFILE
     else
-    gphoto2 --set-config movie=0 --set-condifig imageformat=$IMAGE_FORMAT --camera $MODEL --port $PORT --capture-image-and-download --filename $FILE_NAME --force-overwrite
+    gphoto2 --set-config movie=0 --camera $MODEL --port $PORT --capture-image-and-download --filename $FILE_NAME --force-overwrite
 fi

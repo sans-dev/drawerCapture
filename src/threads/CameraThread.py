@@ -58,6 +58,8 @@ class CameraThread(QThread):
 
     def printStdOut(self):
             stdOut = self.proc.readAllStandardOutput().data().decode('utf-8')
-            stdErr = self.proc.readAllStandardError().data().decode('utf-8')
-            print('CameraStreamer Output:\n', stdOut)
-            print('CameraStreamer Error:\n', stdErr)
+            print(stdOut)
+
+    def printStdErr(self):
+        stdErr = self.proc.readAllStandardError().data().decode('utf-8')
+        print(stdErr)

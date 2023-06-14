@@ -13,11 +13,9 @@ class ImageCapture(CameraThread):
         self.config['--script'] = 'src/cmds/capture_image.bash'
         self.config['--image_dir'] = ''
         self.config['--image_name'] = ''
-        self.config['--image_format'] = '.raf'
+        self.config['--image_format'] = '.tiff'
         self.config['--image_quality'] = '0'
         self.config['--debug'] = 'true'
-
-        self.finished.connect(self.quit)
 
     def run(self):
         print("image capture started")
@@ -27,17 +25,17 @@ class ImageCapture(CameraThread):
     def _captureImage(self):
         if self.proc is None:
             self.proc = QProcess()
-            self.proc.finished.connect(self._procFinished)
-            self.proc.start(self.cmd, self._buildKwargs())
+            if self.config['--debug'] == 'false':
+                self.proc.readyReadStandardError.connect(self.printStdErr)
             self.proc.readyReadStandardOutput.connect(self.printStdOut)
+            self.proc.finished.connect(self._procFinished)
+
+            self.proc.start(self.cmd, self._buildKwargs())
             started = self.proc.waitForStarted()
+
             if not started:
                 print("image capture failed to start")
-                stdOut = self.proc.readAllStandardOutput().data().decode('utf-8')
-                stdErr = self.proc.readAllStandardError().data().decode('utf-8')
-                print('ImageCapture Output:\n', stdOut)
-                print('ImageCapture Error:\n', stdErr)
-
+                return
             self.proc.waitForFinished(-1)
         
     def quit(self):
