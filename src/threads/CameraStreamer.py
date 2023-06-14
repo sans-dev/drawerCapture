@@ -14,8 +14,11 @@ class CameraStreamer(CameraThread):
         self.videoCapture = VideoCaptureDevice()
         self.config['--script'] = 'src/cmds/open_video_stream.bash'
         self.config['--dir'] = self._getVideoStreamDir().as_posix()
+        self.videoCapture.deviceOpen.connect(self.streamRunning.emit)
+        self.wasRunning = False
 
     def run(self):
+        self.wasRunning = True
         print('Building video stream')
         super()._stopGphoto2Slaves()
         if self.proc is None:
@@ -30,28 +33,20 @@ class CameraStreamer(CameraThread):
             if not started:
                 print('Failed to start video stream')
                 return
-            self.streamRunning.emit()
             print('Video stream running')
             self.proc.waitForReadyRead(-1)
             self.videoCapture.setVideoStreamDir(self.config['--dir'])
             self.videoCapture.start()
-            self.proc.waitForFinished(-1)
-
-    def printStdOut(self):
-            stdOut = self.proc.readAllStandardOutput().data().decode('utf-8')
-            stdErr = self.proc.readAllStandardError().data().decode('utf-8')
-            print('CameraStreamer Output:\n', stdOut)
-            print('CameraStreamer Error:\n', stdErr)
-
 
     def quit(self):
         self.streamStopped.emit()
+        self.wasRunning = False
         if self.proc:
-            self.proc.terminate()
-        self.videoCapture.device.release()
+            print('Terminate streaming process')
+            self.videoCapture.device.release()
+            self.proc.kill()
         super()._stopGphoto2Slaves()
         super().quit()
-        print("video stream closed")
 
     def _getVideoStreamDir(self):
         proc = QProcess()

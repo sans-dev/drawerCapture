@@ -25,6 +25,9 @@ class LoadingSpinner(QWidget):
 
     def start(self):
         self.movie.start()
+        print("spinner started")
 
     def stop(self):
         self.movie.stop()
+        print("spinner stopped")
+    

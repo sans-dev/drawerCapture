@@ -1,5 +1,4 @@
 from PyQt6.QtCore import QProcess
-import shlex
 from threads import CameraThread
 
 class ImageCapture(CameraThread):
@@ -16,7 +15,7 @@ class ImageCapture(CameraThread):
         self.config['--image_name'] = ''
         self.config['--image_format'] = '.raf'
         self.config['--image_quality'] = '0'
-        self.config['--debug'] = 'false'
+        self.config['--debug'] = 'true'
 
         self.finished.connect(self.quit)
 
@@ -30,11 +29,15 @@ class ImageCapture(CameraThread):
             self.proc = QProcess()
             self.proc.finished.connect(self._procFinished)
             self.proc.start(self.cmd, self._buildKwargs())
+            self.proc.readyReadStandardOutput.connect(self.printStdOut)
             started = self.proc.waitForStarted()
             if not started:
                 print("image capture failed to start")
-                error = self.proc.readAllStandardError().data().decode('utf-8')
-                print(error)
+                stdOut = self.proc.readAllStandardOutput().data().decode('utf-8')
+                stdErr = self.proc.readAllStandardError().data().decode('utf-8')
+                print('ImageCapture Output:\n', stdOut)
+                print('ImageCapture Error:\n', stdErr)
+
             self.proc.waitForFinished(-1)
         
     def quit(self):

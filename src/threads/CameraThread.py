@@ -33,8 +33,8 @@ class CameraThread(QThread):
         # get the pid and kill the process
         for line in output.split('\n'):
             if 'gphoto2' in line:
+                print(line)
                 pid = line.split(' ')[0]
-                print(pid)
                 cmd = [
                     'kill',
                     '-9',
@@ -44,7 +44,6 @@ class CameraThread(QThread):
 
     def _procFinished(self):
         self.proc = None
-        self.finished.emit()
 
     def _buildKwargs(self):
         kwargs = []
@@ -56,3 +55,9 @@ class CameraThread(QThread):
             kwargs.append(value)
         print(kwargs)
         return kwargs
+
+    def printStdOut(self):
+            stdOut = self.proc.readAllStandardOutput().data().decode('utf-8')
+            stdErr = self.proc.readAllStandardError().data().decode('utf-8')
+            print('CameraStreamer Output:\n', stdOut)
+            print('CameraStreamer Error:\n', stdErr)

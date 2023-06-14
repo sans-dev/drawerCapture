@@ -1,8 +1,7 @@
 from PyQt6.QtWidgets import QLabel
-from PyQt6.QtCore import QTimer, pyqtSignal
+from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QImage, QPixmap
 import cv2
-import time
 
 from threads import CameraStreamer, ImageCapture
 
@@ -13,7 +12,6 @@ class PreviewPanel(QLabel):
         self.imageCapture = ImageCapture()
         self.cameraData = None
         self.timer = QTimer()        
-        self.wasStreaming = False
         
         self.initUI()
         self.connectSignals()
@@ -29,7 +27,6 @@ class PreviewPanel(QLabel):
         self.timer.timeout.connect(self.updatePreview)
         self.cameraStreamer.streamStopped.connect(self.timer.stop)
         self.cameraStreamer.videoCapture.deviceOpen.connect(self.startTimer)
-        self.imageCapture.finished.connect(self.startPreview)
 
     def updatePreview(self):
         ret, frame = self.cameraStreamer.videoCapture.device.read()
@@ -42,17 +39,15 @@ class PreviewPanel(QLabel):
             self.setPixmap(pixmap)
         
     def startPreview(self):
-        if self.wasStreaming:
-            self.cameraStreamer.start()
+        self.cameraStreamer.start()
 
     def startTimer(self):
         self.timer.start(100)
 
     def stopPreview(self):
-        if self.wasStreaming:
-            self.cameraStreamer.quit()
-            self.emptyPreview()
-
+        self.cameraStreamer.quit()
+        self.emptyPreview()
+    
     def emptyPreview(self):
         self.setPixmap(QPixmap())
         
@@ -62,6 +57,9 @@ class PreviewPanel(QLabel):
         self.imageCapture.setCameraData(self.cameraData)
 
     def captureImage(self, config):
-        self.stopPreview()
+        if self.cameraStreamer.wasRunning:
+            self.imageCapture.finished.connect(self.startPreview)
+            self.cameraStreamer.quit()
+            self.emptyPreview()
         self.imageCapture.setUpConfig(config)
         self.imageCapture.start()
