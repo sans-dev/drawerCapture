@@ -1,20 +1,29 @@
 from datetime import datetime
 
+import logging
+import logging.config
+
 from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QHBoxLayout, QVBoxLayout, QLabel, QStackedLayout
 from PyQt6.QtCore import Qt, pyqtSignal
 
 from widgets import SelectCameraListWidget, PreviewPanel, DataCollectionTextField, LoadingSpinner
 
+logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
+logger = logging.getLogger(__name__)
+
 class LiveWidget(QWidget):
     changed = pyqtSignal(str)
 
     def __init__(self):
+        logger.debug("initializing live widget")
         super().__init__()
 
         self.initUI()
         self.connectSignals()
 
     def initUI(self):
+        logger.debug("initializing live widget UI")
+
         self.setWindowTitle("Live Mode")
         # setup grid layout
         self.layout = QGridLayout()
@@ -87,6 +96,7 @@ class LiveWidget(QWidget):
         self.layout.addLayout(self.buttonLayout, 1, 0, Qt.AlignmentFlag.AlignLeft)
 
     def connectSignals(self):
+        logger.debug("connecting signals for live widget")
         self.selectCameraListWidget.closed.connect(self._showPanelWidgets)
         self.selectCameraListWidget.cameraFetcher.started.connect(self.loadingSpinner.start)
         self.selectCameraListWidget.cameraFetcher.started.connect(self.loadingSpinner.show)
@@ -116,44 +126,55 @@ class LiveWidget(QWidget):
         self.previewPanel.imageCapture.finished.connect(self.loadingSpinner.hide)
 
     def enableStartLivePreviewButton(self):
+        logger.debug("enabling start live preview button")
         self.startLivePreviewButton.setEnabled(True)
 
     def enableSelectCameraButton(self):
+        logger.debug("enabling select camera button")
         self.selectCameraButton.setEnabled(True)
 
     def enableCaptureImageButton(self):
+        logger.debug("enabling capture image button")
         self.captureImageButton.setEnabled(True)
 
     def selectCamera(self):
+        logger.debug("selecting camera")
         self._hidePanelWidgets()
         if not self.selectCameraListWidget.isRefreshed:
+            logger.debug("refreshing camera list")
             self.selectCameraListWidget.refreshButtonClicked()
     
     def buildConfig(self, config={}):
+        logger.debug("building config")
         config['--image_name'] = datetime.now().isoformat().replace(':','_').replace('.','-')
         config['--image_dir'] = 'data/captures' 
         return config
     
     def captureImage(self):
+        logger.debug("capturing image")
         config = self.buildConfig()
         self.previewPanel.captureImage(config)
 
     def startPreview(self):
+        logger.debug("starting preview")
         self.selectCameraListWidget.setEnabled(False)
         self.startStopStackLayout.setCurrentIndex(1)
         self.previewPanel.startPreview()
 
     def stopPreview(self):
+        logger.debug("stopping preview")
         self.selectCameraButton.setEnabled(True)
         self.selectCameraListWidget.setEnabled(True)
         self.startStopStackLayout.setCurrentIndex(0)
         self.previewPanel.stopPreview()
 
     def closeLiveMode(self):
+        logger.debug("closing live mode")
         self.previewPanel.stopPreview()
         self.changed.emit("main")
 
     def _hidePanelWidgets(self):
+        logger.debug("hiding panel widgets")
         self.previewPanel.hide()
         self.previewPanelLabel.hide()
         self.selectCameraButton.hide()
@@ -161,6 +182,7 @@ class LiveWidget(QWidget):
         self.captureImageButton.hide()
     
     def _showPanelWidgets(self):
+        logger.debug("showing panel widgets")
         self.previewPanel.show()
         self.previewPanelLabel.show()
         self.selectCameraButton.show()
@@ -168,6 +190,7 @@ class LiveWidget(QWidget):
         self.captureImageButton.show()
 
     def _updatePreviewLabel(self):
+        logger.debug("updating preview label")
         self.previewPanelLabel.setText(f"Live Preview ({self.previewPanel.cameraStreamer.getCameraDataAsString()})")
 
     def _disableAllButtons(self):

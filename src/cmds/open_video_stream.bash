@@ -11,10 +11,5 @@ for ((i=0; i<${#args[@]}; i++)); do
         --dir) dir=${args[i+1]};;
     esac
 done
-# echo name and port 
-echo "camera: $model"
-echo "port: $port"
-echo "dir: $dir"
 
 gphoto2 --set-config movie=1 --stdout --capture-movie --camera $model --port $port --set-config liveviewsize=0 | ffmpeg -i - -vcodec rawvideo -pix_fmt yuv420p -threads 0 -f v4l2 -s:v 1024x780 -r 10 $dir
-``` 

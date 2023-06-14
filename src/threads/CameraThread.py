@@ -1,5 +1,10 @@
 import subprocess
+import logging
+import logging.config
 from PyQt6.QtCore import QThread
+
+logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
+logger = logging.getLogger(__name__)
 
 class CameraThread(QThread):
 
@@ -23,6 +28,7 @@ class CameraThread(QThread):
         return f"Camera Name: {self.model}, Port: {self.port}"
 
     def _stopGphoto2Slaves(self):
+        logger.debug("stopping gphoto2 slave processes")
         # get the process id of the gphoto2 slave processes using pgrep -fla gphoto2
         # kill the processes using kill -9 <pid>
         cmd = ['pgrep', '-fla', 'gphoto2']
@@ -33,7 +39,7 @@ class CameraThread(QThread):
         # get the pid and kill the process
         for line in output.split('\n'):
             if 'gphoto2' in line:
-                print(line)
+                logger.debug("killing gphoto2 slave process %s", line)
                 pid = line.split(' ')[0]
                 cmd = [
                     'kill',
@@ -53,13 +59,13 @@ class CameraThread(QThread):
                 continue
             kwargs.append(key)
             kwargs.append(value)
-        print(kwargs)
+        logger.debug("kwargs: %s", kwargs)
         return kwargs
 
     def printStdOut(self):
             stdOut = self.proc.readAllStandardOutput().data().decode('utf-8')
-            print(stdOut)
+            logger.info(stdOut)
 
     def printStdErr(self):
         stdErr = self.proc.readAllStandardError().data().decode('utf-8')
-        print(stdErr)
+        logger.debug(stdErr)
