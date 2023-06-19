@@ -33,7 +33,7 @@ class CameraStreamer(CameraThread):
             self.proc = QProcess()
             self.proc.finished.connect(self._procFinished)
             self.proc.readyReadStandardOutput.connect(self.printStdOut)
-            self.proc.readyReadStandardError.connect(self.printStdErr)
+            # self.proc.readyReadStandardError.connect(self.printStdErr) buggy, 
 
             logger.debug("starting video stream process")
             self.proc.start('bash', self._buildKwargs())
@@ -42,21 +42,20 @@ class CameraStreamer(CameraThread):
             if not started:
                 logger.error("failed to start video stream process")
                 self.quit()
-            logger.info("stream started on dummy device %s", self.config['--dir'])
             self.proc.waitForReadyRead(-1)
             self.videoCapture.setVideoStreamDir(self.config['--dir'])
             self.videoCapture.start()
 
     def quit(self):
         logger.info("quitting camera streamer thread")
-        self.streamStopped.emit()
         self.wasRunning = False
         if self.proc:
             logger.info("stopping video stream process")
-            self.videoCapture.device.release()
             self.proc.terminate()
             self.proc.waitForFinished()
+            self.videoCapture.quit()
         super()._stopGphoto2Slaves()
+        self.streamStopped.emit()
         super().quit()
 
     def getFrame(self):

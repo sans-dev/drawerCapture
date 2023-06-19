@@ -23,6 +23,7 @@ class CameraThread(QThread):
         self.port = f"usb{cameraData.split('usb')[-1].strip()}"
         self.config['--model'] = self.model
         self.config['--port'] = self.port
+        self.config['--debug'] = str(logger.getEffectiveLevel() == logging.DEBUG).lower()
 
     def getCameraDataAsString(self):
         return f"Camera Name: {self.model}, Port: {self.port}"
