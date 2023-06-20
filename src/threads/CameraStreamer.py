@@ -33,7 +33,8 @@ class CameraStreamer(CameraThread):
             self.proc = QProcess()
             self.proc.finished.connect(self._procFinished)
             self.proc.readyReadStandardOutput.connect(self.printStdOut)
-            # self.proc.readyReadStandardError.connect(self.printStdErr) buggy, 
+            self.proc.setCurrentReadChannel(1)
+            self.proc.readyReadStandardError.connect(self.printStdErr)
 
             logger.debug("starting video stream process")
             self.proc.start('bash', self._buildKwargs())
@@ -43,6 +44,7 @@ class CameraStreamer(CameraThread):
                 logger.error("failed to start video stream process")
                 self.quit()
             self.proc.waitForReadyRead(-1)
+            logger.info("Output stream ready")
             self.videoCapture.setVideoStreamDir(self.config['--dir'])
             self.videoCapture.start()
 

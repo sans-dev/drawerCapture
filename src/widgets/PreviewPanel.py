@@ -72,9 +72,10 @@ class PreviewPanel(QLabel):
         if self.frame is not None:
             logger.debug("freezing preview")
             greyImage = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-            h, w = greyImage.shape
+            blurImage = cv2.GaussianBlur(greyImage, (25, 25), 0)
+            h, w = blurImage.shape
             bytesPerLine = w
-            qt_image = QImage(greyImage.data, w, h, bytesPerLine, QImage.Format.Format_Grayscale8)
+            qt_image = QImage(blurImage.data, w, h, bytesPerLine, QImage.Format.Format_Grayscale8)
             pixmap = QPixmap.fromImage(qt_image)
             self.setPixmap(pixmap)
         else:

@@ -15,11 +15,6 @@ for ((i=0; i<${#args[@]}; i++)); do
 done
 #create file name from IMAGE_DIR and IMAGE_NAME and IMAGE_FORMAT
 FILE_NAME="$IMAGE_DIR/$IMAGE_NAME$IMAGE_FORMAT"
-echo "MODEL: $MODEL"
-echo "PORT: $PORT"
-echo "IMAGE_FORMAT: $IMAGE_FORMAT"
-echo "Capturing image to $FILE_NAME"
-echo "DEBUG: $DEBUG"
 
 # capture image and download to image dir with full resolution
 # check if debug is enabled
