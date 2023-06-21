@@ -30,8 +30,7 @@ class ImageCapture(CameraThread):
     def _captureImage(self):
         if self.proc is None:
             self.proc = QProcess()
-            if self.config['--debug'] == 'false':
-                self.proc.readyReadStandardError.connect(self.printStdErr)
+            self.proc.readyReadStandardError.connect(self.printStdErr)
             self.proc.readyReadStandardOutput.connect(self.printStdOut)
             self.proc.finished.connect(self._procFinished)
 
