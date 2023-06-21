@@ -53,7 +53,10 @@ class PreviewPanel(QLabel):
         
     def startPreview(self):
         logger.debug("starting preview")
-        self.cameraStreamer.start()
+        if self.cameraStreamer.wasRunning:
+            self.startTimer()
+        else:
+            self.cameraStreamer.start()
 
     def startTimer(self):
         logger.debug("starting timer")
@@ -61,7 +64,7 @@ class PreviewPanel(QLabel):
 
     def stopPreview(self):
         logger.debug("stopping preview")
-        self.cameraStreamer.quit()
+        self.timer.stop()
         self.freezePreview()
     
     def emptyPreview(self):
@@ -72,7 +75,7 @@ class PreviewPanel(QLabel):
         if self.frame is not None:
             logger.debug("freezing preview")
             greyImage = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-            blurImage = cv2.GaussianBlur(greyImage, (25, 25), 0)
+            blurImage = cv2.GaussianBlur(greyImage, (55, 55), 0)
             h, w = blurImage.shape
             bytesPerLine = w
             qt_image = QImage(blurImage.data, w, h, bytesPerLine, QImage.Format.Format_Grayscale8)
@@ -96,6 +99,14 @@ class PreviewPanel(QLabel):
             self.freezePreview()
         self.imageCapture.setUpConfig(config)
         self.imageCapture.start()
+
+    def close(self):
+        logger.debug("quitting preview panel")
+        self.cameraStreamer.quit()
+        self.imageCapture.quit()
+        self.timer.stop()
+        self.emptyPreview()
+        super().close()
 
     def _setPanelImage(self):
         logger.debug("updating preview panel with new frame")

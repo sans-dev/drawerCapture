@@ -1,5 +1,10 @@
+import logging
+import logging.config
+logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
+
 from PyQt6.QtCore import pyqtSignal, QThread, QProcess
 
+logger = logging.getLogger(__name__)
 class CameraFetcher(QThread):
     finished  = pyqtSignal(list)
     WAIT_TIME_MS = 10_000
@@ -11,15 +16,16 @@ class CameraFetcher(QThread):
 
     def run(self):
         if self.proc is None:
+            logger.info("fetching cameras")
             self.proc = QProcess()
             self.proc.finished.connect(self.procFinished)
 
             self.proc.start('gphoto2', ['--auto-detect'])
             finished = self.proc.waitForFinished(self.WAIT_TIME_MS)
-            
+            logger.debug("finished: %s", finished)
             if not finished:
                 self.finished.emit(['No cameras found'])
-                print('Fetching process timed out')
+                logger.debug("Fetching cameras timed out")
                 return
             
             output = self.proc.readAllStandardOutput()
@@ -29,6 +35,7 @@ class CameraFetcher(QThread):
 
             for line in lines:
                 if 'usb:' in line:
+                    logger.debug("found camera: %s", line)
                     cameras.append(line.split('usb:')[0])
                     self.cameras_data.append(line)
 
@@ -40,6 +47,7 @@ class CameraFetcher(QThread):
         self.proc = None
         
     def getCameraData(self, camera):
+        logger.debug("getting camera data for %s", camera)
         for camera_data in self.cameras_data:
             if camera in camera_data:
                 return camera_data

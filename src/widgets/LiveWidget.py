@@ -170,7 +170,10 @@ class LiveWidget(QWidget):
 
     def closeLiveMode(self):
         logger.debug("closing live mode")
-        self.previewPanel.stopPreview()
+        self.previewPanel.close()
+        self.selectCameraListWidget.close()
+        self.selectCameraListWidget = None
+        self.selectCameraListWidget = SelectCameraListWidget()
         self.changed.emit("main")
 
     def _hidePanelWidgets(self):

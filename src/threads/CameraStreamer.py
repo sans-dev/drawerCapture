@@ -56,7 +56,6 @@ class CameraStreamer(CameraThread):
             self.proc.terminate()
             self.proc.waitForFinished()
             self.videoCapture.quit()
-        super()._stopGphoto2Slaves()
         self.streamStopped.emit()
         super().quit()
 

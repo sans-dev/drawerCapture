@@ -70,3 +70,8 @@ class CameraThread(QThread):
     def printStdErr(self):
         stdErr = self.proc.readAllStandardError().data().decode('utf-8')
         logger.debug(stdErr)
+
+    def quit(self):
+        logger.debug("quitting camera thread")
+        self._stopGphoto2Slaves()
+        super().quit()
