@@ -84,5 +84,7 @@ class SelectCameraListWidget(QWidget):
 
     def close(self):
         logger.debug("closing select camera list widget")
+        self.cameraFetcher.quit() 
         self.closed.emit()
+
         super().close()

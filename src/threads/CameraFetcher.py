@@ -52,3 +52,10 @@ class CameraFetcher(QThread):
             if camera in camera_data:
                 return camera_data
         return None
+
+    def quit(self):
+        logger.debug("quitting camera fetcher")
+        if self.proc is not None:
+            self.proc.kill()
+            self.finished.emit(['No cameras found'])
+        super().quit()
