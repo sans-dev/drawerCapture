@@ -183,6 +183,7 @@ class LiveWidget(QWidget):
         self.selectCameraButton.hide()
         self.startLivePreviewButton.hide()
         self.captureImageButton.hide()
+        self.closeButton.hide()
     
     def _showPanelWidgets(self):
         logger.debug("showing panel widgets")
@@ -191,6 +192,7 @@ class LiveWidget(QWidget):
         self.selectCameraButton.show()
         self.startLivePreviewButton.show()
         self.captureImageButton.show()
+        self.closeButton.show()
 
     def _updatePreviewLabel(self):
         logger.debug("updating preview label")
