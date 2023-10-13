@@ -124,6 +124,8 @@ class LiveWidget(QWidget):
         self.previewPanel.imageCapture.started.connect(self.loadingSpinner.show)
         self.previewPanel.imageCapture.finished.connect(self.loadingSpinner.stop)
         self.previewPanel.imageCapture.finished.connect(self.loadingSpinner.hide)
+        self.previewPanel.previewStopped.connect(self.loadingSpinner.stop)
+        self.previewPanel.previewStopped.connect(self.loadingSpinner.hide)
 
     def enableStartLivePreviewButton(self):
         logger.debug("enabling start live preview button")

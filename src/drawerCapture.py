@@ -17,13 +17,13 @@ class MainWindow(QMainWindow):
         logger.debug("initializing main window")
         super().__init__()
         self.widgets = {
-            "main": MainWidget(),
-            "live": LiveWidget()
+            "main": MainWidget,
+            "live": LiveWidget
         }
         self.stackedWidget = QStackedWidget()
         for widget in self.widgets.values():
-            self.stackedWidget.addWidget(widget)
-            widget.changed.connect(self.switchWidget)
+            self.stackedWidget.addWidget(widget())
+            widget().changed.connect(self.switchWidget)
 
         self.initUI()
 
@@ -36,7 +36,7 @@ class MainWindow(QMainWindow):
 
     def switchWidget(self, widget):
         logger.debug("switching to widget: %s", widget)
-        self.stackedWidget.setCurrentWidget(self.widgets[widget])
+        self.stackedWidget.setCurrentWidget(self.widgets[widget]())
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

@@ -2,7 +2,7 @@ import logging
 import logging.config
 
 from PyQt6.QtWidgets import QLabel
-from PyQt6.QtCore import QTimer
+from PyQt6.QtCore import QTimer, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap
 import cv2
 
@@ -12,6 +12,7 @@ logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False
 logger = logging.getLogger(__name__)
 
 class PreviewPanel(QLabel):
+    previewStopped = pyqtSignal()
     def __init__(self):
         logger.debug("initializing preview panel")
         super().__init__()
@@ -66,6 +67,7 @@ class PreviewPanel(QLabel):
         logger.debug("stopping preview")
         self.timer.stop()
         self.freezePreview()
+        self.previewStopped.emit()
     
     def emptyPreview(self):
         logger.debug("emptying preview")
