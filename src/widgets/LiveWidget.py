@@ -25,9 +25,6 @@ class LiveWidget(QWidget):
         logger.debug("initializing live widget UI")
 
         self.setWindowTitle("Live Mode")
-        # setup grid layout
-        self.layout = QGridLayout()
-        self.setLayout(self.layout)
 
         # add select camera button
         self.selectCameraButton = QPushButton("Select Camera")
@@ -82,18 +79,20 @@ class LiveWidget(QWidget):
         self.dataCollectionLayout.addWidget(self.dataCollectionTextField)
 
         # add start live preview button and capture image button to a horizontal layout
-        self.buttonLayout = QHBoxLayout()
-        self.buttonLayout.addWidget(self.selectCameraButton)
-        self.buttonLayout.addLayout(self.startStopStackLayout, Qt.AlignmentFlag.AlignLeft)
-        self.buttonLayout.addWidget(self.captureImageButton)
+        self.buttonLayout = QGridLayout()
+        self.buttonLayout.addWidget(self.selectCameraButton,0,0)
+        self.buttonLayout.addLayout(self.startStopStackLayout,0,1,1,1)
+        self.buttonLayout.addWidget(self.captureImageButton,0,2)
+        self.buttonLayout.addWidget(self.closeButton,0,3)
         
         # arange widgets in grid layout
-        self.layout.addWidget(self.selectCameraListWidget, 0, 0, Qt.AlignmentFlag.AlignTop)
-        self.layout.addLayout(self.panelLayout, 0, 0, Qt.AlignmentFlag.AlignCenter)
+        self.layout = QGridLayout()
+        self.layout.addWidget(self.selectCameraListWidget, 0, 0) 
+        self.layout.addLayout(self.panelLayout, 0, 0)
         self.layout.addWidget(self.loadingSpinner, 0, 0, Qt.AlignmentFlag.AlignCenter)
-        self.layout.addLayout(self.dataCollectionLayout, 0, 1, Qt.AlignmentFlag.AlignTop)
-        self.layout.addWidget(self.closeButton, 1, 1, Qt.AlignmentFlag.AlignBottom)
-        self.layout.addLayout(self.buttonLayout, 1, 0, Qt.AlignmentFlag.AlignLeft)
+        self.layout.addLayout(self.dataCollectionLayout, 0, 1)
+        self.layout.addLayout(self.buttonLayout, 1, 0)
+        self.setLayout(self.layout)
 
     def connectSignals(self):
         logger.debug("connecting signals for live widget")
@@ -156,6 +155,7 @@ class LiveWidget(QWidget):
         logger.debug("capturing image")
         config = self.buildConfig()
         self.previewPanel.captureImage(config)
+        self.changed.emit("image")
 
     def startPreview(self):
         logger.debug("starting preview")

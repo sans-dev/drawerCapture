@@ -4,8 +4,7 @@ import logging.config
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 
 from utils import load_style_sheet
-from widgets import MainWidget
-from widgets import LiveWidget
+from widgets import MainWidget, LiveWidget, ImageWidget
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -18,7 +17,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.widgets = {
             "main": MainWidget(),
-            "live": LiveWidget()
+            "live": LiveWidget(),
+            "image": ImageWidget()
         }
         self.stackedWidget = QStackedWidget()
         for widget in self.widgets.values():
@@ -30,7 +30,7 @@ class MainWindow(QMainWindow):
     def initUI(self):
         # Set the window title and size
         self.setWindowTitle("DrawerCapture")
-        self.setGeometry(1500, 1000, 1200, 500)
+        self.setGeometry(0, 0, 1200, 300)
 
         self.setCentralWidget(self.stackedWidget)
 

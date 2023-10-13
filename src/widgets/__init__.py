@@ -4,3 +4,4 @@ from .DataCollectionTextField import DataCollectionTextField
 from .PreviewPanel import PreviewPanel
 from .LiveWidget import LiveWidget
 from .MainWidget import MainWidget
+from .ImageWidget import ImageWidget
