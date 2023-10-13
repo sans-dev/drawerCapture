@@ -16,10 +16,11 @@ class MainWindow(QMainWindow):
     def __init__(self):
         logger.debug("initializing main window")
         super().__init__()
+        imageWidget = ImageWidget()
         self.widgets = {
             "main": MainWidget(),
-            "live": LiveWidget(),
-            "image": ImageWidget()
+            "live": LiveWidget(imageWidget),
+            "image": imageWidget
         }
         self.stackedWidget = QStackedWidget()
         for widget in self.widgets.values():
@@ -29,7 +30,7 @@ class MainWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setFixedSize(QSize(1200, 900))
+        self.setFixedSize(QSize(1500, 900))
         # Set the window title and size
         self.setWindowTitle("DrawerCapture")
         self.setCentralWidget(self.stackedWidget)

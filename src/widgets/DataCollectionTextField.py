@@ -41,7 +41,7 @@ class DataCollectionTextField(QWidget):
         # Add the labels and text input fields to the sub layouts
         for subLayout in subLayouts:
             # adjust spacing between widgets
-            subLayout.setContentsMargins(15,5,40,5)
+            subLayout.setContentsMargins(5,15,15,5)
             subLayout.setSpacing(5)
             subLayout.addWidget(labels.pop(0), alignment=Qt.AlignmentFlag.AlignLeft)
             subLayout.addWidget(text_inputs.pop(0), alignment=Qt.AlignmentFlag.AlignRight)

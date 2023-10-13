@@ -6,7 +6,7 @@ import logging.config
 from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QVBoxLayout, QLabel, QStackedLayout
 from PyQt6.QtCore import Qt, pyqtSignal
 
-from widgets import SelectCameraListWidget, PreviewPanel, LoadingSpinner
+from widgets import SelectCameraListWidget, PreviewPanel, LoadingSpinner 
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 class LiveWidget(QWidget):
     changed = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self, imagePanel):
         logger.debug("initializing live widget")
         super().__init__()
-
+        self.imagePanel = imagePanel
         self.initUI()
         self.connectSignals()
 
@@ -148,6 +148,7 @@ class LiveWidget(QWidget):
     def imageCaptured(self, imageName):
         logger.debug("image captured")
         self.changed.emit("image")
+        self.imagePanel.setImage(imageName)
 
     def startPreview(self):
         logger.debug("starting preview")

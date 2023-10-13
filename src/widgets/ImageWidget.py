@@ -2,9 +2,9 @@ import logging
 import logging.config
 
 from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import pyqtSignal, Qt
 
-from widgets import PreviewPanel, DataCollectionTextField
+from widgets import ImagePanel, DataCollectionTextField
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class ImageWidget(QWidget):
         self.connectSignals()
 
     def initUI(self):
-        self.panel = PreviewPanel()
+        self.panel = ImagePanel()
         self.collectionField = DataCollectionTextField()
         # create a horizontal layout for the buttons (crop, enahnce, save, close)
         self.buttonLayout = QGridLayout()
@@ -34,8 +34,7 @@ class ImageWidget(QWidget):
         # create a vertical layout for the panel and buttons
         self.panelLayout = QGridLayout()
         self.panelLayout.addWidget(self.panel, 0, 0)
-        self.panelLayout.addWidget(self.collectionField, 0, 1,1,1)
-        self.panelLayout.addLayout(self.buttonLayout, 2, 0)
+        self.panelLayout.addLayout(self.buttonLayout, 2, 0, alignment=Qt.AlignmentFlag.AlignCenter)
         # add the collectionField right to the layout
         self.layout = QGridLayout()
         self.layout.addLayout(self.panelLayout, 0, 0)
@@ -61,3 +60,8 @@ class ImageWidget(QWidget):
         self.enhanceButton.setEnabled(False)
         self.saveButton.setEnabled(False)
         self.closeButton.setEnabled(False)
+    
+    def setImage(self, image_path):
+        logger.debug("updating image widget with new image: %s", image_path)
+        self.panel.setImage(image_path)
+        self.enableButtons()

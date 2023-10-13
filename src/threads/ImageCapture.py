@@ -24,6 +24,8 @@ class ImageCapture(CameraThread):
         self.config['--image_format'] = '.tiff'
         self.config['--image_quality'] = '0'
 
+        self.finished.connect(self.quit)
+
     def run(self):
         logger.info("running image capture thread")
         super()._stopGphoto2Slaves()
@@ -43,13 +45,13 @@ class ImageCapture(CameraThread):
             if not started:
                 logger.warining("failed to start image capture process")
                 return
-            self.proc.waitForFinished(-1)
+            self.proc.waitForFinished(self.WAIT_TIME_MS)
         
     def quit(self):
         super()._stopGphoto2Slaves()
         self.imageCaptured.emit(self.config['--image_dir'] + self.config['--image_name'] + self.config['--image_format'])
-        super().quit()
         logger.info("quitting image capture thread")
+        super().quit()
 
     def setUpConfig(self, config: dict):
         for key, value in config.items():
