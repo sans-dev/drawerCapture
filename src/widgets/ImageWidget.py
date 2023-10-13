@@ -6,45 +6,19 @@ from PyQt6.QtCore import pyqtSignal
 
 from widgets import PreviewPanel, DataCollectionTextField
 
-import logging
-import logging.config
-
-from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout
-from PyQt6.QtCore import pyqtSignal
-
-from widgets import PreviewPanel, DataCollectionTextField
-
-import logging
-import logging.config
-
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 class ImageWidget(QWidget):
-    """
-    A widget for displaying and manipulating images.
-
-    Signals:
-        changed: A signal emitted when the image is changed.
-
-    Methods:
-        __init__: Initializes the ImageWidget.
-        initUI: Initializes the user interface.
-        connectSignals: Connects signals to slots.
-        closeEvent: Overrides the close event to emit the changed signal.
-    """
     changed = pyqtSignal(str)
 
     def __init__(self):
         logger.debug("initializing image widget")
-        super(ImageWidget, self).__init__()
+        super().__init__()
         self.initUI()
         self.connectSignals()
 
     def initUI(self):
-        """
-        Initializes the user interface.
-        """
         self.panel = PreviewPanel()
         self.collectionField = DataCollectionTextField()
         # create a horizontal layout for the buttons (crop, enahnce, save, close)
@@ -67,16 +41,23 @@ class ImageWidget(QWidget):
         self.layout.addLayout(self.panelLayout, 0, 0)
         self.layout.addWidget(self.collectionField, 0, 1)
         self.setLayout(self.layout)
+        self.disableButtons()
 
     def connectSignals(self):
-        """
-        Connects signals to slots.
-        """
-        pass
+        self.closeButton.clicked.connect(self.close)
 
-    def closeEvent(self, event):
-        """
-        Overrides the close event to emit the changed signal.
-        """
-        ImageWidget.changed.emit("live")
-        super(ImageWidget, self).closeEvent(event)
+    def close(self):
+        self.changed.emit("live")
+        super().close()
+
+    def enableButtons(self):
+        self.cropButton.setEnabled(True)
+        self.enhanceButton.setEnabled(True)
+        self.saveButton.setEnabled(True)
+        self.closeButton.setEnabled(True)
+
+    def disableButtons(self):
+        self.cropButton.setEnabled(False)
+        self.enhanceButton.setEnabled(False)
+        self.saveButton.setEnabled(False)
+        self.closeButton.setEnabled(False)

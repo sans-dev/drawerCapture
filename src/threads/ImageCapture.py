@@ -2,7 +2,7 @@ import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 
-from PyQt6.QtCore import QProcess
+from PyQt6.QtCore import QProcess, pyqtSignal
 from threads import CameraThread
 
 logger = logging.getLogger(__name__)
@@ -12,6 +12,8 @@ class ImageCapture(CameraThread):
         'Fuji' : '.raf',
     }
     WAIT_TIME_MS = 10_000
+
+    imageCaptured = pyqtSignal(str)
 
     def __init__(self, cameraData=None):
         super().__init__(cameraData=cameraData)
@@ -45,6 +47,7 @@ class ImageCapture(CameraThread):
         
     def quit(self):
         super()._stopGphoto2Slaves()
+        self.imageCaptured.emit(self.config['--image_dir'] + self.config['--image_name'] + self.config['--image_format'])
         super().quit()
         logger.info("quitting image capture thread")
 

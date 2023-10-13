@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 class PreviewPanel(QLabel):
     previewStopped = pyqtSignal()
+    capturedImage = pyqtSignal(str)
+
     def __init__(self):
         logger.debug("initializing preview panel")
         super().__init__()
@@ -101,6 +103,7 @@ class PreviewPanel(QLabel):
             self.freezePreview()
         self.imageCapture.setUpConfig(config)
         self.imageCapture.start()
+        self.capturedImage.emit(config['--image_name'])
 
     def close(self):
         logger.debug("quitting preview panel")

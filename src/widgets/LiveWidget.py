@@ -3,10 +3,10 @@ from datetime import datetime
 import logging
 import logging.config
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QHBoxLayout, QVBoxLayout, QLabel, QStackedLayout
+from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QVBoxLayout, QLabel, QStackedLayout
 from PyQt6.QtCore import Qt, pyqtSignal
 
-from widgets import SelectCameraListWidget, PreviewPanel, DataCollectionTextField, LoadingSpinner
+from widgets import SelectCameraListWidget, PreviewPanel, LoadingSpinner
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -44,12 +44,7 @@ class LiveWidget(QWidget):
         # add a stop preview button at the bottom of the preview panel
         self.stopLivePreviewButton = QPushButton("Stop Live Preview")
         self.stopLivePreviewButton.clicked.connect(self.stopPreview)
-        self.stopLivePreviewButton.hide()
-
-        # stack start and stop preview buttons
-        self.startStopStackLayout = QStackedLayout()
-        self.startStopStackLayout.addWidget(self.startLivePreviewButton)
-        self.startStopStackLayout.addWidget(self.stopLivePreviewButton)
+        self.stopLivePreviewButton.setEnabled(False)
         
         # add an close button
         self.closeButton = QPushButton("Close")
@@ -69,29 +64,21 @@ class LiveWidget(QWidget):
         self.panelLayout = QVBoxLayout()
         self.panelLayout.addWidget(self.previewPanelLabel, alignment=Qt.AlignmentFlag.AlignCenter)
         self.panelLayout.addWidget(self.previewPanel)
-        
-        # add data collection text field
-        self.dataCollectionTextField = DataCollectionTextField()
-        self.dataCollectionLabel = QLabel("Data Collection")
-        self.dataCollectionLabel.setStyleSheet('font-size: 20px;')
-        self.dataCollectionLayout = QVBoxLayout()
-        self.dataCollectionLayout.addWidget(self.dataCollectionLabel, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.dataCollectionLayout.addWidget(self.dataCollectionTextField)
 
         # add start live preview button and capture image button to a horizontal layout
         self.buttonLayout = QGridLayout()
-        self.buttonLayout.addWidget(self.selectCameraButton,0,0)
-        self.buttonLayout.addLayout(self.startStopStackLayout,0,1,1,1)
-        self.buttonLayout.addWidget(self.captureImageButton,0,2)
-        self.buttonLayout.addWidget(self.closeButton,0,3)
+        self.buttonLayout.addWidget(self.selectCameraButton,0,0,1,2)
+        self.buttonLayout.addWidget(self.startLivePreviewButton,0,2,1,2)
+        self.buttonLayout.addWidget(self.stopLivePreviewButton,0,4,1,2)
+        self.buttonLayout.addWidget(self.captureImageButton,0,6,1,2)
+        self.buttonLayout.addWidget(self.closeButton,0,8,1,2)
         
         # arange widgets in grid layout
         self.layout = QGridLayout()
         self.layout.addWidget(self.selectCameraListWidget, 0, 0) 
         self.layout.addLayout(self.panelLayout, 0, 0)
         self.layout.addWidget(self.loadingSpinner, 0, 0, Qt.AlignmentFlag.AlignCenter)
-        self.layout.addLayout(self.dataCollectionLayout, 0, 1)
-        self.layout.addLayout(self.buttonLayout, 1, 0)
+        self.layout.addLayout(self.buttonLayout, 1,0,1,1, alignment=Qt.AlignmentFlag.AlignHCenter)
         self.setLayout(self.layout)
 
     def connectSignals(self):
@@ -126,6 +113,8 @@ class LiveWidget(QWidget):
         self.previewPanel.previewStopped.connect(self.loadingSpinner.stop)
         self.previewPanel.previewStopped.connect(self.loadingSpinner.hide)
 
+        self.previewPanel.imageCapture.imageCaptured.connect(self.imageCaptured)
+
     def enableStartLivePreviewButton(self):
         logger.debug("enabling start live preview button")
         self.startLivePreviewButton.setEnabled(True)
@@ -155,19 +144,24 @@ class LiveWidget(QWidget):
         logger.debug("capturing image")
         config = self.buildConfig()
         self.previewPanel.captureImage(config)
+
+    def imageCaptured(self, imageName):
+        logger.debug("image captured")
         self.changed.emit("image")
 
     def startPreview(self):
         logger.debug("starting preview")
         self.selectCameraListWidget.setEnabled(False)
-        self.startStopStackLayout.setCurrentIndex(1)
+        self.startLivePreviewButton.setEnabled(False)
+        self.stopLivePreviewButton.setEnabled(True)
         self.previewPanel.startPreview()
 
     def stopPreview(self):
         logger.debug("stopping preview")
         self.selectCameraButton.setEnabled(True)
         self.selectCameraListWidget.setEnabled(True)
-        self.startStopStackLayout.setCurrentIndex(0)
+        self.startLivePreviewButton.setEnabled(True)
+        self.stopLivePreviewButton.setEnabled(False)
         self.previewPanel.stopPreview()
 
     def closeLiveMode(self):
@@ -184,6 +178,7 @@ class LiveWidget(QWidget):
         self.previewPanelLabel.hide()
         self.selectCameraButton.hide()
         self.startLivePreviewButton.hide()
+        self.stopLivePreviewButton.hide()
         self.captureImageButton.hide()
         self.closeButton.hide()
     

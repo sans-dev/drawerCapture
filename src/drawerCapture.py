@@ -2,6 +2,7 @@ import sys
 import logging
 import logging.config
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
+from PyQt6.QtCore import QSize
 
 from utils import load_style_sheet
 from widgets import MainWidget, LiveWidget, ImageWidget
@@ -28,10 +29,9 @@ class MainWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
+        self.setFixedSize(QSize(1200, 900))
         # Set the window title and size
         self.setWindowTitle("DrawerCapture")
-        self.setGeometry(0, 0, 1200, 300)
-
         self.setCentralWidget(self.stackedWidget)
 
     def switchWidget(self, widget):
@@ -41,7 +41,7 @@ class MainWindow(QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     STYLES = ["Photoxo", "Combinear", "Diffnes", "SyNet"]
-    CURRENT_STYLE = STYLES[1]
+    CURRENT_STYLE = STYLES[0]
     # switch to the Photoxo style
     app.setStyleSheet(load_style_sheet(CURRENT_STYLE))
     mainWindow = MainWindow()

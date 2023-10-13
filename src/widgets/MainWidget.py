@@ -21,8 +21,8 @@ class MainWidget(QWidget):
         self.offlineModeButton.clicked.connect(self.enterOfflineMode)
 
         # Add the widgets to the layout
-        self.layout.addWidget(self.liveModeButton, 0, 0)
-        self.layout.addWidget(self.offlineModeButton, 0, 1)
+        self.layout.addWidget(self.liveModeButton, 0, 0, 1, 1)
+        self.layout.addWidget(self.offlineModeButton, 0, 1, 1, 1)
         
     def enterOfflineMode(self):
         pass
