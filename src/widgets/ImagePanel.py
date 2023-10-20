@@ -43,7 +43,7 @@ class ImagePanel(QLabel):
         self.emptyPreview()
         super().close()
 
-    def setImage(self, image_dir):
+    def loadImage(self, image_dir):
         logger.info("updating image panel with new image: %s", image_dir)
         self._loadImage(image_dir)
         h, w, ch = self.image.shape
@@ -52,17 +52,23 @@ class ImagePanel(QLabel):
         h_scale = h / self.height()
         w_scale = w / self.width()
         self.image = cv2.resize(self.image, (int(w / w_scale), int(h / h_scale)))
-        h, w, ch = self.image.shape
-        bytesPerLine = ch * w   
-        qt_image = QImage(self.image.data, w, h, bytesPerLine, QImage.Format.Format_RGB888)
-        pixmap = QPixmap.fromImage(qt_image)
-        self.setPixmap(pixmap)
+        self._updatePanel()
+
+    def processImage(self, processor=None):
+        self.image = processor.process(self.image)
+        self._updatePanel()
 
     def _setPanelFormat(self, img_width, img_height):
         img_format = img_width / img_height 
         self.panelSize = ImagePanel.FORMATS[img_format]
         self.setFixedSize(self.panelSize[0], self.panelSize[1])
 
+    def _updatePanel(self):
+        h, w, ch = self.image.shape
+        bytesPerLine = ch * w   
+        qt_image = QImage(self.image.data, w, h, bytesPerLine, QImage.Format.Format_RGB888)
+        pixmap = QPixmap.fromImage(qt_image)
+        self.setPixmap(pixmap)
 
     def _loadImage(self,image_dir):
         # check the format and choose the appropriate loading method

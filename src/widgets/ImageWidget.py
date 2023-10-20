@@ -63,5 +63,9 @@ class ImageWidget(QWidget):
     
     def setImage(self, image_path):
         logger.debug("updating image widget with new image: %s", image_path)
-        self.panel.setImage(image_path)
+        self.panel.loadImage(image_path)
         self.enableButtons()
+
+    def enhanceButtonPressed(self):
+        
+        self.panel.processImage(self.processors.AHE.process)
