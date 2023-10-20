@@ -1,3 +1,4 @@
+from pathlib import Path
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
@@ -11,7 +12,7 @@ class ImageCapture(CameraThread):
     IMG_FORMATS = {
         'Fuji' : '.raf',
     }
-    WAIT_TIME_MS = 10_000
+    WAIT_TIME_MS = 20_000
 
     imageCaptured = pyqtSignal(str)
 
@@ -21,8 +22,7 @@ class ImageCapture(CameraThread):
         self.config['--script'] = 'src/cmds/capture_image.bash'
         self.config['--image_dir'] = ''
         self.config['--image_name'] = ''
-        self.config['--image_format'] = '.tiff'
-        self.config['--image_quality'] = '0'
+        self.config['--image_format'] = '.jpeg'
 
         self.finished.connect(self.quit)
 
@@ -45,12 +45,12 @@ class ImageCapture(CameraThread):
             if not started:
                 logger.warining("failed to start image capture process")
                 return
-            self.proc.waitForFinished(self.WAIT_TIME_MS)
+            self.proc.waitForFinished(ImageCapture.WAIT_TIME_MS)
         
     def quit(self):
-        super()._stopGphoto2Slaves()
-        self.imageCaptured.emit(self.config['--image_dir'] + self.config['--image_name'] + self.config['--image_format'])
         logger.info("quitting image capture thread")
+        self.imageCaptured.emit(f"{self.config['--image_dir']}/{self.config['--image_name']}{self.config['--image_format']}")
+        super()._stopGphoto2Slaves()
         super().quit()
 
     def setUpConfig(self, config: dict):

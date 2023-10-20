@@ -30,7 +30,7 @@ class MainWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setFixedSize(QSize(1500, 900))
+        # self.setFixedSize(QSize(1700, 1100))
         # Set the window title and size
         self.setWindowTitle("DrawerCapture")
         self.setCentralWidget(self.stackedWidget)
@@ -42,7 +42,7 @@ class MainWindow(QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     STYLES = ["Photoxo", "Combinear", "Diffnes", "SyNet"]
-    CURRENT_STYLE = STYLES[0]
+    CURRENT_STYLE = STYLES[2]
     # switch to the Photoxo style
     app.setStyleSheet(load_style_sheet(CURRENT_STYLE))
     mainWindow = MainWindow()
