@@ -1,9 +1,11 @@
 import logging
 import logging.config
 import rawpy
-from PyQt6.QtWidgets import QLabel
+from PyQt6.QtWidgets import QLabel, QFileDialog
 from PyQt6.QtGui import QImage, QPixmap
 import cv2
+
+from processors import AdaptiveHE
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -15,13 +17,15 @@ class ImagePanel(QLabel):
         3/2 : (int(1440),int(960))
     }
 
-    def __init__(self):
+    def __init__(self, emitter):
         logger.debug("initializing preview panel")
         super().__init__()
         self.cameraData = None
         self.image = None
+        self.emitter = emitter
         self.initUI()
         self.connectSignals()
+
     
     def initUI(self):
         logger.debug("initializing preview panel UI")
@@ -32,7 +36,8 @@ class ImagePanel(QLabel):
         self.setLineWidth(1)
     
     def connectSignals(self):
-        pass
+        logger.debug("connecting signals for preview panel")
+        self.emitter.processed.connect(self._updatePanel)
 
     def emptyPreview(self):
         logger.debug("emptying preview")
@@ -54,7 +59,10 @@ class ImagePanel(QLabel):
         self.image = cv2.resize(self.image, (int(w / w_scale), int(h / h_scale)))
         self._updatePanel()
 
-    def processImage(self, processor=None):
+    def processImage(self, processor : str):
+        logger.info("processing image with: %s", processor)
+        if processor == "adaptive_he":
+            processor = AdaptiveHE(self.emitter)
         self.image = processor.process(self.image)
         self._updatePanel()
 
@@ -79,3 +87,15 @@ class ImagePanel(QLabel):
                 self.image = raw.postprocess()
         else:
             self.image = cv2.imread(image_dir)
+
+    def saveImage(self):
+        logger.info("saving image")
+        # open a file dialog to save the image
+        options = QFileDialog.Options()
+        options |= QFileDialog.Option.DontUseNativeDialog
+        file_name, _ = QFileDialog.getSaveFileName(self,"Save Image", "","JPEG (*.jpeg)", options=options)
+        if file_name:
+            cv2.imwrite(file_name, self.image)
+            logger.debug("image saved to: %s", file_name)
+        
+        

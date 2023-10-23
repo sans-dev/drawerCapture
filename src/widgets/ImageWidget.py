@@ -5,21 +5,25 @@ from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout
 from PyQt6.QtCore import pyqtSignal, Qt
 
 from widgets import ImagePanel, DataCollectionTextField
+from signals import ProcessEmitter
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 class ImageWidget(QWidget):
     changed = pyqtSignal(str)
+    procClicked = pyqtSignal(str)
+    processed = pyqtSignal()
 
     def __init__(self):
+        self.emitter = ProcessEmitter()
+        self.panel = ImagePanel(self.emitter)
         logger.debug("initializing image widget")
         super().__init__()
         self.initUI()
         self.connectSignals()
 
     def initUI(self):
-        self.panel = ImagePanel()
         self.collectionField = DataCollectionTextField()
         # create a horizontal layout for the buttons (crop, enahnce, save, close)
         self.buttonLayout = QGridLayout()
@@ -40,22 +44,27 @@ class ImageWidget(QWidget):
         self.layout.addLayout(self.panelLayout, 0, 0)
         self.layout.addWidget(self.collectionField, 0, 1)
         self.setLayout(self.layout)
-        self.disableButtons()
 
     def connectSignals(self):
         self.closeButton.clicked.connect(self.close)
+        self.enhanceButton.clicked.connect(self.enhanceButtonClicked)
+        self.procClicked.connect(self.panel.processImage)
+        self.saveButton.clicked.connect(self.saveButtonClicked)
+        self.emitter.processed.connect(self.enableButtons)
 
     def close(self):
         self.changed.emit("live")
         super().close()
 
     def enableButtons(self):
+        logger.debug("enabling buttons")
         self.cropButton.setEnabled(True)
         self.enhanceButton.setEnabled(True)
         self.saveButton.setEnabled(True)
         self.closeButton.setEnabled(True)
 
     def disableButtons(self):
+        logger.debug("disabling buttons")
         self.cropButton.setEnabled(False)
         self.enhanceButton.setEnabled(False)
         self.saveButton.setEnabled(False)
@@ -66,6 +75,10 @@ class ImageWidget(QWidget):
         self.panel.loadImage(image_path)
         self.enableButtons()
 
-    def enhanceButtonPressed(self):
-        
-        self.panel.processImage(self.processors.AHE.process)
+    def enhanceButtonClicked(self):
+        self.procClicked.emit("adaptive_he")
+
+    def saveButtonClicked(self):
+        # open a file dialog to save the image
+        logger.info("saving image")
+        self.panel.saveImage()
