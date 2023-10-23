@@ -12,10 +12,16 @@ logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False
 logger = logging.getLogger(__name__)
 
 class PreviewPanel(QLabel):
+    """
+    A widget that displays a live preview of the camera stream and allows capturing images.
+    """
     previewStopped = pyqtSignal()
     capturedImage = pyqtSignal(str)
 
     def __init__(self):
+        """
+        Initializes the PreviewPanel widget.
+        """
         logger.debug("initializing preview panel")
         super().__init__()
         self.cameraStreamer = CameraStreamer()
@@ -27,6 +33,9 @@ class PreviewPanel(QLabel):
         self.connectSignals()
     
     def initUI(self):
+        """
+        Initializes the user interface of the PreviewPanel widget.
+        """
         logger.debug("initializing preview panel UI")
         # set the size of the preview panel
         panel_size = (int(1024), int(780))
@@ -35,12 +44,18 @@ class PreviewPanel(QLabel):
         self.setLineWidth(1)
     
     def connectSignals(self):
+        """
+        Connects the signals of the PreviewPanel widget.
+        """
         logger.debug("connecting signals for preview panel")
         self.timer.timeout.connect(self.updatePreview)
         self.cameraStreamer.streamStopped.connect(self.timer.stop)
         self.cameraStreamer.videoCapture.deviceOpen.connect(self.startTimer)
 
     def updatePreview(self):
+        """
+        Updates the preview panel with the latest frame from the camera stream.
+        """
         try:
             ret, self.frame = self.cameraStreamer.getFrame()
         except Exception as e:
@@ -55,6 +70,9 @@ class PreviewPanel(QLabel):
             logger.error("failed to get frame from camera streamer")
         
     def startPreview(self):
+        """
+        Starts the camera stream preview.
+        """
         logger.debug("starting preview")
         if self.cameraStreamer.wasRunning:
             self.startTimer()
@@ -62,20 +80,32 @@ class PreviewPanel(QLabel):
             self.cameraStreamer.start()
 
     def startTimer(self):
+        """
+        Starts the timer for updating the preview panel.
+        """
         logger.debug("starting timer")
         self.timer.start(100)
 
     def stopPreview(self):
+        """
+        Stops the camera stream preview.
+        """
         logger.debug("stopping preview")
         self.timer.stop()
         self.freezePreview()
         self.previewStopped.emit()
     
     def emptyPreview(self):
+        """
+        Clears the preview panel.
+        """
         logger.debug("emptying preview")
         self.setPixmap(QPixmap())
 
     def freezePreview(self):
+        """
+        Freezes the preview panel with a blurred image of the last frame.
+        """
         if self.frame is not None:
             logger.debug("freezing preview")
             greyImage = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
@@ -89,12 +119,18 @@ class PreviewPanel(QLabel):
             self.emptyPreview()
         
     def setCameraData(self, cameraData):
+        """
+        Sets the camera data for the camera stream.
+        """
         logger.info("setting camera data: %s", cameraData)
         self.cameraData = cameraData
         self.cameraStreamer.setCameraData(self.cameraData)
         self.imageCapture.setCameraData(self.cameraData)
 
     def captureImage(self, config):
+        """
+        Captures an image from the camera stream.
+        """
         logger.debug("capturing image")
         if self.cameraStreamer.wasRunning:
             logger.debug("camera streamer was running, stopping it")
@@ -106,6 +142,9 @@ class PreviewPanel(QLabel):
         self.capturedImage.emit(config['--image_name'])
 
     def close(self):
+        """
+        Closes the PreviewPanel widget.
+        """
         logger.debug("quitting preview panel")
         self.cameraStreamer.quit()
         self.imageCapture.quit()
@@ -114,6 +153,9 @@ class PreviewPanel(QLabel):
         super().close()
 
     def _setPanelImage(self):
+        """
+        Sets the preview panel image with the latest frame from the camera stream.
+        """
         logger.debug("updating preview panel with new frame")
         rgbImage = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
         h, w, ch = rgbImage.shape

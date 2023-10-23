@@ -13,7 +13,18 @@ logger = logging.getLogger(__name__)
 logger.info("starting application")
 
 class MainWindow(QMainWindow):
+    """
+    The main window of the DrawerCapture application.
+
+    Attributes:
+        widgets (dict): A dictionary containing the main, live, and image widgets.
+        stackedWidget (QStackedWidget): A stacked widget containing all the widgets.
+    """
+
     def __init__(self):
+        """
+        Initializes the main window.
+        """
         logger.debug("initializing main window")
         super().__init__()
         imageWidget = ImageWidget()
@@ -30,12 +41,21 @@ class MainWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
+        """
+        Initializes the user interface.
+        """
         # self.setFixedSize(QSize(1700, 1100))
         # Set the window title and size
         self.setWindowTitle("DrawerCapture")
         self.setCentralWidget(self.stackedWidget)
 
     def switchWidget(self, widget):
+        """
+        Switches to the specified widget.
+
+        Args:
+            widget (str): The name of the widget to switch to.
+        """
         logger.debug("switching to widget: %s", widget)
         self.stackedWidget.setCurrentWidget(self.widgets[widget])
 

@@ -10,11 +10,30 @@ logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False
 logger = logging.getLogger(__name__)
 
 class CameraStreamer(CameraThread):
+    """
+    A thread that streams video from a camera device.
+
+    Attributes:
+        streamRunning (pyqtSignal): A signal emitted when the video stream is running.
+        buildingStream (pyqtSignal): A signal emitted when the video stream is being built.
+        streamStopped (pyqtSignal): A signal emitted when the video stream has stopped.
+
+    Args:
+        cameraData (dict): A dictionary containing information about the camera device.
+
+    """
     streamRunning = pyqtSignal()
     buildingStream = pyqtSignal()
     streamStopped = pyqtSignal()
 
     def __init__(self, cameraData=None):
+        """
+        Initializes the CameraStreamer object.
+
+        Args:
+            cameraData (dict): A dictionary containing information about the camera device.
+
+        """
         logger.debug("initializing camera streamer")
         super().__init__(cameraData=cameraData)
         self.videoCapture = VideoCaptureDevice()
@@ -24,6 +43,10 @@ class CameraStreamer(CameraThread):
         self.wasRunning = False
 
     def run(self):
+        """
+        Starts the video stream.
+
+        """
         logger.info("running camera streamer thread")
         self.wasRunning = True
         super()._stopGphoto2Slaves()
@@ -49,6 +72,10 @@ class CameraStreamer(CameraThread):
             self.videoCapture.start()
 
     def quit(self):
+        """
+        Stops the video stream.
+
+        """
         logger.info("quitting camera streamer thread")
         self.wasRunning = False
         if self.proc:
@@ -60,10 +87,24 @@ class CameraStreamer(CameraThread):
         super().quit()
 
     def getFrame(self):
+        """
+        Gets a frame from the video stream.
+
+        Returns:
+            numpy.ndarray: A frame from the video stream.
+
+        """
         logger.debug("getting frame from videoCapture device")
         return self.videoCapture.device.read()
 
     def _getVideoStreamDir(self):
+        """
+        Gets the directory of the video stream.
+
+        Returns:
+            pathlib.Path: The directory of the video stream.
+
+        """
         logger.debug("getting video4linux device directory")
         proc = QProcess()
         proc.start('v4l2-ctl', ['-d', self.port, '--list-devices'])

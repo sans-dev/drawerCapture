@@ -11,6 +11,9 @@ logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False
 logger = logging.getLogger(__name__)
 
 class ImageWidget(QWidget):
+    """
+    A widget that displays an image and provides buttons to crop, enhance, save and close the image.
+    """
     changed = pyqtSignal(str)
     procClicked = pyqtSignal(str)
     processed = pyqtSignal()
@@ -24,6 +27,9 @@ class ImageWidget(QWidget):
         self.connectSignals()
 
     def initUI(self):
+        """
+        Initializes the user interface of the widget.
+        """
         self.collectionField = DataCollectionTextField()
         # create a horizontal layout for the buttons (crop, enahnce, save, close)
         self.buttonLayout = QGridLayout()
@@ -46,6 +52,9 @@ class ImageWidget(QWidget):
         self.setLayout(self.layout)
 
     def connectSignals(self):
+        """
+        Connects the signals of the buttons to their respective functions.
+        """
         self.closeButton.clicked.connect(self.close)
         self.enhanceButton.clicked.connect(self.enhanceButtonClicked)
         self.procClicked.connect(self.panel.processImage)
@@ -53,10 +62,16 @@ class ImageWidget(QWidget):
         self.emitter.processed.connect(self.enableButtons)
 
     def close(self):
+        """
+        Closes the widget and emits a signal to switch to live mode. 
+        """
         self.changed.emit("live")
         super().close()
 
     def enableButtons(self):
+        """
+        Enables the buttons of the widget.
+        """
         logger.debug("enabling buttons")
         self.cropButton.setEnabled(True)
         self.enhanceButton.setEnabled(True)
@@ -64,6 +79,9 @@ class ImageWidget(QWidget):
         self.closeButton.setEnabled(True)
 
     def disableButtons(self):
+        """
+        Disables the buttons of the widget.
+        """
         logger.debug("disabling buttons")
         self.cropButton.setEnabled(False)
         self.enhanceButton.setEnabled(False)
@@ -71,14 +89,22 @@ class ImageWidget(QWidget):
         self.closeButton.setEnabled(False)
     
     def setImage(self, image_path):
+        """
+        Sets the image of the widget to the specified image path.
+        """
         logger.debug("updating image widget with new image: %s", image_path)
         self.panel.loadImage(image_path)
         self.enableButtons()
 
     def enhanceButtonClicked(self):
+        """
+        Emits a signal indicating that the enhance button has been clicked.
+        """
         self.procClicked.emit("adaptive_he")
 
     def saveButtonClicked(self):
-        # open a file dialog to save the image
+        """
+        Opens a file dialog to save the image.
+        """
         logger.info("saving image")
         self.panel.saveImage()

@@ -2,6 +2,10 @@ from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout
 from PyQt6.QtCore import pyqtSignal
 
 class MainWidget(QWidget):
+    """
+    This class represents the main widget of the DrawerCapture application.
+    It contains two buttons to switch between live and offline mode.
+    """
     changed = pyqtSignal(str)
 
     def __init__(self):
@@ -9,6 +13,9 @@ class MainWidget(QWidget):
         self.initUI()
 
     def initUI(self):
+        """
+        Initializes the user interface of the main widget.
+        """
         self.setWindowTitle("DrawerCapture")
 
         self.layout = QGridLayout()
@@ -25,7 +32,14 @@ class MainWidget(QWidget):
         self.layout.addWidget(self.offlineModeButton, 0, 1, 1, 1)
         
     def enterOfflineMode(self):
+        """
+        This method is called when the user clicks the "Offline Mode" button.
+        """
         pass
 
     def enterLiveMode(self):
+        """
+        This method is called when the user clicks the "Live Mode" button.
+        It emits a signal with the string "live".
+        """
         self.changed.emit("live")

@@ -9,6 +9,15 @@ from threads import CameraThread
 logger = logging.getLogger(__name__)
 
 class ImageCapture(CameraThread):
+    """
+    A thread for capturing images from a camera.
+
+    Attributes:
+    IMG_FORMATS (dict): A dictionary of image formats and their corresponding file extensions.
+    WAIT_TIME_MS (int): The maximum time to wait for the image capture process to finish, in milliseconds.
+    imageCaptured (pyqtSignal): A signal emitted when an image is captured.
+    """
+
     IMG_FORMATS = {
         'Fuji' : '.raf',
     }
@@ -27,11 +36,17 @@ class ImageCapture(CameraThread):
         self.finished.connect(self.quit)
 
     def run(self):
+        """
+        Runs the image capture thread.
+        """
         logger.info("running image capture thread")
         super()._stopGphoto2Slaves()
         self._captureImage()
 
     def _captureImage(self):
+        """
+        Starts the image capture process.
+        """
         if self.proc is None:
             self.proc = QProcess()
             self.proc.readyReadStandardError.connect(self.printStdErr)
@@ -48,12 +63,21 @@ class ImageCapture(CameraThread):
             self.proc.waitForFinished(ImageCapture.WAIT_TIME_MS)
         
     def quit(self):
+        """
+        Quits the image capture thread and emits the imageCaptured signal.
+        """
         logger.info("quitting image capture thread")
         self.imageCaptured.emit(f"{self.config['--image_dir']}/{self.config['--image_name']}{self.config['--image_format']}")
         super()._stopGphoto2Slaves()
         super().quit()
 
     def setUpConfig(self, config: dict):
+        """
+        Sets up the configuration for the image capture thread.
+
+        Args:
+        config (dict): A dictionary of configuration options.
+        """
         for key, value in config.items():
             try:
                 self.config[key] = value

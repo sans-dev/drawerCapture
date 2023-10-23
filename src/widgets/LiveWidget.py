@@ -12,6 +12,19 @@ logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False
 logger = logging.getLogger(__name__)
 
 class LiveWidget(QWidget):
+    """
+    A widget for live camera preview and image capture.
+
+    Signals:
+    changed(str): emitted when the selected camera is changed.
+
+    Methods:
+    __init__(self, imagePanel): initializes the widget.
+    initUI(self): initializes the user interface.
+    connectSignals(self): connects signals to slots.
+    enableStartLivePreviewButton(self): enables the start live preview button.
+    """
+class LiveWidget(QWidget):
     changed = pyqtSignal(str)
 
     def __init__(self, imagePanel):
