@@ -1,0 +1,14 @@
+{
+    "General Information": [
+        "Museum / Facility",
+        "Collection",
+        "Location of collection",
+        "Date of collection"
+    ],
+    "Taxonomy": [
+        "Order",
+        "Family",
+        "Genus",
+        "Species"
+    ]
+}
