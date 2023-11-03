@@ -1,14 +1,16 @@
 {
-    "General Information": [
-        "Museum / Facility",
-        "Collection",
-        "Location of collection",
-        "Date of collection"
+    "General Information":
+    [
+        {"Museum / Facility" : "text"},
+        {"Collection Name" : "text"},
+        {"Location" : "text"},
+        {"Date" : "YYYY/MM/DD"}
     ],
     "Taxonomy": [
-        "Order",
-        "Family",
-        "Genus",
-        "Species"
+        {"Order" : "text"},
+        {"Family" : "text"},
+        {"Genus" : "text"},
+        {"Species" : "text"},
+        {"GBIF ID" : 12387123}
     ]
 }
