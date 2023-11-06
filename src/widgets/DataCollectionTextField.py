@@ -1,10 +1,13 @@
+import sys
 import logging
 import logging.config
 
+import json
+
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QRegularExpression
+from PyQt6.QtGui import QValidator, QIntValidator
 from PyQt6.QtWidgets import QApplication, QSizePolicy
-import sys
 
 logging.config.fileConfig('configs/logging.conf',
                           disable_existing_loggers=False)
@@ -30,38 +33,104 @@ class DataCollectionTextField(QWidget):
         self._loadLabelNames()
         super().__init__()
         self.initUI()
+        self.intValidator = QIntValidator()
+        self.dateValidator = DateValidator()
+        self.nonNumericValidator = NonNumericValidator()
+        self.intValidator.changed.connect(self.onValidate)
+        self.dateValidator.changed.connect(self.onValidate)
+        self.nonNumericValidator.changed.connect(self.onValidate)
+        self.emitter = emitter
 
     def initUI(self):
         logger.info("initializing data collection text field UI")
-        mainLayout = QVBoxLayout()
+        self.mainLayout = QVBoxLayout()
+        self._buildTextFieldLayout()
+        self.setLayout(self.mainLayout)
         
-        for label_name in self.label_names:
-            label = QLabel(label_name)
-            text_input = QLineEdit()
-            text_input.setPlaceholderText(label_name)
-            # text_input.setAlignment(Qt.AlignmentFlag.AlignRight)
-            layout = QHBoxLayout()
-            # layout.setContentsMargins(5, 15, 15, 5)
-            #layout.setSpacing(5)
-            layout.addWidget(label)
-            layout.addWidget(text_input)
-            mainLayout.addLayout(layout)
-            text_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+    def _buildTextFieldLayout(self):
+        """
+        Builds the layout for the text fields.
+        """
+        logger.info("building text field layout")
+        for outerLabel, innerLabels in self.label_names.items():
+            label = QLabel(outerLabel)
+            # change font size and weight
+            label.setStyleSheet("font: 20pt")
+            # incease the space above the label
+            label.setContentsMargins(0, 15, 0, 5)
 
-        #mainLayout.setContentsMargins(10, 10, 10, 10)
-        #mainLayout.setSpacing(10)
+            self.mainLayout.addWidget(label)
 
-        self.setLayout(mainLayout)
+            for label_dict in innerLabels:
+                label_name = list(label_dict.keys())[0]
+                input_type = list(label_dict.values())[0]
+                label = QLabel(label_name)
+                text_input = QLineEdit()
+                if input_type == "YYYY/MM/DD":
+                    text_input.setValidator(DateValidator())
+                    text_input.setPlaceholderText(str(input_type))
+                if input_type == 12387123:
+                    text_input.setValidator(QIntValidator())
+                    text_input.setPlaceholderText(str(input_type))
+                if input_type == "text":
+                    text_input.setValidator(NonNumericValidator())
+                    text_input.setPlaceholderText(label_name)
+
+                text_input.setAlignment(Qt.AlignmentFlag.AlignRight)
+                layout = QHBoxLayout()
+                # layout.setContentsMargins(5, 15, 15, 5)
+                # layout.setSpacing(5)
+                layout.addWidget(label)
+                layout.addWidget(text_input)
+                self.mainLayout.addLayout(layout)
+                text_input.setSizePolicy(
+                    QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        # mainLayout.setContentsMargins(10, 10, 10, 10)
+        self.error_label = QLabel("")
+        self.error_label.setStyleSheet("color: red")
+        self.mainLayout.addWidget(self.error_label)
+        self.mainLayout.setSpacing(20)
+
+    def onValidate(self, state):
+        if state == QValidator.State.Invalid:
+            self.error_label.setText("Invalid input")
+        else:
+            self.error_label.setText("")
+
+
 
     def _loadLabelNames(self):
-        labelDir = 'resources/meta_text_field_labels.txt'
-        self.label_names = []
+        labelDir = 'resources/meta_text_field_labels.json'
         try:
-            with open(labelDir, 'r') as f:
-                for line in f:
-                    self.label_names.append(line.strip()) if line.strip() != '' else None
+            self.label_names = json.load(open(labelDir))
         except:
             raise Exception("Error: Could not load label names from file")
+        
+
+
+class DateValidator(QValidator):
+    def __init__(self):
+        super().__init__()
+        self.regex = QRegularExpression("^[0-9/]*$")
+
+    def validate(self, input_text, pos):
+        # Überprüfe, ob der Eingabetext dem gewünschten Format entspricht
+        print(input_text)
+        if self.regex.match(input_text).hasMatch():
+            return QValidator.State.Acceptable, input_text, pos
+        return QValidator.State.Invalid, input_text, pos
+        
+
+class NonNumericValidator(QValidator):
+    def __init__(self):
+        super().__init__()
+        self.regex = QRegularExpression("[^0-9]*")  # Akzeptiere alle Zeichen außer Ziffern
+
+    def validate(self, input_text, pos):
+        if self.regex.match(input_text).hasMatch():
+            return QValidator.State.Acceptable, input_text, pos
+        return QValidator.State.Invalid, input_text, pos
 
 
 if __name__ == '__main__':
