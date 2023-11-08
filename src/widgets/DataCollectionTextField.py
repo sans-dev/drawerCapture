@@ -146,14 +146,16 @@ class MuseumWidget(QWidget):
         self.mainLayout.addWidget(self.addMuseumButton)
         self.setLayout(self.mainLayout)
 
+        self.collector = MuseumCollector(emitter=self.emitter)
+
     def addMuseum(self):
         # freeze all buttons and text fields
-        self.collector = MuseumCollector(emitter=self.emitter)
         self.hide()
         self.collector.show()
 
     def connectSignals(self):
         self.emitter.museumsChanged.connect(self.updateMuseums)
+        self.emitter.museumAdded.connect(self.show)
 
     def updateMuseums(self, museums):
         for museum in museums:
@@ -161,6 +163,9 @@ class MuseumWidget(QWidget):
     
     def setAlignment(self, alignment):
         pass
+
+    def show(self, data=None):
+        super().show()
 
 class MuseumCollector(QWidget):
     def __init__(self, emitter=None):
@@ -171,48 +176,24 @@ class MuseumCollector(QWidget):
     
     def initUI(self):
         self.mainLayout = QVBoxLayout()
-        self.nameLabel = QLabel("Name:")
-        self.steetLabel = QLabel("Street:")
-        self.houseNumberLabel = QLabel("House Number:")
-        self.cityLabel = QLabel("City:")
-        self.countryLabel = QLabel("Country:")
-        self.zipCodeLabel = QLabel("Zip Code:")
-
-        self.nameInput = QLineEdit()
-        self.nameInput.setValidator(NonNumericValidator())
-        self.nameInput.setPlaceholderText("Museum Name")
-        self.streetInput = QLineEdit()
-        self.streetInput.setValidator(NonNumericValidator())
-        self.streetInput.setPlaceholderText("Street")
-        self.houseNumberInput = QLineEdit()
-        self.houseNumberInput.setValidator(QIntValidator())
-        self.houseNumberInput.setPlaceholderText("House Number")
-        self.cityInput = QLineEdit()
-        self.cityInput.setValidator(NonNumericValidator())
-        self.cityInput.setPlaceholderText("City")
-        self.countryInput = QLineEdit()
-        self.countryInput.setValidator(NonNumericValidator())
-        self.countryInput.setPlaceholderText("Country")
-        self.zipCodeInput = QLineEdit()
-        self.zipCodeInput.setValidator(QIntValidator())
-        self.zipCodeInput.setPlaceholderText("Zip Code")
-
+        fields = [
+            ("Name:", "name", NonNumericValidator(), "Museum Name"),
+            ("Street:", "street", NonNumericValidator(), "Street"),
+            ("House Number:", "houseNumber", QIntValidator(), "House Number"),
+            ("City:", "city", NonNumericValidator(), "City"),
+            ("Country:", "country", NonNumericValidator(), "Country"),
+            ("Zip Code:", "zipCode", QIntValidator(), "Zip Code")
+        ]
+        for label, name, validator, placeholder in fields:
+            labelWidget = QLabel(label)
+            inputWidget = QLineEdit()
+            inputWidget.setValidator(validator)
+            inputWidget.setPlaceholderText(placeholder)
+            inputWidget.setObjectName(name)
+            self.mainLayout.addWidget(labelWidget)
+            self.mainLayout.addWidget(inputWidget)
         self.addButton = QPushButton("Add")
-
-        self.mainLayout.addWidget(self.nameLabel)
-        self.mainLayout.addWidget(self.nameInput)
-        self.mainLayout.addWidget(self.steetLabel)
-        self.mainLayout.addWidget(self.streetInput)
-        self.mainLayout.addWidget(self.houseNumberLabel)
-        self.mainLayout.addWidget(self.houseNumberInput)
-        self.mainLayout.addWidget(self.cityLabel)
-        self.mainLayout.addWidget(self.cityInput)
-        self.mainLayout.addWidget(self.countryLabel)
-        self.mainLayout.addWidget(self.countryInput)
-        self.mainLayout.addWidget(self.zipCodeLabel)
-        self.mainLayout.addWidget(self.zipCodeInput)
         self.mainLayout.addWidget(self.addButton)
-
         self.setLayout(self.mainLayout)
 
     def connectSignals(self):

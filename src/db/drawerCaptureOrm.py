@@ -2,18 +2,16 @@ from mysql.connector import Error as MysqlError
 
 
 class Table:
-    def __init__(self, name, cursor):
+    def __init__(self, cursor, id):
         self.cursor = cursor
-        self.name = name
         self.__table_name__ = ""
         self.id = None
 
 class Museum(Table):
-    def __init__(self,id=None,name=None,adress=None,cursor=None):
-        super().__init__(name, cursor)
+    def __init__(self,cursor=None, id=None, name=None, adress=None, **kwargs):
+        super().__init__(cursor, id)
         self.__table_name__ = "Museum"
         self.adress = adress
-        self.id = id
         self.name = name
         self.cursor = cursor
 
@@ -24,10 +22,8 @@ class Museum(Table):
         )
         values = (self.name,)
         self.cursor.execute(query, values)
-        self.connection.commit()
         self.id = self.cursor.lastrowid
         self.results = self.cursor.fetchall()
-        self.cursor.close()
         return self
     
 class Collection(Table):
@@ -61,7 +57,10 @@ class Engine:
     def insertMuseum(self, data):
         try:
             with self.connection.cursor() as cursor:
-                self.museums.append(Museum(id=None,*data, cursor=cursor).insert())
+                id = None
+                self.museums.append(Museum(cursor, id, **data).insert())
+                self.connection.commit()
+                self.emitter.museumsChanged.emit(self.museums)
         except MysqlError as err:
             print("Error: ", err)
 
@@ -76,5 +75,5 @@ class Engine:
         with self.connection.cursor() as cursor:
             cursor.execute(query)
             for result in cursor:
-                self.museums.append(Museum(*result, cursor=cursor))
+                self.museums.append(Museum(cursor, *result))
         self.emitter.museumsChanged.emit(self.museums)

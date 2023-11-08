@@ -66,15 +66,6 @@ class DatabaseApp(QMainWindow):
             self.username_input.clear()
             self.password_input.clear()
 
-    def insert(self, data):
-        if self.connection:
-            try:
-                self.engine.insertMuseum(data['General Information']['Museum / Facility'])
-                self.engine.insertCollection(data['General Information']['Collection Name'], self.engine.museums[-1].id)
-            except mysql.connector.Error as err:
-                print("Error: ", err)
-        else:
-            print("Not connected to the database.")
 
 def main():
     app = QApplication(sys.argv)
