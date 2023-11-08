@@ -4,7 +4,7 @@ import logging.config
 
 import json
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QComboBox
 from PyQt6.QtCore import Qt, QRegularExpression
 from PyQt6.QtGui import QValidator, QIntValidator
 from PyQt6.QtWidgets import QApplication, QSizePolicy
@@ -32,6 +32,7 @@ class DataCollectionTextField(QWidget):
         logger.debug("initializing preview panel")
         self._loadLabelNames()
         super().__init__()
+        self.emitter = emitter
         self.inputFields = {}
         self.initUI()
         self.intValidator = QIntValidator()
@@ -40,7 +41,6 @@ class DataCollectionTextField(QWidget):
         self.intValidator.changed.connect(self.onValidate)
         self.dateValidator.changed.connect(self.onValidate)
         self.nonNumericValidator.changed.connect(self.onValidate)
-        self.emitter = emitter
 
     def initUI(self):
         logger.info("initializing data collection text field UI")
@@ -60,14 +60,6 @@ class DataCollectionTextField(QWidget):
         self.logout_button = QPushButton("Logout")
         self.button_layout.addWidget(self.save_button)
         self.mainLayout.addLayout(self.button_layout)
-
-    def save(self):
-        logger.info("saving data")
-        data = self.inputFields.copy()
-        for outerLabel, innerLabels in self.inputFields.items():
-            for label_name, input_field in innerLabels.items():
-                data[outerLabel][label_name] = input_field.text()
-        self.emitter.textChanged.emit(data)
 
     def _buildTextFieldLayout(self):
         """
@@ -97,13 +89,13 @@ class DataCollectionTextField(QWidget):
                 if input_type == "text":
                     text_input.setValidator(NonNumericValidator())
                     text_input.setPlaceholderText(label_name)
+                if input_type == "combobox":
+                    text_input = MuseumWidget(emitter=self.emitter)
 
                 self.inputFields[outerLabel][label_name] = text_input
 
                 text_input.setAlignment(Qt.AlignmentFlag.AlignRight)
                 layout = QHBoxLayout()
-                # layout.setContentsMargins(5, 15, 15, 5)
-                # layout.setSpacing(5)
                 layout.addWidget(label)
                 layout.addWidget(text_input)
                 self.mainLayout.addLayout(layout)
@@ -116,12 +108,19 @@ class DataCollectionTextField(QWidget):
         self.mainLayout.addWidget(self.error_label)
         self.mainLayout.setSpacing(20)
 
+    def save(self):
+        logger.info("saving data")
+        data = self.inputFields.copy()
+        for outerLabel, innerLabels in self.inputFields.items():
+            for label_name, input_field in innerLabels.items():
+                data[outerLabel][label_name] = input_field.text()
+        self.emitter.textChanged.emit(data)
+
     def onValidate(self, state):
         if state == QValidator.State.Invalid:
             self.error_label.setText("Invalid input")
         else:
             self.error_label.setText("")
-
 
 
     def _loadLabelNames(self):
@@ -131,6 +130,37 @@ class DataCollectionTextField(QWidget):
         except:
             raise Exception("Error: Could not load label names from file")
         
+class MuseumWidget(QWidget):
+    def __init__(self, emitter=None):
+        super().__init__()
+        self.emitter = emitter
+        self.initUI()
+        self.connectSignals()
+
+    def initUI(self):
+        self.comboBox = QComboBox()
+        self.addMuseumButton = QPushButton("Add Museum")
+        self.addMuseumButton.clicked.connect(self.addMuseum)
+        self.mainLayout = QHBoxLayout()
+        self.mainLayout.addWidget(self.comboBox)
+        self.mainLayout.addWidget(self.addMuseumButton)
+        self.setLayout(self.mainLayout)
+
+    def addMuseum(self):
+        # freeze all buttons and text fields
+        pass
+
+    def connectSignals(self):
+        self.emitter.museumsChanged.connect(self.updateMuseums)
+
+    def updateMuseums(self, museums):
+        for museum in museums:
+            self.comboBox.addItem(museum.name)
+    
+    def setAlignment(self, alignment):
+        pass
+
+
 
 
 class DateValidator(QValidator):

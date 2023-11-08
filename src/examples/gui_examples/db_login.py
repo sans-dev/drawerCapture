@@ -60,7 +60,7 @@ class DatabaseApp(QMainWindow):
                 password=password,
                 database='drawerCaptureDB'
             )
-            self.engine = Engine(self.connection)
+            self.engine = Engine(self.connection, emitter=self.emitter)
             self.setCentralWidget(self.data_collection_text_field)
         except mysql.connector.Error as err:
             print("Error: ", err)
@@ -68,7 +68,6 @@ class DatabaseApp(QMainWindow):
             self.password_input.clear()
 
     def insert(self, data):
-        print(data)
         if self.connection:
             try:
                 self.engine.insertMuseum(data['General Information']['Museum / Facility'])
@@ -77,9 +76,6 @@ class DatabaseApp(QMainWindow):
                 print("Error: ", err)
         else:
             print("Not connected to the database.")
-
-    def _set_query_text(self, text):
-        self.query_text = text
 
 def main():
     app = QApplication(sys.argv)

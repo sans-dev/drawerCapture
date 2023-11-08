@@ -12,3 +12,4 @@ class TextEditEmitter(QObject):
     A class that emits a signal when text has been entered into a text edit.
     """
     textChanged = pyqtSignal(dict)
+    museumsChanged = pyqtSignal(list)

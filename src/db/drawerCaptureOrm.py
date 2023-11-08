@@ -48,8 +48,9 @@ class Collection(Table):
         return self
 
 class Engine:
-    def __init__(self, connection) -> None:
+    def __init__(self, connection, emitter=None) -> None:
         self.connection = connection
+        self.emitter = emitter
         self.getMuseums()
         self.collections = []
 
@@ -69,3 +70,4 @@ class Engine:
             cursor.execute(query)
             for result in cursor:
                 self.museums.append(Museum(*result, cursor=cursor))
+        self.emitter.museumsChanged.emit(self.museums)

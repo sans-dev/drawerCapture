@@ -1,6 +1,6 @@
 {
     "General Information":
-        {"Museum / Facility" : "text",
+        {"Museum / Facility" : "combobox",
         "Collection Name" : "text",
         "Location" : "text",
         "Date" : "YYYY/MM/DD"},
