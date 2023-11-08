@@ -38,7 +38,7 @@ class DataCollectionTextField(QWidget):
         self.intValidator = QIntValidator()
         self.dateValidator = DateValidator()
         self.nonNumericValidator = NonNumericValidator()
-        self.intValidator.changed.connect(self.onValidate)
+        self.intValidator.changed.connect(self.onValidate) # TODO only validate when save button is clicked
         self.dateValidator.changed.connect(self.onValidate)
         self.nonNumericValidator.changed.connect(self.onValidate)
 
@@ -148,7 +148,9 @@ class MuseumWidget(QWidget):
 
     def addMuseum(self):
         # freeze all buttons and text fields
-        pass
+        self.collector = MuseumCollector(emitter=self.emitter)
+        self.hide()
+        self.collector.show()
 
     def connectSignals(self):
         self.emitter.museumsChanged.connect(self.updateMuseums)
@@ -160,6 +162,74 @@ class MuseumWidget(QWidget):
     def setAlignment(self, alignment):
         pass
 
+class MuseumCollector(QWidget):
+    def __init__(self, emitter=None):
+        super().__init__()
+        self.emitter = emitter
+        self.initUI()
+        self.connectSignals()
+    
+    def initUI(self):
+        self.mainLayout = QVBoxLayout()
+        self.nameLabel = QLabel("Name:")
+        self.steetLabel = QLabel("Street:")
+        self.houseNumberLabel = QLabel("House Number:")
+        self.cityLabel = QLabel("City:")
+        self.countryLabel = QLabel("Country:")
+        self.zipCodeLabel = QLabel("Zip Code:")
+
+        self.nameInput = QLineEdit()
+        self.nameInput.setValidator(NonNumericValidator())
+        self.nameInput.setPlaceholderText("Museum Name")
+        self.streetInput = QLineEdit()
+        self.streetInput.setValidator(NonNumericValidator())
+        self.streetInput.setPlaceholderText("Street")
+        self.houseNumberInput = QLineEdit()
+        self.houseNumberInput.setValidator(QIntValidator())
+        self.houseNumberInput.setPlaceholderText("House Number")
+        self.cityInput = QLineEdit()
+        self.cityInput.setValidator(NonNumericValidator())
+        self.cityInput.setPlaceholderText("City")
+        self.countryInput = QLineEdit()
+        self.countryInput.setValidator(NonNumericValidator())
+        self.countryInput.setPlaceholderText("Country")
+        self.zipCodeInput = QLineEdit()
+        self.zipCodeInput.setValidator(QIntValidator())
+        self.zipCodeInput.setPlaceholderText("Zip Code")
+
+        self.addButton = QPushButton("Add")
+
+        self.mainLayout.addWidget(self.nameLabel)
+        self.mainLayout.addWidget(self.nameInput)
+        self.mainLayout.addWidget(self.steetLabel)
+        self.mainLayout.addWidget(self.streetInput)
+        self.mainLayout.addWidget(self.houseNumberLabel)
+        self.mainLayout.addWidget(self.houseNumberInput)
+        self.mainLayout.addWidget(self.cityLabel)
+        self.mainLayout.addWidget(self.cityInput)
+        self.mainLayout.addWidget(self.countryLabel)
+        self.mainLayout.addWidget(self.countryInput)
+        self.mainLayout.addWidget(self.zipCodeLabel)
+        self.mainLayout.addWidget(self.zipCodeInput)
+        self.mainLayout.addWidget(self.addButton)
+
+        self.setLayout(self.mainLayout)
+
+    def connectSignals(self):
+        self.addButton.clicked.connect(self.addMuseum)
+
+    def addMuseum(self):
+        data = self._layoutToDict()
+        self.emitter.museumAdded.emit(data)
+        self.close()
+
+    def _layoutToDict(self):
+        data = {}
+        for child in self.children():
+            if isinstance(child, QLineEdit):
+                data[child.objectName()] = child.text()
+        return data
+        
 
 
 

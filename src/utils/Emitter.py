@@ -13,3 +13,4 @@ class TextEditEmitter(QObject):
     """
     textChanged = pyqtSignal(dict)
     museumsChanged = pyqtSignal(list)
+    museumAdded = pyqtSignal(dict)

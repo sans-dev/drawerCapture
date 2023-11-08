@@ -21,7 +21,6 @@ class DatabaseApp(QMainWindow):
 
     def init_ui(self):
         self.data_collection_text_field = DataCollectionTextField(emitter=self.emitter)
-        self.emitter.textChanged.connect(self.insert)
         self.login_widget = QWidget()
         self.setCentralWidget(self.login_widget)
 

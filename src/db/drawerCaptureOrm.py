@@ -1,3 +1,6 @@
+from mysql.connector import Error as MysqlError
+
+
 class Table:
     def __init__(self, name, cursor):
         self.cursor = cursor
@@ -53,10 +56,14 @@ class Engine:
         self.emitter = emitter
         self.getMuseums()
         self.collections = []
+        emitter.museumAdded.connect(self.insertMuseum)
 
-    def insertMuseum(self, name):
-        with self.connection.cursor() as cursor:
-            self.museums.append(Museum(name, cursor).insert())
+    def insertMuseum(self, data):
+        try:
+            with self.connection.cursor() as cursor:
+                self.museums.append(Museum(id=None,*data, cursor=cursor).insert())
+        except MysqlError as err:
+            print("Error: ", err)
 
     def insertCollection(self, name, museum_id):
         self.collections.append(Collection(name, self.connection, museum_id).insert())
