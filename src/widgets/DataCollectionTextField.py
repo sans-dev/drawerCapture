@@ -4,7 +4,7 @@ import logging.config
 
 import json
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton
 from PyQt6.QtCore import Qt, QRegularExpression
 from PyQt6.QtGui import QValidator, QIntValidator
 from PyQt6.QtWidgets import QApplication, QSizePolicy
@@ -32,6 +32,7 @@ class DataCollectionTextField(QWidget):
         logger.debug("initializing preview panel")
         self._loadLabelNames()
         super().__init__()
+        self.inputFields = {}
         self.initUI()
         self.intValidator = QIntValidator()
         self.dateValidator = DateValidator()
@@ -45,13 +46,35 @@ class DataCollectionTextField(QWidget):
         logger.info("initializing data collection text field UI")
         self.mainLayout = QVBoxLayout()
         self._buildTextFieldLayout()
+        self._buildButtonLayout()
         self.setLayout(self.mainLayout)
         
+    def _buildButtonLayout(self):
+        """
+        Builds the layout for the buttons.
+        """
+        logger.info("building button layout")
+        self.button_layout = QHBoxLayout()
+        self.save_button = QPushButton("Save")
+        self.save_button.clicked.connect(self.save)
+        self.logout_button = QPushButton("Logout")
+        self.button_layout.addWidget(self.save_button)
+        self.mainLayout.addLayout(self.button_layout)
+
+    def save(self):
+        logger.info("saving data")
+        data = self.inputFields.copy()
+        for outerLabel, innerLabels in self.inputFields.items():
+            for label_name, input_field in innerLabels.items():
+                data[outerLabel][label_name] = input_field.text()
+        self.emitter.textChanged.emit(data)
+
     def _buildTextFieldLayout(self):
         """
         Builds the layout for the text fields.
         """
         logger.info("building text field layout")
+        self.inputFields = self.label_names.copy()
         for outerLabel, innerLabels in self.label_names.items():
             label = QLabel(outerLabel)
             # change font size and weight
@@ -61,10 +84,9 @@ class DataCollectionTextField(QWidget):
 
             self.mainLayout.addWidget(label)
 
-            for label_dict in innerLabels:
-                label_name = list(label_dict.keys())[0]
-                input_type = list(label_dict.values())[0]
+            for label_name, input_type in innerLabels.items():
                 label = QLabel(label_name)
+                
                 text_input = QLineEdit()
                 if input_type == "YYYY/MM/DD":
                     text_input.setValidator(DateValidator())
@@ -75,6 +97,8 @@ class DataCollectionTextField(QWidget):
                 if input_type == "text":
                     text_input.setValidator(NonNumericValidator())
                     text_input.setPlaceholderText(label_name)
+
+                self.inputFields[outerLabel][label_name] = text_input
 
                 text_input.setAlignment(Qt.AlignmentFlag.AlignRight)
                 layout = QHBoxLayout()

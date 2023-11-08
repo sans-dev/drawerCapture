@@ -1,16 +1,13 @@
 {
     "General Information":
-    [
-        {"Museum / Facility" : "text"},
-        {"Collection Name" : "text"},
-        {"Location" : "text"},
-        {"Date" : "YYYY/MM/DD"}
-    ],
-    "Taxonomy": [
-        {"Order" : "text"},
-        {"Family" : "text"},
-        {"Genus" : "text"},
-        {"Species" : "text"},
-        {"GBIF ID" : 12387123}
-    ]
+        {"Museum / Facility" : "text",
+        "Collection Name" : "text",
+        "Location" : "text",
+        "Date" : "YYYY/MM/DD"},
+    "Taxonomy": 
+        {"Order" : "text",
+        "Family" : "text",
+        "Genus" : "text",
+        "Species" : "text",
+        "GBIF ID" : 12387123}
 }
