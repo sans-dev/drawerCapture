@@ -15,3 +15,8 @@ env*
 .env*
 venv*
 .venv*
+resources/click_dummy/test.svg
+resources/flows/drawer_capture-flowchart_basic.drawio
+resources/flows/drawer_capture-flowchart_basic.drawio.svg
+resources/classes_DrawerCapture.png
+resources/packages_DrawerCapture.png

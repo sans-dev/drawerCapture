@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 from PyQt6.QtCore import QSize
 
 from utils import load_style_sheet
-from widgets import MainWidget, LiveWidget, ImageWidget
+from widgets import MainWidget 
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -27,37 +27,16 @@ class MainWindow(QMainWindow):
         """
         logger.debug("initializing main window")
         super().__init__()
-        imageWidget = ImageWidget()
-        self.widgets = {
-            "main": MainWidget(),
-            "live": LiveWidget(imageWidget),
-            "image": imageWidget
-        }
-        self.stackedWidget = QStackedWidget()
-        for widget in self.widgets.values():
-            self.stackedWidget.addWidget(widget)
-            widget.changed.connect(self.switchWidget)
-
         self.initUI()
 
     def initUI(self):
         """
         Initializes the user interface.
         """
-        # self.setFixedSize(QSize(1700, 1100))
+        self.setFixedSize(QSize(1700, 1100))
         # Set the window title and size
         self.setWindowTitle("DrawerCapture")
-        self.setCentralWidget(self.stackedWidget)
-
-    def switchWidget(self, widget):
-        """
-        Switches to the specified widget.
-
-        Args:
-            widget (str): The name of the widget to switch to.
-        """
-        logger.debug("switching to widget: %s", widget)
-        self.stackedWidget.setCurrentWidget(self.widgets[widget])
+        self.setCentralWidget(MainWidget())
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
