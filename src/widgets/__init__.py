@@ -4,5 +4,7 @@ from .DataCollectionTextField import DataCollectionTextField
 from .PreviewPanel import PreviewPanel
 from .ImagePanel import ImagePanel
 from .LiveWidget import LiveWidget
-from .MainWidget import MainWidget
+from .MainView import MainView
 from .ImageWidget import ImageWidget
+from .ProjectView import ProjectView
+from .ProjectCreationView import ProjectCreationView
