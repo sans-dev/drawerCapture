@@ -51,7 +51,7 @@ To run the application, simply execute the following command in your terminal:
 1. Click the 'Capture' button.
 2. Wait for a short while until the image is captured.
 3. Preview the captured image.
-4. Click 'Save' to save the image.
+4. Click 'Save' which opens the metadata collection fields.
 
 ## Collection Information
 After saving the image, a metadata mask opens to add metadata about the image.
