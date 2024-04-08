@@ -30,26 +30,28 @@ To run Drawer Capture, you need to install some prerequisites. These instruction
     ```
 8. Create a Python environment, activate it, and install the requirements:
     ```
-    python3 -m venv env
+    python -m venv env
     source env/bin/activate
     pip install -r requirements.txt
     ```
 
 ## Running the Application
-Just run the command python drawerCapture.py
+To run the application, simply execute the following command in your terminal:
 
+    ```
+    python src/DrawerCapture.py
+    ```
 ## Configure the Camera
-Click add camera button
-plug in your camera via usb
-click refresh 
-select your camera
+1. Click the 'Add Camera' button.
+2. Plug in your camera via USB.
+3. Click 'Refresh'.
+4. Select your camera from the list.
 
 ## Capturing Images 
-click capture button
-wait a short while
-image is previewed 
-click save 
+1. Click the 'Capture' button.
+2. Wait for a short while until the image is captured.
+3. Preview the captured image.
+4. Click 'Save' to save the image.
 
 ## Collection Information
-after save meta info mask opens to add metainformation
-
+After saving the image, a metadata mask opens to add metadata about the image.
