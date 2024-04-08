@@ -1,4 +1,8 @@
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget, QPushButton, QLineEdit, QGridLayout, QVBoxLayout, QScrollArea, QButtonGroup, QRadioButton
+
+from .SessionDataButton import SessionDataButton
+from .SessionDataList import SessionDataList
 
 class ProjectView(QWidget):
     def __init__(self):
@@ -25,7 +29,13 @@ class ProjectView(QWidget):
 
         self.project_data_view = QScrollArea(self)
         self.project_data_view.setWidgetResizable(True)
-        self.project_data_view_layout = QVBoxLayout(self.project_data_view)
+        self.project_data_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.project_data_list = SessionDataList()
+        self.project_data_view.setWidget(self.project_data_list)
+
+        self.project_data_list.add_session(SessionDataButton())
+        self.project_data_list.add_session(SessionDataButton())
+        
         self.layout.addWidget(self.project_data_view, 3, 1, 1, 2)
 
     def open_new_session_dialog(self):

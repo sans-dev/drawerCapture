@@ -8,3 +8,5 @@ from .MainView import MainView
 from .ImageWidget import ImageWidget
 from .ProjectView import ProjectView
 from .ProjectCreationView import ProjectCreationView
+from .SessionDataButton import SessionDataButton
+from .SessionDataList import SessionDataList
