@@ -17,9 +17,9 @@ class ImagePanel(QLabel):
     A widget that displays an image and allows for image processing and saving.
     """
     FORMATS = {
-        4/3: (int(1280), int(960)),
-        16/9: (int(1280), int(790)),
-        3/2: (int(1440), int(960))
+        1.3: (int(1280), int(960)),
+        1.7: (int(1280), int(790)),
+        1.5: (int(1440), int(960))
     }
 
     def __init__(self, emitter):
@@ -110,6 +110,7 @@ class ImagePanel(QLabel):
             img_height: The height of the current image.
         """
         img_format = img_width / img_height
+        img_format = int(img_format) + int(10*(img_format - int(img_format)))/10
         self.panelSize = ImagePanel.FORMATS[img_format]
         self.setFixedSize(self.panelSize[0], self.panelSize[1])
 
@@ -139,6 +140,7 @@ class ImagePanel(QLabel):
                 self.image = raw.postprocess()
         else:
             self.image = cv2.imread(image_dir)
+            print(self.image)
 
     def saveImage(self):
         """

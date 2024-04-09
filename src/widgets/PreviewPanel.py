@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import QLabel
 from PyQt6.QtCore import QTimer, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap
 import cv2
+import time
 
 from threads import CameraStreamer, ImageCapture
 
@@ -147,7 +148,6 @@ class PreviewPanel(QLabel):
         """
         logger.debug("quitting preview panel")
         self.cameraStreamer.quit()
-        self.imageCapture.quit()
         self.timer.stop()
         self.emptyPreview()
         super().close()

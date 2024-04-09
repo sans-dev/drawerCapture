@@ -31,7 +31,7 @@ class ImageCapture(CameraThread):
         self.config['--script'] = 'src/cmds/capture_image.bash'
         self.config['--image_dir'] = ''
         self.config['--image_name'] = ''
-        self.config['--image_format'] = '.jpeg'
+        self.config['--image_format'] = '.tiff'
 
         self.finished.connect(self.quit)
 
@@ -69,7 +69,6 @@ class ImageCapture(CameraThread):
         logger.info("quitting image capture thread")
         self.imageCaptured.emit(f"{self.config['--image_dir']}/{self.config['--image_name']}{self.config['--image_format']}")
         super()._stopGphoto2Slaves()
-        super().quit()
 
     def setUpConfig(self, config: dict):
         """

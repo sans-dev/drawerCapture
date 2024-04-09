@@ -3,6 +3,8 @@
 # imageformat for gphoto2 : 0=raw, 1=jpeg
 # configure settings for capture: --set-config name=value - This will set the configuration of name to value
 args=( "$@" )
+
+DEBUG="false"
 for ((i=0; i<${#args[@]}; i++)); do
     case ${args[i]} in
         --image_dir) IMAGE_DIR=${args[i+1]};;
