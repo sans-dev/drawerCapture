@@ -31,7 +31,7 @@ class ImageCapture(CameraThread):
         self.config['--script'] = 'src/cmds/capture_image.bash'
         self.config['--image_dir'] = ''
         self.config['--image_name'] = ''
-        self.config['--image_format'] = '.tiff'
+        self.config['--image_format'] = '.jpg'
 
         self.finished.connect(self.quit)
 

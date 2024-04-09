@@ -26,5 +26,5 @@ if [ $DEBUG == "true" ]; then
     echo "DEBUG_LOGFILE: $DEBUG_LOGFILE"
     gphoto2 --set-config movie=0 --set-config imageformat=1 --camera $MODEL --port $PORT --capture-image-and-download --filename $FILE_NAME --force-overwrite --debug --debug-logfile=$DEBUG_LOGFILE
     else
-    gphoto2 --set-config movie=0 --camera $MODEL --port $PORT --capture-image-and-download --filename $FILE_NAME --force-overwrite
+    gphoto2 --set-config movie=0 --set-config imageformat=1 --camera $MODEL --port $PORT --capture-image-and-download --filename $FILE_NAME --force-overwrite
 fi

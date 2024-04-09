@@ -62,7 +62,7 @@ class MainWindow(QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     STYLES = ["Photoxo", "Combinear", "Diffnes", "SyNet"]
-    CURRENT_STYLE = STYLES[2]
+    CURRENT_STYLE = STYLES[3]
     # switch to the Photoxo style
     app.setStyleSheet(load_style_sheet(CURRENT_STYLE))
     mainWindow = MainWindow()
