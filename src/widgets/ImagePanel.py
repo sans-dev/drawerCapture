@@ -135,12 +135,11 @@ class ImagePanel(QLabel):
         # check the format and choose the appropriate loading method
         # for raw images, use rawpy. For jpeg, use cv2
         logger.debug("loading image: %s", image_dir)
-        if not image_dir.endswith(".jpeg"):
+        if not image_dir.endswith(".jpg"):
             with rawpy.imread(image_dir) as raw:
                 self.image = raw.postprocess()
         else:
             self.image = cv2.imread(image_dir)
-            print(self.image)
 
     def saveImage(self):
         """
