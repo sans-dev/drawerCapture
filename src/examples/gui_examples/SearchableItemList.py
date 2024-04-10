@@ -1,6 +1,6 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QListWidget, QListWidgetItem, QLabel, QTabWidget, QSpacerItem, QSizePolicy, QDateEdit, QCheckBox, QHBoxLayout, QPushButton
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QDate
 
 class SearchableItemListWidget(QWidget):
     def __init__(self, label_text : str, item_file : str, mandadory=False):
@@ -41,7 +41,7 @@ class SearchableItemListWidget(QWidget):
             filtered_items = [item for item in self.items if text.lower() in item.lower()]
             self.item_list.addItems(filtered_items)
         else:
-            self.item_list.clear()
+            self.item_list.addItems(self.items)
 
     def item_clicked(self, item : QListWidgetItem):
         self.search_edit.setText(item.text())
@@ -64,6 +64,11 @@ class SearchableItemListWidget(QWidget):
     def get_data(self):
         if self.mandatory and self.item_list.count() != 1:
                  raise ValueError(f"{self.name} is a mandatory field. Please provide valid info.")
+        item = self.item_list.item(0)
+        if item is not None:
+            return item.text().strip()
+        else:
+            return item
         
     def show_error(self, message):
         self.error_label.setStyleSheet("color: red;")
@@ -83,12 +88,14 @@ class DateInputWidget(QWidget):
 
         self.label = QLabel(label_text)
         layout.addWidget(self.label)
-
         self.date_edit = QDateEdit()
         self.date_edit.setCalendarPopup(True)  # Enable calendar popup for date selection
+        self.date_edit.setDate(QDate.currentDate())
         layout.addWidget(self.date_edit)
         self.checkbox = QCheckBox("Keep Data")
         layout.addWidget(self.checkbox)
+        self.error_label = QLabel()
+        layout.addWidget(self.error_label)
 
         self.setLayout(layout)
 
@@ -96,13 +103,18 @@ class DateInputWidget(QWidget):
         return self.date_edit.date().toString("yyyy-MM-dd")
     
     def get_data(self):
-        return self.get_date()
+        date = self.get_date()
+        current_date = QDate.currentDate().toString("yyyy-MM-dd")
+        if date == current_date:
+            raise ValueError(f"{self.name} is mandatory. Please select a valid date of collection.")
+        return date
     
     def show_error(self, message):
-        pass
+        self.error_label.setStyleSheet("color: red;")
+        self.error_label.setText(message)
 
     def hide_error(self):
-        pass
+        self.error_label.clear()
     
 
 class LabeledTextField(QWidget):
@@ -198,13 +210,11 @@ class DataCollection(QWidget):
                 widget.hide_error()
             except ValueError as e:
                 widget.show_error(str(e))
-        return data
-
-    def closeEvent(self, event):
-        self.emitter.emit(self.get_data())
-        for widget in self.widgets:
-            if widget.checkbox.isChecked():
-                widget.clear_input()
+                return
+            except Exception as e:
+                print(e)
+                return
+        self.emitter.emit(data)
 
 def handle_data(dict):
     print('Received Data', dict)
