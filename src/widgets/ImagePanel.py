@@ -154,3 +154,6 @@ class ImagePanel(QLabel):
         if file_name:
             cv2.imwrite(file_name, self.image)
             logger.debug("image saved to: %s", file_name)
+
+    def get_image(self):
+        return self.image

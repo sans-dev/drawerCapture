@@ -1,7 +1,7 @@
 import logging
 import logging.config
 
-from PyQt6.QtWidgets import QWidget, QGridLayout
+from PyQt6.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QPushButton
 from PyQt6.QtCore import pyqtSignal, Qt
 
 from widgets import DataCollection
@@ -19,8 +19,8 @@ class ImageWidget(QWidget):
     procClicked = pyqtSignal(str)
     processed = pyqtSignal()
 
-    def __init__(self, dbAdapter):
-        self.dbAdapter = dbAdapter
+    def __init__(self, db_adapter):
+        self.db_adapter = db_adapter
         self.emitter = ProcessEmitter()
         self.panel = ImagePanel(self.emitter)
         logger.debug("initializing image widget")
@@ -32,18 +32,26 @@ class ImageWidget(QWidget):
         """
         Initializes the user interface of the widget.
         """
-        self.collectionField = DataCollection()
+        self.data_collector = DataCollection()
         # create a horizontal layout for the buttons (crop, enahnce, save, close)
-        self.buttonLayout = QGridLayout()
         # create a vertical layout for the panel and buttons
-        self.panelLayout = QGridLayout()
-        self.panelLayout.addWidget(self.panel, 0, 0)
-        self.panelLayout.addLayout(self.buttonLayout, 2, 0, alignment=Qt.AlignmentFlag.AlignCenter)
         # add the collectionField right to the layout
-        self.layout = QGridLayout()
-        self.layout.addLayout(self.panelLayout, 0, 0)
-        self.layout.addWidget(self.collectionField, 0, 1)
-        self.setLayout(self.layout)
+        layout = QGridLayout()
+        layout.addWidget(self.panel, 0, 0)
+        layout.addWidget(self.data_collector, 0, 1)
+
+        button_layout = QHBoxLayout()
+        self.close_button = QPushButton("Close")
+        self.close_button.clicked.connect(self.close)
+        button_layout.addWidget(self.close_button)
+
+        self.save_button = QPushButton("Save")
+        self.save_button.clicked.connect(self.save_data)
+        button_layout.addWidget(self.save_button)
+
+        layout.addLayout(button_layout,1,1)
+
+        self.setLayout(layout)
 
     def connectSignals(self):
         """
@@ -85,9 +93,14 @@ class ImageWidget(QWidget):
         """
         self.procClicked.emit("adaptive_he")
 
-    def saveButtonClicked(self):
+    def save_data(self):
         """
         Opens a file dialog to save the image.
         """
-        logger.info("saving image")
-        self.panel.saveImage()
+        logger.info("Retreiving image data from Panel")
+        image_data = self.panel.get_image()
+        logger.info("Retreiving meta info from Panel")
+        meta_info = self.data_collector.get_data()
+        logger.info("Send data to db")
+        
+        self.db_adapter.send_data_to_db(image_data, meta_info)

@@ -136,7 +136,7 @@ class LabeledTextField(QWidget):
         self.setLayout(layout)  
 
 class DataCollection(QWidget):
-    emitter = pyqtSignal(dict)
+    meta_signal = pyqtSignal(dict)
 
     def __init__(self):
         super().__init__()
@@ -185,24 +185,12 @@ class DataCollection(QWidget):
 
         layout.addWidget(tab_widget)
 
-         # Create the close and save buttons
-        button_layout = QHBoxLayout()
-        self.close_button = QPushButton("Close")
-        self.close_button.clicked.connect(self.close)
-        button_layout.addWidget(self.close_button)
-
-        self.save_button = QPushButton("Save")
-        self.save_button.clicked.connect(self.save_data)
-        button_layout.addWidget(self.save_button)
-
-        layout.addLayout(button_layout)
-
         spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         layout.addItem(spacer)
         self.setLayout(layout)
         self.setWindowTitle("Data Collection")
 
-    def save_data(self):
+    def get_data(self):
         data = {}
         for widget in self.widgets:
             try:
@@ -216,9 +204,8 @@ class DataCollection(QWidget):
                 raise e
         contains_exception = any(isinstance(value, Exception) for value in data.values())
         if contains_exception:
-            return
-        self.emitter.emit(data)
-
+            return data
+        
 def handle_data(dict):
     print('Received Data', dict)
 

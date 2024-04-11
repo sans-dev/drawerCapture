@@ -53,3 +53,7 @@ class DBManager:
             # Handle validation error
             return
         # Process and load data from the database
+
+    def connect_db_adapter(self, db_adapter):
+        db_adapter.put_signal.connect(self.save_image_and_meta_info)
+        db_adapter.get_signal.connect(self.load_image_and_meta_info)
