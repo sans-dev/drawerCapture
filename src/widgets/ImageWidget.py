@@ -4,7 +4,8 @@ import logging.config
 from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout
 from PyQt6.QtCore import pyqtSignal, Qt
 
-from widgets import ImagePanel, DataCollectionTextField
+from widgets import DataCollection
+from widgets import ImagePanel
 from signals import ProcessEmitter
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
@@ -31,7 +32,7 @@ class ImageWidget(QWidget):
         """
         Initializes the user interface of the widget.
         """
-        self.collectionField = DataCollectionTextField()
+        self.collectionField = DataCollection()
         # create a horizontal layout for the buttons (crop, enahnce, save, close)
         self.buttonLayout = QGridLayout()
         self.cropButton = QPushButton("Crop")

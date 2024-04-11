@@ -1,6 +1,6 @@
 from .SpinnerWidget import LoadingSpinner
 from .SelectCameraListWidget import SelectCameraListWidget
-from .DataCollectionTextField import DataCollectionTextField
+from .DataCollection import DataCollection
 from .PreviewPanel import PreviewPanel
 from .ImagePanel import ImagePanel
 from .LiveWidget import LiveWidget
