@@ -18,7 +18,8 @@ class ImageWidget(QWidget):
     procClicked = pyqtSignal(str)
     processed = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, dbAdapter):
+        self.dbAdapter = dbAdapter
         self.emitter = ProcessEmitter()
         self.panel = ImagePanel(self.emitter)
         logger.debug("initializing image widget")

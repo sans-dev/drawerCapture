@@ -150,7 +150,7 @@ class ImagePanel(QLabel):
         options = QFileDialog.Options()
         options |= QFileDialog.Option.DontUseNativeDialog
         file_name, _ = QFileDialog.getSaveFileName(
-            self, "Save Image", "", "JPEG (*.jpeg)", options=options)
+            self, "Save Image", "", "JPEG (*.jpg)", options=options)
         if file_name:
             cv2.imwrite(file_name, self.image)
             logger.debug("image saved to: %s", file_name)

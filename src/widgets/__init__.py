@@ -6,3 +6,4 @@ from .ImagePanel import ImagePanel
 from .LiveWidget import LiveWidget
 from .MainWidget import MainWidget
 from .ImageWidget import ImageWidget
+from processors.adaptive_he import AdaptiveHE
