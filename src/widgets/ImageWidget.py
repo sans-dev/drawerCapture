@@ -1,7 +1,7 @@
 import logging
 import logging.config
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout
+from PyQt6.QtWidgets import QWidget, QGridLayout
 from PyQt6.QtCore import pyqtSignal, Qt
 
 from widgets import DataCollection
@@ -35,14 +35,6 @@ class ImageWidget(QWidget):
         self.collectionField = DataCollection()
         # create a horizontal layout for the buttons (crop, enahnce, save, close)
         self.buttonLayout = QGridLayout()
-        self.cropButton = QPushButton("Crop")
-        self.enhanceButton = QPushButton("Enhance")
-        self.saveButton = QPushButton("Save")
-        self.closeButton = QPushButton("Close")
-        self.buttonLayout.addWidget(self.cropButton, 0, 0)
-        self.buttonLayout.addWidget(self.enhanceButton, 0, 1)
-        self.buttonLayout.addWidget(self.saveButton, 0, 2)
-        self.buttonLayout.addWidget(self.closeButton, 0, 3)
         # create a vertical layout for the panel and buttons
         self.panelLayout = QGridLayout()
         self.panelLayout.addWidget(self.panel, 0, 0)
@@ -57,10 +49,7 @@ class ImageWidget(QWidget):
         """
         Connects the signals of the buttons to their respective functions.
         """
-        self.closeButton.clicked.connect(self.close)
-        self.enhanceButton.clicked.connect(self.enhanceButtonClicked)
         self.procClicked.connect(self.panel.processImage)
-        self.saveButton.clicked.connect(self.saveButtonClicked)
         self.emitter.processed.connect(self.enableButtons)
 
     def close(self):
@@ -75,20 +64,12 @@ class ImageWidget(QWidget):
         Enables the buttons of the widget.
         """
         logger.debug("enabling buttons")
-        self.cropButton.setEnabled(True)
-        self.enhanceButton.setEnabled(True)
-        self.saveButton.setEnabled(True)
-        self.closeButton.setEnabled(True)
 
     def disableButtons(self):
         """
         Disables the buttons of the widget.
         """
         logger.debug("disabling buttons")
-        self.cropButton.setEnabled(False)
-        self.enhanceButton.setEnabled(False)
-        self.saveButton.setEnabled(False)
-        self.closeButton.setEnabled(False)
     
     def setImage(self, image_path):
         """

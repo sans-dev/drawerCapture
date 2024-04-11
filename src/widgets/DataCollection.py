@@ -210,10 +210,13 @@ class DataCollection(QWidget):
                 widget.hide_error()
             except ValueError as e:
                 widget.show_error(str(e))
-                return
+                data[widget.name] = e
             except Exception as e:
                 print(e)
-                return
+                raise e
+        contains_exception = any(isinstance(value, Exception) for value in data.values())
+        if contains_exception:
+            return
         self.emitter.emit(data)
 
 def handle_data(dict):
