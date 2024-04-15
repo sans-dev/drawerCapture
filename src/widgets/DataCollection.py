@@ -80,11 +80,10 @@ class SearchableItemListWidget(QWidget):
     def get_data(self):
         if self.mandatory and self.item_list.count() != 1:
                  raise ValueError(f"{self.name} is a mandatory field. Please provide valid info.")
-        item = self.item_list.item(0)
-        if item is not None:
-            return item.text().strip()
-        else:
-            return item
+        if not self.mandatory and self.item_list.count() != 1:
+            return ""
+        else: 
+            return self.item_list.item(0).text().strip()
         
     def show_error(self, message):
         self.error_label.setStyleSheet("color: red;")
@@ -218,9 +217,7 @@ class DataCollection(QWidget):
             except Exception as e:
                 print(e)
                 raise e
-        contains_exception = any(isinstance(value, Exception) for value in data.values())
-        if not contains_exception:
-            return data
+        return data
         
 def handle_data(dict):
     print('Received Data', dict)
