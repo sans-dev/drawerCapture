@@ -27,9 +27,8 @@ class MainWindow(QMainWindow):
         """
         logger.debug("initializing main window")
         super().__init__()
-        dataValidator = DataValidator()
-        self.dbAdapter = DBAdapter(dataValidator)
-        self.dbManager = DBManager(dataValidator)
+        self.dbAdapter = DBAdapter()
+        self.dbManager = DBManager()
         self.dbManager.connect_db_adapter(self.dbAdapter)
 
         imageWidget = ImageWidget(self.dbAdapter)

@@ -2,10 +2,13 @@ import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QListWidget, QListWidgetItem, QLabel, QTabWidget, QSpacerItem, QSizePolicy, QDateEdit, QCheckBox, QHBoxLayout, QPushButton
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
 
+import string
 class SearchableItemListWidget(QWidget):
     def __init__(self, label_text : str, item_file : str, mandadory=False):
         super().__init__()
         self.mandatory = mandadory
+        self.max_input_length = 30
+        self.allowed_characters = string.ascii_letters + string.digits + "_"
         self._load_items(item_file)
 
         self.init_ui(label_text)
@@ -17,6 +20,8 @@ class SearchableItemListWidget(QWidget):
         layout.addWidget(self.label)
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("Search...")
+        self.search_edit.textChanged.connect(self.limit_text_length)
+        self.search_edit.textChanged.connect(self.escape_invalid_chars)
         self.search_edit.textChanged.connect(self.filter_items)
         layout.addWidget(self.search_edit)
 
@@ -33,6 +38,17 @@ class SearchableItemListWidget(QWidget):
         spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         layout.addItem(spacer)
         self.setLayout(layout)
+
+    def limit_text_length(self, text):
+        if len(text) > self.max_input_length:
+            self.search_edit.setText(self.old_text)
+        else:
+            self.old_text = text
+
+    def escape_invalid_chars(self, text):
+        if len(text) > 0:
+            if text[-1] not in self.allowed_characters:
+                self.search_edit.setText(self.old_text)
 
     def filter_items(self, text):
         self.item_list.clear()
@@ -203,7 +219,7 @@ class DataCollection(QWidget):
                 print(e)
                 raise e
         contains_exception = any(isinstance(value, Exception) for value in data.values())
-        if contains_exception:
+        if not contains_exception:
             return data
         
 def handle_data(dict):
