@@ -1,4 +1,7 @@
 import numpy as np
+import yaml
+from pathlib import Path
+import cv2
 from PyQt6.QtCore import QObject, pyqtSignal
 import logging
 import logging.config
@@ -32,8 +35,8 @@ class DataValidator:
         return True, None
     
     @staticmethod
-    def validate_meta_data(meta_data):
-        contains_exception = any(isinstance(value, Exception) for value in meta_data.values())
+    def validate_meta_info(meta_info):
+        contains_exception = any(isinstance(value, Exception) for value in meta_info.values())
         if contains_exception:
             return False, "Mandatory fields left open"
 
@@ -58,6 +61,21 @@ class DBAdapter(QObject):
         self.get_signal.emit(data)
 
 class DBManager:
+    def __init__(self, project_root_dir, project_info=None):
+        self.project_root_dir = project_root_dir
+        if not project_info:
+            self.load_project()
+        else:
+            self.init_project(project_info)
+
+    def init_project(project_info):
+        pass
+
+    def load_project(self):
+        project_info_file = self.project_root_dir / ".project_info.yaml"
+        self.project_info = yaml.safe_load(project_info_file.read_text())
+        self.image_number = self.project_info['image_number']
+
     def save_image_and_meta_info(self, payload):
         image_data = payload.get('image')
         meta_info = payload.get('meta_info')
@@ -65,19 +83,46 @@ class DBManager:
         if not is_valid:
             print("Invalid image data", msg)
             return
-        is_valid, msg = DataValidator.validate_meta_data(meta_info)
+        is_valid, msg = DataValidator.validate_meta_info(meta_info)
         if not is_valid:
-            print("Invalid image data", msg)
+            print("Invalid meta data", msg)
             return
         # Save data to the database
         logger.info("Saving data")
+        img_name, meta_name = self.create_save_name(meta_info)
+
+        # save data
+        img_name.parent.mkdir(exist_ok=True, parents=True)
+        meta_name.parent.mkdir(exist_ok=True, parents=True)
+
+        cv2.imwrite(img_name.as_posix(),image_data)
+        with meta_name.open('w') as f:
+            yaml.dump(meta_info, f)
+        self.update_project_info()
+
+        # update project info file and its representation
+        # logic if saving failes (resetting of image number...)
 
     def load_image_and_meta_info(self, data):
         # Validate data received from DB
-        if not self.validator.validate_data_from_db(data):
+        if not DataValidator.validate_data_from_db(data):
             # Handle validation error
             return
         # Process and load data from the database
+
+    def create_save_name(self, meta_info):
+        self.image_number += 1 
+        img_name = self.project_root_dir / "images" / f"img_{self.image_number}-{meta_info['museum']}-{meta_info['species'].replace(" ", "_")}.jpg"
+        meta_name = self.project_root_dir / "meta_info" / f"img_{self.image_number}-{meta_info['museum']}-{meta_info['species'].replace(" ", "_")}.yaml"
+        return img_name, meta_name
+
+    def add_exif_info(self, image):
+        pass
+
+    def update_project_info(self):
+        self.project_info['image_number'] = self.image_number
+        with self.project_root_dir.open('w'):
+            json.dump(self.project_info)
 
     def connect_db_adapter(self, db_adapter):
         db_adapter.put_signal.connect(self.save_image_and_meta_info)
