@@ -108,8 +108,8 @@ class DBManager:
 
     def create_save_name(self, meta_info):
         self.image_number += 1 
-        img_name = self.project_root_dir / "images" / f"img_{self.image_number}-{meta_info['Museum']}-{meta_info['Species'].replace(' ', '_')}.jpg"
-        meta_name = self.project_root_dir / "meta_info" / f"img_{self.image_number}-{meta_info['Museum']}-{meta_info['Species'].replace(' ', '_')}.yaml"
+        img_name = self.project_root_dir / "images" / f"{str(self.image_number).zfill(4)}-{meta_info['Museum']}-{meta_info['Species'].replace(' ', '_')}.jpg"
+        meta_name = self.project_root_dir / "meta_info" / f"{str(self.image_number).zfill(4)}-{meta_info['Museum']}-{meta_info['Species'].replace(' ', '_')}.yaml"
         return img_name, meta_name
 
     def add_exif_info(self, image):
@@ -117,8 +117,8 @@ class DBManager:
 
     def update_project_info(self):
         self.project_info['image-number'] = self.image_number
-        with (self.project_root_dir / ".project-info.yaml").open('w'):
-            yaml.dump(self.project_info)
+        with (self.project_root_dir / ".project-info.yaml").open('w') as f:
+            yaml.dump(self.project_info, f)
 
     def connect_db_adapter(self, db_adapter):
         db_adapter.put_signal.connect(self.save_image_and_meta_info)
