@@ -104,3 +104,4 @@ class ImageWidget(QWidget):
         logger.info("Send data to db")
         
         self.db_adapter.send_data_to_db(image_data, meta_info)
+        self.close()

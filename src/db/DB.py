@@ -39,6 +39,7 @@ class DataValidator:
         contains_exception = any(isinstance(value, Exception) for value in meta_info.values())
         if contains_exception:
             return False, "Mandatory fields left open"
+        else: return True, None 
 
 class DBAdapter(QObject):
     put_signal = pyqtSignal(dict)
@@ -53,28 +54,31 @@ class DBAdapter(QObject):
         print(meta_info)
         payload = {'image': image_data, 'meta_info': meta_info}
         self.put_signal.emit(payload)
+        return True
 
     def receive_data_from_db(self, data):
-        if not self.validator.validate_data_from_db(data):
+        if not DataValidator.validate_data_from_db(data):
             self.validation_error_signal.emit("Validation failed: Invalid data received from DB")
             return
         self.get_signal.emit(data)
 
 class DBManager:
     def __init__(self, project_root_dir, project_info=None):
-        self.project_root_dir = project_root_dir
+        self.project_root_dir = Path(project_root_dir)
         if not project_info:
             self.load_project()
         else:
             self.init_project(project_info)
 
     def init_project(project_info):
-        pass
+        meta_dir, img_dir = None
+        img_dir.parent.mkdir(exist_ok=True, parents=True)
+        meta_dir.parent.mkdir(exist_ok=True, parents=True)
 
     def load_project(self):
-        project_info_file = self.project_root_dir / ".project_info.yaml"
+        project_info_file = self.project_root_dir / ".project-info.yaml"
         self.project_info = yaml.safe_load(project_info_file.read_text())
-        self.image_number = self.project_info['image_number']
+        self.image_number = self.project_info['image-number']
 
     def save_image_and_meta_info(self, payload):
         image_data = payload.get('image')
@@ -90,18 +94,10 @@ class DBManager:
         # Save data to the database
         logger.info("Saving data")
         img_name, meta_name = self.create_save_name(meta_info)
-
-        # save data
-        img_name.parent.mkdir(exist_ok=True, parents=True)
-        meta_name.parent.mkdir(exist_ok=True, parents=True)
-
         cv2.imwrite(img_name.as_posix(),image_data)
         with meta_name.open('w') as f:
             yaml.dump(meta_info, f)
         self.update_project_info()
-
-        # update project info file and its representation
-        # logic if saving failes (resetting of image number...)
 
     def load_image_and_meta_info(self, data):
         # Validate data received from DB
@@ -112,16 +108,16 @@ class DBManager:
 
     def create_save_name(self, meta_info):
         self.image_number += 1 
-        img_name = self.project_root_dir / "images" / f"img_{self.image_number}-{meta_info['museum']}-{meta_info['species'].replace(" ", "_")}.jpg"
-        meta_name = self.project_root_dir / "meta_info" / f"img_{self.image_number}-{meta_info['museum']}-{meta_info['species'].replace(" ", "_")}.yaml"
+        img_name = self.project_root_dir / "images" / f"img_{self.image_number}-{meta_info['Museum']}-{meta_info['Species'].replace(' ', '_')}.jpg"
+        meta_name = self.project_root_dir / "meta_info" / f"img_{self.image_number}-{meta_info['Museum']}-{meta_info['Species'].replace(' ', '_')}.yaml"
         return img_name, meta_name
 
     def add_exif_info(self, image):
         pass
 
     def update_project_info(self):
-        self.project_info['image_number'] = self.image_number
-        with self.project_root_dir.open('w'):
+        self.project_info['image-number'] = self.image_number
+        with (self.project_root_dir / ".project-info.yaml").open('w'):
             yaml.dump(self.project_info)
 
     def connect_db_adapter(self, db_adapter):
