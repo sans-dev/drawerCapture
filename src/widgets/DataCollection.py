@@ -1,8 +1,57 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QListWidget, QListWidgetItem, QLabel, QTabWidget, QSpacerItem, QSizePolicy, QDateEdit, QCheckBox, QHBoxLayout, QPushButton
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
-
 import string
+
+class TextInputWidget(QWidget):
+    def __init__(self, label_text : str, mandatory=False): 
+        self.mandatory = mandatory
+        self.max_input_length = 30
+        self.allowed_characters = string.ascii_letters + string.digits + "_"
+        self.init_ui(label_text)
+        self.name = label_text.strip("*")
+
+    def init_ui(self, label_text : str):
+        layout = QVBoxLayout()
+        self.label = QLabel(label_text)
+        layout.addWidget(self.label)
+        self.edit = QLineEdit()
+        self.edit.setPlaceholderText("Collection Name")
+        self.edit.textChanged.connect(self.limit_text_length)
+        self.edit.textChanged.connect(self.escape_invalid_chars)
+        self.checkbox = QCheckBox("Keep Data")
+        layout.addWidget(self.checkbox)
+        self.error_label = QLabel()
+        layout.addWidget(self.error_label)
+        spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        layout.addItem(spacer)
+        self.setLayout(layout)
+
+    def get_data(self):
+        text = self.edit.text().strip()
+        if self.mandatory and not text:
+                 raise ValueError(f"{self.name} is a mandatory field. Please provide valid info.")
+        else: 
+            return text
+        
+    def limit_text_length(self, text):
+        if len(text) > self.max_input_length:
+            self.edit.setText(self.old_text)
+        else:
+            self.old_text = text
+
+    def escape_invalid_chars(self, text):
+        if len(text) > 0:
+            if text[-1] not in self.allowed_characters:
+                self.edit.setText(self.old_text)
+
+    def show_error(self, message):
+        self.error_label.setStyleSheet("color: red;")
+        self.error_label.setText(message)
+
+    def hide_error(self):
+        self.error_label.clear()
+
 class SearchableItemListWidget(QWidget):
     def __init__(self, label_text : str, item_file : str, mandadory=False):
         super().__init__()
@@ -166,9 +215,9 @@ class DataCollection(QWidget):
         # Create forms for each tab
         collection_info_form = QWidget()
         collection_info_layout = QVBoxLayout(collection_info_form)
-        self.museum_widget = SearchableItemListWidget("Museum*", 'src/examples/gui_examples/test_items.txt', mandadory=True)
+        self.museum_widget = SearchableItemListWidget("Museum*", 'resources/assets/museums.txt', mandadory=True)
         collection_info_layout.addWidget(self.museum_widget)
-        self.collection_name_widget = SearchableItemListWidget("Collection Name", 'src/examples/gui_examples/test_items.txt')
+        self.collection_name_widget = TextInputWidget("Collection Name")
         collection_info_layout.addWidget(self.collection_name_widget)
         self.collection_date_widget = DateInputWidget("Collection Date*")
         collection_info_layout.addWidget(self.collection_date_widget)
