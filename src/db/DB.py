@@ -122,7 +122,7 @@ class DBManager:
     def update_project_info(self):
         self.project_info['image_number'] = self.image_number
         with self.project_root_dir.open('w'):
-            json.dump(self.project_info)
+            yaml.dump(self.project_info)
 
     def connect_db_adapter(self, db_adapter):
         db_adapter.put_signal.connect(self.save_image_and_meta_info)
