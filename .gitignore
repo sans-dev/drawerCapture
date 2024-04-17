@@ -16,3 +16,4 @@ env*
 venv*
 .venv*resources
 resources
+tests/test-project

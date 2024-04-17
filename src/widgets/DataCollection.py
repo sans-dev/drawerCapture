@@ -4,7 +4,8 @@ from PyQt6.QtCore import Qt, pyqtSignal, QDate
 import string
 
 class TextInputWidget(QWidget):
-    def __init__(self, label_text : str, mandatory=False): 
+    def __init__(self, label_text : str, mandatory=False):
+        super().__init__()
         self.mandatory = mandatory
         self.max_input_length = 30
         self.allowed_characters = string.ascii_letters + string.digits + "_"
