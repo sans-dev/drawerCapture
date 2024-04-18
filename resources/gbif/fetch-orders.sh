@@ -50,7 +50,25 @@ for key in "${!orders[@]}"; do
             while read -r genus_line; do
                 genus_name=$(echo "$genus_line" | jq -r '.genus')
                 genus_key=$(echo "$genus_line" | jq -r '.key')
-                genera+=( "{\"genus_name\":\"$genus_name\",\"genus_key\":\"$genus_key\"}" )
+
+                # Initialize an array to store species
+                species=()
+
+                # Requesting species for the genus
+                species_response=$(curl -sS -X 'GET' \
+                  "https://api.gbif.org/v1/species/${genus_key}/children?limit=3" \
+                  -H 'accept: application/json' \
+                  -H 'Accept-Language: en')
+
+                # Extracting species with rank "SPECIES"
+                while read -r species_line; do
+                      species_name=$(echo "$species_line" | jq -r '.name')
+                      species_key=$(echo "$species_line" | jq -r '.key')
+                      species+=( "{\"species_name\":\"$species_name\",\"species_key\":\"$species_key\"}" )
+                done < <(echo "$species_response" | jq -c '.results[] | select(.rank == "SPECIES") | {name: .species, key: .key}')
+                # Add genus along with its species to genera array
+                genera+=( "{\"genus_name\":\"$genus_name\",\"genus_key\":\"$genus_key\",\"species\":[$(IFS=,; echo "${species[*]}")]}" )
+
             done < <(echo "$genera_response" | jq -c '.results[] | select(.rank == "GENUS") | {genus: .genus, key: .key}')
 
             # Add family along with its genera to families array
@@ -62,6 +80,7 @@ for key in "${!orders[@]}"; do
     taxonomy["$order_name"]=$(jq -n --arg key "$key" --argjson families "$(IFS=,; echo "[${families[*]}]")" '{order_key: $key, families: $families}')
 done
 
-# Printing the taxonomy
-echo "Taxonomy:"
-echo "${taxonomy[@]}" | jq .
+
+# Saving taxonomy to a JSON file
+echo "${taxonomy[@]}" | jq . > taxonomy.json
+echo "Taxonomy saved to taxonomy.json"
