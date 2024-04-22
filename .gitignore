@@ -14,5 +14,8 @@ Thumbs.db
 env*
 .env*
 venv*
-.venv*resources
-resources
+.venv*
+resources/flows
+resources/click_dummy
+tests/test-project
+resources/taxonomy
