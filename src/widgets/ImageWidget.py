@@ -1,7 +1,7 @@
 import logging
 import logging.config
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout
+from PyQt6.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QPushButton
 from PyQt6.QtCore import pyqtSignal, Qt
 
 from widgets import DataCollection
@@ -19,8 +19,8 @@ class ImageWidget(QWidget):
     procClicked = pyqtSignal(str)
     processed = pyqtSignal()
 
-    def __init__(self, dbAdapter):
-        self.dbAdapter = dbAdapter
+    def __init__(self, db_adapter):
+        self.db_adapter = db_adapter
         self.emitter = ProcessEmitter()
         self.panel = ImagePanel(self.emitter)
         logger.debug("initializing image widget")
@@ -32,35 +32,32 @@ class ImageWidget(QWidget):
         """
         Initializes the user interface of the widget.
         """
-        self.collectionField = DataCollection()
+        self.data_collector = DataCollection()
         # create a horizontal layout for the buttons (crop, enahnce, save, close)
-        self.buttonLayout = QGridLayout()
-        self.cropButton = QPushButton("Crop")
-        self.enhanceButton = QPushButton("Enhance")
-        self.saveButton = QPushButton("Save")
-        self.closeButton = QPushButton("Close")
-        self.buttonLayout.addWidget(self.cropButton, 0, 0)
-        self.buttonLayout.addWidget(self.enhanceButton, 0, 1)
-        self.buttonLayout.addWidget(self.saveButton, 0, 2)
-        self.buttonLayout.addWidget(self.closeButton, 0, 3)
         # create a vertical layout for the panel and buttons
-        self.panelLayout = QGridLayout()
-        self.panelLayout.addWidget(self.panel, 0, 0)
-        self.panelLayout.addLayout(self.buttonLayout, 2, 0, alignment=Qt.AlignmentFlag.AlignCenter)
         # add the collectionField right to the layout
-        self.layout = QGridLayout()
-        self.layout.addLayout(self.panelLayout, 0, 0)
-        self.layout.addWidget(self.collectionField, 0, 1)
-        self.setLayout(self.layout)
+        layout = QGridLayout()
+        layout.addWidget(self.panel, 0, 0)
+        layout.addWidget(self.data_collector, 0, 1)
+
+        button_layout = QHBoxLayout()
+        self.close_button = QPushButton("Close")
+        self.close_button.clicked.connect(self.close)
+        button_layout.addWidget(self.close_button)
+
+        self.save_button = QPushButton("Save")
+        self.save_button.clicked.connect(self.save_data)
+        button_layout.addWidget(self.save_button)
+
+        layout.addLayout(button_layout,1,1)
+
+        self.setLayout(layout)
 
     def connectSignals(self):
         """
         Connects the signals of the buttons to their respective functions.
         """
-        self.closeButton.clicked.connect(self.close)
-        self.enhanceButton.clicked.connect(self.enhanceButtonClicked)
         self.procClicked.connect(self.panel.processImage)
-        self.saveButton.clicked.connect(self.saveButtonClicked)
         self.emitter.processed.connect(self.enableButtons)
 
     def close(self):
@@ -75,20 +72,12 @@ class ImageWidget(QWidget):
         Enables the buttons of the widget.
         """
         logger.debug("enabling buttons")
-        self.cropButton.setEnabled(True)
-        self.enhanceButton.setEnabled(True)
-        self.saveButton.setEnabled(True)
-        self.closeButton.setEnabled(True)
 
     def disableButtons(self):
         """
         Disables the buttons of the widget.
         """
         logger.debug("disabling buttons")
-        self.cropButton.setEnabled(False)
-        self.enhanceButton.setEnabled(False)
-        self.saveButton.setEnabled(False)
-        self.closeButton.setEnabled(False)
     
     def setImage(self, image_path):
         """
@@ -104,9 +93,15 @@ class ImageWidget(QWidget):
         """
         self.procClicked.emit("adaptive_he")
 
-    def saveButtonClicked(self):
+    def save_data(self):
         """
         Opens a file dialog to save the image.
         """
-        logger.info("saving image")
-        self.panel.saveImage()
+        logger.info("Retreiving image data from Panel")
+        image_data = self.panel.get_image()
+        logger.info("Retreiving meta info from Panel")
+        meta_info = self.data_collector.get_data()
+        logger.info("Send data to db")
+        
+        self.db_adapter.send_data_to_db(image_data, meta_info)
+        self.close()

@@ -22,9 +22,9 @@ class MainWidget(QWidget):
         self.setLayout(self.layout)
 
         # Create the widgets
-        self.liveModeButton = QPushButton("Live Mode")
+        self.liveModeButton = QPushButton("Load Project")
         self.liveModeButton.clicked.connect(self.enterLiveMode)
-        self.offlineModeButton = QPushButton("Offline Mode")
+        self.offlineModeButton = QPushButton("New Project")
         self.offlineModeButton.clicked.connect(self.enterOfflineMode)
 
         # Add the widgets to the layout

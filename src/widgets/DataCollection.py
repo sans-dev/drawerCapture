@@ -1,11 +1,64 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QListWidget, QListWidgetItem, QLabel, QTabWidget, QSpacerItem, QSizePolicy, QDateEdit, QCheckBox, QHBoxLayout, QPushButton
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
+import string
+
+class TextInputWidget(QWidget):
+    def __init__(self, label_text : str, mandatory=False):
+        super().__init__()
+        self.mandatory = mandatory
+        self.max_input_length = 30
+        self.allowed_characters = string.ascii_letters + string.digits + "_"
+        self.init_ui(label_text)
+        self.name = label_text.strip("*")
+
+    def init_ui(self, label_text : str):
+        layout = QVBoxLayout()
+        self.label = QLabel(label_text)
+        layout.addWidget(self.label)
+        self.edit = QLineEdit()
+        self.edit.setPlaceholderText("Collection Name")
+        self.edit.textChanged.connect(self.limit_text_length)
+        self.edit.textChanged.connect(self.escape_invalid_chars)
+        self.checkbox = QCheckBox("Keep Data")
+        layout.addWidget(self.checkbox)
+        self.error_label = QLabel()
+        layout.addWidget(self.error_label)
+        spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        layout.addItem(spacer)
+        self.setLayout(layout)
+
+    def get_data(self):
+        text = self.edit.text().strip()
+        if self.mandatory and not text:
+                 raise ValueError(f"{self.name} is a mandatory field. Please provide valid info.")
+        else: 
+            return text
+        
+    def limit_text_length(self, text):
+        if len(text) > self.max_input_length:
+            self.edit.setText(self.old_text)
+        else:
+            self.old_text = text
+
+    def escape_invalid_chars(self, text):
+        if len(text) > 0:
+            if text[-1] not in self.allowed_characters:
+                self.edit.setText(self.old_text)
+
+    def show_error(self, message):
+        self.error_label.setStyleSheet("color: red;")
+        self.error_label.setText(message)
+
+    def hide_error(self):
+        self.error_label.clear()
 
 class SearchableItemListWidget(QWidget):
     def __init__(self, label_text : str, item_file : str, mandadory=False):
         super().__init__()
         self.mandatory = mandadory
+        self.max_input_length = 30
+        self.allowed_characters = string.ascii_letters + string.digits + "_"
         self._load_items(item_file)
 
         self.init_ui(label_text)
@@ -17,6 +70,8 @@ class SearchableItemListWidget(QWidget):
         layout.addWidget(self.label)
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("Search...")
+        self.search_edit.textChanged.connect(self.limit_text_length)
+        self.search_edit.textChanged.connect(self.escape_invalid_chars)
         self.search_edit.textChanged.connect(self.filter_items)
         layout.addWidget(self.search_edit)
 
@@ -33,6 +88,17 @@ class SearchableItemListWidget(QWidget):
         spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         layout.addItem(spacer)
         self.setLayout(layout)
+
+    def limit_text_length(self, text):
+        if len(text) > self.max_input_length:
+            self.search_edit.setText(self.old_text)
+        else:
+            self.old_text = text
+
+    def escape_invalid_chars(self, text):
+        if len(text) > 0:
+            if text[-1] not in self.allowed_characters:
+                self.search_edit.setText(self.old_text)
 
     def filter_items(self, text):
         self.item_list.clear()
@@ -64,11 +130,10 @@ class SearchableItemListWidget(QWidget):
     def get_data(self):
         if self.mandatory and self.item_list.count() != 1:
                  raise ValueError(f"{self.name} is a mandatory field. Please provide valid info.")
-        item = self.item_list.item(0)
-        if item is not None:
-            return item.text().strip()
-        else:
-            return item
+        if not self.mandatory and self.item_list.count() != 1:
+            return ""
+        else: 
+            return self.item_list.item(0).text().strip()
         
     def show_error(self, message):
         self.error_label.setStyleSheet("color: red;")
@@ -136,7 +201,7 @@ class LabeledTextField(QWidget):
         self.setLayout(layout)  
 
 class DataCollection(QWidget):
-    emitter = pyqtSignal(dict)
+    meta_signal = pyqtSignal(dict)
 
     def __init__(self):
         super().__init__()
@@ -151,25 +216,25 @@ class DataCollection(QWidget):
         # Create forms for each tab
         collection_info_form = QWidget()
         collection_info_layout = QVBoxLayout(collection_info_form)
-        self.museum_widget = SearchableItemListWidget("Museum*", 'src/examples/gui_examples/test_items.txt', mandadory=True)
+        self.museum_widget = SearchableItemListWidget("Museum*", 'resources/meta_info_lists/museums.txt', mandadory=True)
         collection_info_layout.addWidget(self.museum_widget)
-        self.collection_name_widget = SearchableItemListWidget("Collection Name", 'src/examples/gui_examples/test_items.txt')
+        self.collection_name_widget = TextInputWidget("Collection Name")
         collection_info_layout.addWidget(self.collection_name_widget)
         self.collection_date_widget = DateInputWidget("Collection Date*")
         collection_info_layout.addWidget(self.collection_date_widget)
-        self.collection_location_widget = SearchableItemListWidget("Collection Location*", 'src/examples/gui_examples/test_items.txt', mandadory=True)
+        self.collection_location_widget = SearchableItemListWidget("Collection Location*", 'resources/meta_info_lists/regions.txt', mandadory=True)
         collection_info_layout.addWidget(self.collection_location_widget)
         tab_widget.addTab(collection_info_form, "Collection Info")
 
         specimen_info_form = QWidget()
         specimen_info_layout = QVBoxLayout(specimen_info_form)
-        self.order_widget = SearchableItemListWidget("Order", 'src/examples/gui_examples/test_items.txt')
+        self.order_widget = SearchableItemListWidget("Order", 'resources/meta_info_lists/orders.txt')
         specimen_info_layout.addWidget(self.order_widget)
-        self.family_widget = SearchableItemListWidget("Family", 'src/examples/gui_examples/test_items.txt')
+        self.family_widget = SearchableItemListWidget("Family", 'resources/meta_info_lists/families.txt')
         specimen_info_layout.addWidget(self.family_widget)
-        self.genus_widget = SearchableItemListWidget("Genus", 'src/examples/gui_examples/test_items.txt')
+        self.genus_widget = SearchableItemListWidget("Genus", 'resources/meta_info_lists/genera.txt')
         specimen_info_layout.addWidget(self.genus_widget)
-        self.species_widget = SearchableItemListWidget("Species*", 'src/examples/gui_examples/test_items.txt', mandadory=True)
+        self.species_widget = SearchableItemListWidget("Species*", 'resources/meta_info_lists/species.txt', mandadory=True)
         specimen_info_layout.addWidget(self.species_widget)
         tab_widget.addTab(specimen_info_form, "Specimen Info")
 
@@ -185,24 +250,12 @@ class DataCollection(QWidget):
 
         layout.addWidget(tab_widget)
 
-         # Create the close and save buttons
-        button_layout = QHBoxLayout()
-        self.close_button = QPushButton("Close")
-        self.close_button.clicked.connect(self.close)
-        button_layout.addWidget(self.close_button)
-
-        self.save_button = QPushButton("Save")
-        self.save_button.clicked.connect(self.save_data)
-        button_layout.addWidget(self.save_button)
-
-        layout.addLayout(button_layout)
-
         spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         layout.addItem(spacer)
         self.setLayout(layout)
         self.setWindowTitle("Data Collection")
 
-    def save_data(self):
+    def get_data(self):
         data = {}
         for widget in self.widgets:
             try:
@@ -210,12 +263,12 @@ class DataCollection(QWidget):
                 widget.hide_error()
             except ValueError as e:
                 widget.show_error(str(e))
-                return
+                data[widget.name] = e
             except Exception as e:
                 print(e)
-                return
-        self.emitter.emit(data)
-
+                raise e
+        return data
+        
 def handle_data(dict):
     print('Received Data', dict)
 

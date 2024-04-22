@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 
 from utils import load_style_sheet
 from widgets import MainWidget, LiveWidget, ImageWidget
-from db import DataValidator, DBAdapter, DBManager
+from db import DBAdapter, DBManager
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -27,11 +27,11 @@ class MainWindow(QMainWindow):
         """
         logger.debug("initializing main window")
         super().__init__()
-        dataValidator = DataValidator()
-        dbAdapter = DBAdapter(dataValidator)
-        self.dbManager = DBManager(dbAdapter)
+        self.dbAdapter = DBAdapter()
+        self.dbManager = DBManager('tests/test-project')
+        self.dbManager.connect_db_adapter(self.dbAdapter)
 
-        imageWidget = ImageWidget(dbAdapter)
+        imageWidget = ImageWidget(self.dbAdapter)
         self.widgets = {
             "main": MainWidget(),
             "live": LiveWidget(imageWidget),
