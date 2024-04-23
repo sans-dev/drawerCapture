@@ -21,26 +21,96 @@ class Trie:
             if char not in node.children:
                 return []
             node = node.children[char]
-        return self._collect_species(node, prefix)
+        return self._collect_entries(node, prefix)
 
-    def _collect_species(self, node, prefix):
+    def _collect_entries(self, node, prefix):
         result = []
         if node.is_end_of_word:
             result.append(prefix)
         for char, child_node in node.children.items():
-            result.extend(self._collect_species(child_node, prefix + char))
+            result.extend(self._collect_entries(child_node, prefix + char))
         return result
 
-# Example usage:
-trie = Trie()
-# Populate the trie with insect species names
-insect_species = [...]  # Your list of 20k insect species names
-for species in insect_species:
-    trie.insert(species)
+class TreeNode:
+    def __init__(self, name, parent=None):
+        self.name = name
+        self.children = {}
+        self.trie = Trie()
+        self.parent = parent
 
-# Perform search operation
-search_query = "your_search_query"
-matching_species = trie.search(search_query)
-print("Matching species:")
-for species in matching_species:
-    print(species)
+    def add_child(self, name, child_node):
+        self.children[name] = child_node
+
+    def get_child(self, name):
+        return self.children.get(name)
+
+    def get_possible_values(self, prefix):
+        return self.trie.search(prefix)
+
+    def insert_into_trie(self):
+        for child in self.children.values():
+            self.trie.insert(child.name)
+
+
+class TaxonomyTree:
+    def __init__(self):
+        self.root = TreeNode("root")
+
+    def add_taxon(self, taxon_path):
+        current_node = self.root
+        for taxon in taxon_path:
+            if not current_node.get_child(taxon):
+                new_node = TreeNode(taxon, parent=current_node)
+                current_node.add_child(taxon, new_node)
+            current_node = current_node.get_child(taxon)
+            current_node.insert_into_trie()
+
+    def get_parents(self, taxon_name):
+        node = self._find_node(self.root, taxon_name)
+        if node is None:
+            return None
+        parents = []
+        while node.parent is not None:
+            parents.append(node.parent.name)
+            node = node.parent
+        parents.reverse()  # Reverse the list to get the path from the root to the node
+        return parents
+
+    def _find_node(self, node, taxon_name):
+        if node.name == taxon_name:
+            return node
+        for child in node.children.values():
+            result = self._find_node(child, taxon_name)
+            if result is not None:
+                return result
+        return None
+
+    def get_possible_values(self, current_path, prefix=""):
+        current_node = self.root
+        for taxon in current_path:
+            current_node = current_node.get_child(taxon)
+            if current_node is None:
+                return []
+        return current_node.get_possible_values(prefix)
+
+
+# Beispiel-Nutzung:
+taxonomy = TaxonomyTree()
+
+# Füge Taxon-Pfade hinzu
+taxonomy.add_taxon(["Animalia", "Chordata", "Mammalia", "Felidae", "Felis"])
+taxonomy.add_taxon(["Animalia", "Chordata", "Mammalia", "Felidae", "Felas"])
+taxonomy.add_taxon(["Animalia", "Chordata", "Mammalia", "Felidae", "Fulas"])
+taxonomy.add_taxon(["Animalia", "Chordata", "Mammalia", "Felidae", "Panthera"])
+taxonomy.add_taxon(["Plantae", "Angiosperms", "Rosaceae", "Rosa"])
+taxonomy.add_taxon(["Plantae", "Angiosperms", "Rosaceae", "Prunus"])
+taxonomy.add_taxon(["Plantae", "Gymnosperms", "Cupressaceae", "Cupressus"])
+
+# Beispielanwendung
+current_path = ["Animalia", "Chordata"]
+prefix = "M"
+possible_species = taxonomy.get_possible_values(current_path, prefix=prefix)
+print(f"Mögliche Arten innerhalb von Felidae mit dem Präfix '{prefix}':", possible_species)
+
+taxon_name = "Felis"
+print(f"Taxon-Pfad fuer {taxon_name}: {taxonomy.get_parents(taxon_name)}")
