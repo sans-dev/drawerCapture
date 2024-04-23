@@ -47,6 +47,6 @@ for order in orders_pbar:
 taxonomy[order_name] = families
 
 with open('taxonomy.json', 'w') as f:
-    json.dump(taxonomy, f)
+    json.dump(taxonomy, f, indent=4)
 
 print("Taxonomy saved to taxonomy.json")
