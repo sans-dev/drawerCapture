@@ -207,6 +207,7 @@ class DataCollection(QWidget):
 
     def __init__(self):
         super().__init__()
+        self.taxonomy = init_taxonomy("resources/taxonomy/taxonomy.json")
         self.init_ui()
 
     def init_ui(self):
