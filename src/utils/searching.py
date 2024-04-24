@@ -64,8 +64,8 @@ class TaxonomyTree:
             if not current_node.get_child(taxon):
                 new_node = TreeNode(taxon, parent=current_node)
                 current_node.add_child(taxon, new_node)
-            current_node = current_node.get_child(taxon)
             current_node.insert_into_trie()
+            current_node = current_node.get_child(taxon)
 
     def get_parents(self, taxon_name):
         node = self._find_node(self.root, taxon_name)
