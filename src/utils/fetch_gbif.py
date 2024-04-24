@@ -31,7 +31,7 @@ for order in orders_pbar:
 
             genera_pbar.set_description(f"Fetching species information for genus {genus_name}")
             species_response = requests.get(f'https://api.gbif.org/v1/species/{genus["key"]}/children?limit={limit}').json()
-            species_response = [spec for spec in species_response['results'] if spec['rank'] == "FAMILY"]
+            species_response = [spec for spec in species_response['results'] if spec['rank'] == "SPECIES"]
             spec_pbar = tqdm(species_response, position=3, leave=True)
             species = {}
 
