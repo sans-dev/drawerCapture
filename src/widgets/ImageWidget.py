@@ -4,9 +4,9 @@ import logging.config
 from PyQt6.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QPushButton
 from PyQt6.QtCore import pyqtSignal, Qt
 
-from widgets import DataCollection
-from widgets import ImagePanel
-from signals import ProcessEmitter
+from widgets.DataCollection import DataCollection
+from widgets.ImagePanel import ImagePanel
+from signals.ProcessEmitter import ProcessEmitter
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)

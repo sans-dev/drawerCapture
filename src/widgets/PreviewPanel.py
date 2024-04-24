@@ -7,7 +7,8 @@ from PyQt6.QtGui import QImage, QPixmap
 import cv2
 import time
 
-from threads import CameraStreamer, ImageCapture
+from threads.CameraStreamer import CameraStreamer
+from threads.ImageCapture import ImageCapture
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)

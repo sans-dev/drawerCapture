@@ -5,7 +5,7 @@ logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False
 from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QListWidget, QLabel
 from PyQt6.QtCore import pyqtSignal, Qt
 
-from threads import CameraFetcher
+from threads.CameraFetcher import CameraFetcher
 
 logger = logging.getLogger(__name__)
 
