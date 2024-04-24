@@ -4,7 +4,7 @@ import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 
 from PyQt6.QtCore import QProcess, pyqtSignal
-from threads.CameraThread import CameraThread
+from src.threads.CameraThread import CameraThread
 
 logger = logging.getLogger(__name__)
 

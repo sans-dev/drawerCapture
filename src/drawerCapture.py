@@ -3,11 +3,11 @@ import logging
 import logging.config
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 
-from utils.load_style_sheet import load_style_sheet
-from widgets.MainWidget import MainWidget
-from widgets.LiveWidget import LiveWidget 
-from widgets.ImageWidget import ImageWidget
-from db.DB import DBAdapter, DBManager
+from src.utils.load_style_sheet import load_style_sheet
+from src.widgets.MainWidget import MainWidget
+from src.widgets.LiveWidget import LiveWidget 
+from src.widgets.ImageWidget import ImageWidget
+from src.db.DB import DBAdapter, DBManager
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)

@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QList
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
 import string
 
-from utils.searching import init_taxonomy
+from src.utils.searching import init_taxonomy
 
 class TextInputWidget(QWidget):
     def __init__(self, label_text : str, mandatory=False):
@@ -277,7 +277,7 @@ def handle_data(dict):
 def main():
     app = QApplication(sys.argv)
     window = DataCollection()
-    window.emitter.connect(handle_data)
+    window.meta_signal.connect(handle_data)
     window.show()
     sys.exit(app.exec())
 
