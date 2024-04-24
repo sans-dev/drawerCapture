@@ -95,7 +95,19 @@ class TaxonomyTree:
                 return []
         return current_node.get_possible_values(prefix)
 
+    def prefix_search(self, level, prefix):
+        if level < 0 or level > 4:
+            raise ValueError("Invalid level: " + str(level))
+        results = []
+        self._prefix_search_recursive(self.root, level, prefix, results, 0)
+        return results
 
+    def _prefix_search_recursive(self, node, level, prefix, results, current_level):
+        if current_level == level - 1:
+            results.extend(node.trie.search(prefix))
+        if current_level < level - 1:
+            for child in node.children.values():
+                self._prefix_search_recursive(child, level, prefix, results, current_level + 1)
 
 def init_taxonomy(taxonomy_dir):
     taxonomy_tree = TaxonomyTree()
@@ -111,11 +123,16 @@ def init_taxonomy(taxonomy_dir):
         ])
     return taxonomy_tree
 
-taxonomy_dir = "resources/taxonomy/taxonomy.json"
+if __name__ == "__main__":
+    taxonomy_dir = "resources/taxonomy/taxonomy.json"
 
-taxonomy = init_taxonomy(taxonomy_dir)
+    taxonomy = init_taxonomy(taxonomy_dir)
 
-print(taxonomy.get_parents("Dasyleptus brongniarti"))
-current_path = ['Archaeognatha']
-prefix = "M"
-print(taxonomy.get_possible_values(current_path, prefix))
+    print(taxonomy.get_parents("Dasyleptus brongniarti"))
+    current_path = ['Archaeognatha']
+    prefix = "M"
+    print(taxonomy.get_possible_values(current_path, prefix))
+
+    f_genera = taxonomy.prefix_search(4, "Da")
+    for genus in f_genera:
+        print(genus, taxonomy.get_parents(genus))
