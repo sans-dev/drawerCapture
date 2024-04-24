@@ -36,11 +36,9 @@ orders_response = requests.get('https://api.gbif.org/v1/species/216/children?lim
 orders_response = [order for order in orders_response['results'] if order['rank'] == "ORDER"]
 orders_pbar = tqdm(orders_response, position=0, leave=True)
 
-limit = 400
+limit = 800
 
-species = {}
-id = 1
-
+species = []
 for order in orders_pbar:
     order_name = order['order']
     
@@ -65,13 +63,10 @@ for order in orders_pbar:
                     try:
                         del sp[key]
                     except KeyError as e:
-                        print(e)
-                        continue
-                species[str(id)] = sp
-                id += 1
-    break
+                        orders_pbar.set_description(f"Key '{e}' missing in species response results of {sp['scientificName']}")
+                species.append(sp)
 
-with open('taxonomy.json', 'w') as f:
+with open('assets/taxonomy/taxonomy.json', 'w') as f:
     json.dump(species, f, indent=4)
 
 print("Taxonomy saved to taxonomy.json")

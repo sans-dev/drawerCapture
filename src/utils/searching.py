@@ -1,3 +1,5 @@
+import json
+
 class TrieNode:
     def __init__(self):
         self.children = {}
@@ -94,23 +96,26 @@ class TaxonomyTree:
         return current_node.get_possible_values(prefix)
 
 
-# Beispiel-Nutzung:
-taxonomy = TaxonomyTree()
 
-# Füge Taxon-Pfade hinzu
-taxonomy.add_taxon(["Animalia", "Chordata", "Mammalia", "Felidae", "Felis"])
-taxonomy.add_taxon(["Animalia", "Chordata", "Mammalia", "Felidae", "Felas"])
-taxonomy.add_taxon(["Animalia", "Chordata", "Mammalia", "Felidae", "Fulas"])
-taxonomy.add_taxon(["Animalia", "Chordata", "Mammalia", "Felidae", "Panthera"])
-taxonomy.add_taxon(["Plantae", "Angiosperms", "Rosaceae", "Rosa"])
-taxonomy.add_taxon(["Plantae", "Angiosperms", "Rosaceae", "Prunus"])
-taxonomy.add_taxon(["Plantae", "Gymnosperms", "Cupressaceae", "Cupressus"])
+def init_taxonomy(taxonomy_dir):
+    taxonomy_tree = TaxonomyTree()
 
-# Beispielanwendung
-current_path = ["Animalia", "Chordata"]
+    with open(taxonomy_dir, "r") as f:
+        taxonomy_dict = json.load(f)
+    for entry in taxonomy_dict:
+        taxonomy_tree.add_taxon([
+            entry['order'],
+            entry['family'],
+            entry['genus'],
+            entry['species']
+        ])
+    return taxonomy_tree
+
+taxonomy_dir = "resources/taxonomy/taxonomy.json"
+
+taxonomy = init_taxonomy(taxonomy_dir)
+
+print(taxonomy.get_parents("Dasyleptus brongniarti"))
+current_path = ['Archaeognatha']
 prefix = "M"
-possible_species = taxonomy.get_possible_values(current_path, prefix=prefix)
-print(f"Mögliche Arten innerhalb von Felidae mit dem Präfix '{prefix}':", possible_species)
-
-taxon_name = "Felis"
-print(f"Taxon-Pfad fuer {taxon_name}: {taxonomy.get_parents(taxon_name)}")
+print(taxonomy.get_possible_values(current_path, prefix))
