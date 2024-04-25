@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 class TextInputWidget(QWidget):
     def __init__(self, label_text : str, mandatory=False):
         super().__init__()
+        logger.info("Initializing")
         self.mandatory = mandatory
         self.max_input_length = 30
         self.allowed_characters = string.ascii_letters + string.digits + "_"
@@ -34,6 +35,7 @@ class TextInputWidget(QWidget):
         self.setLayout(layout)
 
     def get_data(self):
+        logger.info("Retreiving input data")
         text = self.edit.text().strip()
         if self.mandatory and not text:
                  raise ValueError(f"{self.name} is a mandatory field. Please provide valid info.")
@@ -45,13 +47,16 @@ class TextInputWidget(QWidget):
             self.edit.setText(self.old_text)
         else:
             self.old_text = text
+            logger.info(f"Text to long. Max input length is set to '{self.max_input_length}'")
 
     def escape_invalid_chars(self, text):
         if len(text) > 0:
             if text[-1] not in self.allowed_characters:
                 self.edit.setText(self.old_text)
+                logger.info(f"'{text[-1]}' is an invalid character. Keep old text")
 
     def show_error(self, message):
+        logger.info("Invalid input occured.")
         self.error_label.setStyleSheet("color: red;")
         self.error_label.setText(message)
 
@@ -61,6 +66,7 @@ class TextInputWidget(QWidget):
 class SearchableItemListWidget(QWidget):
     def __init__(self, label_text, mandatory):
         super().__init__()
+        logger.info("Initializing")
         self.name = label_text.strip("*")
         self.mandatory = mandatory
         self.max_input_length = 30
@@ -106,6 +112,7 @@ class SearchableItemListWidget(QWidget):
                 self.search_edit.setText(self.old_text)
 
     def keyPressEvent(self, event):
+        logger.info("Key pressed")
         if event.key() == Qt.Key.Key_Down:
             self.item_list.setFocus()
             if self.item_list.currentRow() < self.item_list.count() - 1:
@@ -126,11 +133,13 @@ class SearchableItemListWidget(QWidget):
 class CollectionField(SearchableItemListWidget):
     def __init__(self, label_text, items_file, mandatory):
         super().__init__(label_text, mandatory)
+        logger.info("Initializing")
         self.search_edit.textChanged.connect(self.filter_items)
         self._load_items(items_file)
         self.item_list.addItems(self.items)
         
     def filter_items(self, text):
+        logger.info("Filtering Items")
         self.item_list.clear()
         if text.strip():  # Check if search text is not empty
             # Replace this with your actual list of items
@@ -152,6 +161,7 @@ class CollectionField(SearchableItemListWidget):
             self.items = f.readlines()
 class TaxonomyField(SearchableItemListWidget):
     parents_signal = pyqtSignal(list)
+    clear_child_signal = pyqtSignal()
     def __init__(self, label_text, taxonomy, level, mandatory):
         super().__init__(label_text, mandatory)
         self.taxonomy = taxonomy
@@ -183,6 +193,7 @@ class TaxonomyField(SearchableItemListWidget):
         parents = self.taxonomy.get_parents(item.text())
         self.search_edit.setText(item.text())
         self.parents_signal.emit(parents)
+        self.clear_child_signal.emit()
 
     def set_text(self, parents):
         parent = parents.pop()
@@ -191,6 +202,10 @@ class TaxonomyField(SearchableItemListWidget):
         self.filter_items(parent)
         self.search_edit.setText(parent)
         self.parents_signal.emit(parents)
+
+    def clear_text(self):
+        self.search_edit.setText("")
+        self.clear_child_signal.emit()
 
         
 class DateInputWidget(QWidget):
@@ -305,6 +320,10 @@ class DataCollection(QWidget):
         self.species_widget.parents_signal.connect(self.genus_widget.set_text)
         self.genus_widget.parents_signal.connect(self.family_widget.set_text)
         self.family_widget.parents_signal.connect(self.order_widget.set_text)
+        
+        self.order_widget.clear_child_signal.connect(self.family_widget.clear_text)
+        self.family_widget.clear_child_signal.connect(self.genus_widget.clear_text)
+        self.genus_widget.clear_child_signal.connect(self.species_widget.clear_text)
         # spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         # layout.addItem(spacer)
         self.setLayout(layout)
