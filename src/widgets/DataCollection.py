@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class SearchableItemListWidget(QWidget):
     def __init__(self, label_text, mandatory):
         super().__init__()
-        logger.info("Initializing")
+        logger.info(f"Initializing {self.__class__.__name__}")
         self.name = label_text.strip("*")
         self.mandatory = mandatory
 
@@ -23,8 +23,6 @@ class SearchableItemListWidget(QWidget):
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText(self.name)
         self.search_edit.setMaxLength(30)
-        #self.search_edit.textChanged.connect(TextInputParser.limit_text_length)
-        #self.search_edit.textChanged.connect(TextInputParser.escape_invalid_chars)
         layout.addWidget(self.search_edit)
 
         self.item_list = QListWidget()
@@ -65,12 +63,12 @@ class SearchableItemListWidget(QWidget):
 class CollectionField(SearchableItemListWidget):
     def __init__(self, label_text, items_file, mandatory):
         super().__init__(label_text, mandatory)
-        logger.info("Initializing")
         self.search_edit.textChanged.connect(self.filter_items)
         self._load_items(items_file)
         self.item_list.addItems(self.items)
         
     def filter_items(self, text):
+        logger.info("Filtering items for preview list")
         self.item_list.clear()
         if text.strip():  # Check if search text is not empty
             # Replace this with your actual list of items
@@ -80,6 +78,7 @@ class CollectionField(SearchableItemListWidget):
             self.item_list.addItems(self.items)
 
     def get_data(self):
+        logger.info("Preparing data for saving")
         if self.mandatory and self.item_list.count() != 1:
                  raise ValueError(f"{self.name} is a mandatory field. Please provide valid info.")
         if not self.mandatory and self.item_list.count() != 1:
@@ -103,6 +102,7 @@ class TaxonomyField(SearchableItemListWidget):
         self.search_edit.textChanged.connect(self.filter_items)
 
     def filter_items(self, text):
+        logger.info("Filter list entry suggestions")
         self.item_list.clear()
         if text.strip():  # Check if search text is not empty
             # Replace this with your actual list of items
@@ -127,6 +127,7 @@ class TaxonomyField(SearchableItemListWidget):
         self.clear_child_signal.emit()
 
     def set_text(self, parents):
+        logger.info("Setting parent text")
         parent = parents.pop()
         if parent == 'root':
             return
@@ -142,6 +143,7 @@ class TaxonomyField(SearchableItemListWidget):
 class DateInputWidget(QWidget):
     def __init__(self, label_text : str):
         super().__init__()
+        logger.info(f"Initializing {self.__class__.__name__}")
         self.name = label_text.strip("*")
         self.init_ui(label_text)
 
