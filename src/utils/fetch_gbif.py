@@ -66,7 +66,7 @@ for order in orders_pbar:
                         orders_pbar.set_description(f"Key '{e}' missing in species response results of {sp['scientificName']}")
                 species.append(sp)
 
-with open('assets/taxonomy/taxonomy.json', 'w') as f:
+with open('resources/taxonomy/taxonomy.json', 'w') as f:
     json.dump(species, f, indent=4)
 
 print("Taxonomy saved to taxonomy.json")
