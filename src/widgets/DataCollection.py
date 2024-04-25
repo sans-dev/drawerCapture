@@ -63,7 +63,7 @@ class SearchableItemListWidget(QWidget):
 class CollectionField(SearchableItemListWidget):
     def __init__(self, label_text, items_file, mandatory):
         super().__init__(label_text, mandatory)
-        self.search_edit.textChanged.connect(self.filter_items)
+        self.search_edit.textEdited.connect(self.filter_items)
         self._load_items(items_file)
         self.item_list.addItems(self.items)
         
@@ -99,7 +99,7 @@ class TaxonomyField(SearchableItemListWidget):
             self.level = level
         else:
             raise ValueError("level must be an integer")
-        self.search_edit.textChanged.connect(self.filter_items)
+        self.search_edit.textEdited.connect(self.filter_items)
 
     def filter_items(self, text):
         logger.info("Filter list entry suggestions")
@@ -131,12 +131,15 @@ class TaxonomyField(SearchableItemListWidget):
         parent = parents.pop()
         if parent == 'root':
             return
-        self.filter_items(parent)
+        self.item_list.clear()
+        self.item_list.addItems([parent])
         self.search_edit.setText(parent)
         self.parents_signal.emit(parents)
 
     def clear_text(self):
-        self.search_edit.setText("")
+        logger.info(f"Clearing text in {self.name}")
+        self.search_edit.setText(self.name)
+        self.item_list.clear()
         self.clear_child_signal.emit()
 
         
