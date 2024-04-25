@@ -1,7 +1,8 @@
+import sys
 import logging
 import logging.config
 
-from PyQt6.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QPushButton
+from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout, QHBoxLayout, QPushButton
 from PyQt6.QtCore import pyqtSignal, Qt
 
 from src.widgets.DataCollection import DataCollection
@@ -105,3 +106,16 @@ class ImageWidget(QWidget):
         
         self.db_adapter.send_data_to_db(image_data, meta_info)
         self.close()
+
+
+def main():
+    from src.db.DB import DBAdapter
+    app = QApplication(sys.argv)
+    window = ImageWidget(DBAdapter())
+    window.setImage("tests/data/test_img.jpg")
+    window.show()
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()

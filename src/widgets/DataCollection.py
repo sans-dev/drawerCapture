@@ -27,7 +27,6 @@ class SearchableItemListWidget(QWidget):
 
         self.item_list = QListWidget()
         self.item_list.setMaximumHeight(80)
-        self.item_list.itemClicked.connect(self.item_clicked)
         layout.addWidget(self.item_list)
         self.checkbox = QCheckBox("Keep Data")
         layout.addWidget(self.checkbox)
@@ -36,10 +35,6 @@ class SearchableItemListWidget(QWidget):
         spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         layout.addItem(spacer)
         self.setLayout(layout)
-
-    def item_clicked(self, item : QListWidgetItem):
-        logger.info(f"Add text to field in {self.name}")
-        self.search_edit.setText(item.text())
 
     def keyPressEvent(self, event):
         logger.info("Key pressed")
@@ -66,6 +61,7 @@ class CollectionField(SearchableItemListWidget):
         self.search_edit.textEdited.connect(self.filter_items)
         self._load_items(items_file)
         self.item_list.addItems(self.items)
+        self.item_list.itemClicked.connect(self.item_clicked)
         
     def filter_items(self, text):
         logger.info("Filtering items for preview list")
@@ -85,6 +81,14 @@ class CollectionField(SearchableItemListWidget):
             return ""
         else: 
             return self.item_list.item(0).text().strip()
+        
+    def item_clicked(self, item: QListWidgetItem):
+        text = item.text()
+        self.item_list.clearSelection()
+        self.item_list.clearFocus()
+        self.item_list.clear()
+        self.item_list.addItems([text])
+        self.search_edit.setText(text)
 
     def _load_items(self, item_file):
         with open(item_file, 'r') as f:
@@ -95,6 +99,7 @@ class TaxonomyField(SearchableItemListWidget):
     def __init__(self, label_text, taxonomy, level, mandatory):
         super().__init__(label_text, mandatory)
         self.taxonomy = taxonomy
+        self.item_list.itemClicked.connect(self.item_clicked)
         if isinstance(level, int):
             self.level = level
         else:
@@ -121,8 +126,13 @@ class TaxonomyField(SearchableItemListWidget):
         
     def item_clicked(self, item: QListWidgetItem):
         logger.info(f"Searching for parents of {item.text()}: level = {self.name}")
-        parents = self.taxonomy.get_parents(item.text())
-        self.search_edit.setText(item.text())
+        text = item.text()
+        parents = self.taxonomy.get_parents(text)
+        self.item_list.clearSelection()
+        self.item_list.clearFocus()
+        self.item_list.clear()
+        self.item_list.addItems([text])
+        self.search_edit.setText(text)
         self.parents_signal.emit(parents)
         self.clear_child_signal.emit()
 
@@ -220,6 +230,7 @@ class DataCollection(QWidget):
         collection_info_form = QWidget()
         collection_info_layout = QVBoxLayout(collection_info_form)
         self.museum_widget = CollectionField("Museum*", 'resources/meta_info_lists/museums.txt', mandatory=True)
+        collection_info_layout.addWidget(self.museum_widget)
         self.collection_date_widget = DateInputWidget("Collection Date*")
         collection_info_layout.addWidget(self.collection_date_widget)
         self.collection_location_widget = CollectionField("Collection Location*", 'resources/meta_info_lists/regions.txt', mandatory=True)
