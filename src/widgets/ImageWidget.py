@@ -104,13 +104,16 @@ class ImageWidget(QWidget):
         meta_info = self.data_collector.get_data()
         logger.info("Send data to db")
         
-        self.db_adapter.send_data_to_db(image_data, meta_info)
-        self.close()
+        if self.db_adapter.send_data_to_db(image_data, meta_info):
+            self.close()
 
 
 def main():
-    from src.db.DB import DBAdapter
+    from src.db.DB import DBAdapter, DBManager
     app = QApplication(sys.argv)
+    db_adapter = DBAdapter()
+    db = DBManager(project_root_dir='tests/test-project')
+    db.connect_db_adapter(db_adapter)
     window = ImageWidget(DBAdapter())
     window.setImage("tests/data/test_img.jpg")
     window.show()
