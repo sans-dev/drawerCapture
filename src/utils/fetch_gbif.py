@@ -41,22 +41,47 @@ limit = 800
 species = []
 for order in orders_pbar:
     order_name = order['order']
-    
-    families_response = requests.get(f'https://api.gbif.org/v1/species/{order["key"]}/children?limit={limit}').json()
-    families_response = [fam for fam in families_response['results'] if fam['rank'] == "FAMILY"]
-
+    try:
+        families_response = requests.get(f'https://api.gbif.org/v1/species/{order["key"]}/children?limit={limit}')
+        family_response.raise_for_status()
+        family_response = family_response.json()
+        families_response = [fam for fam in families_response['results'] if fam['rank'] == "FAMILY"]
+    except requests.exceptions.HTTPError as errh:
+        print(f"HTTP Error while fetching families of order '{order_name}") 
+        print(errh.args[0])
+        continue
+    except KeyError as e:
+        print(e)
+        continue
     for family in families_response:
         family_name = family['scientificName']
-
-        genera_response = requests.get(f'https://api.gbif.org/v1/species/{family["key"]}/children?limit={limit}').json()
-        genera_response = [genus for genus in genera_response['results'] if genus['rank'] == "GENUS"]
-
+        try:
+            genera_response = requests.get(f'https://api.gbif.org/v1/species/{family["key"]}/children?limit={limit}')
+            genera_response.raise_for_status()
+            genera_response = genera_response.json()
+            genera_response = [genus for genus in genera_response['results'] if genus['rank'] == "GENUS"]
+        except requests.exceptions.HTTPError as errh:
+            print(f"HTTP Error while fetching genera of family '{family_name}") 
+            print(errh.args[0])
+            continue
+        except KeyError as e:
+            print(e)
+            continue
         for genus in genera_response:
             genus_name = genus['genus']
-
-            species_response = requests.get(f'https://api.gbif.org/v1/species/{genus["key"]}/children?limit={limit}').json()
-            species_response = [spec for spec in species_response['results'] if spec['rank'] == "SPECIES"]
             orders_pbar.set_description(f"Fetching species for: {order_name}, {family['scientificName']}, {genus['genus']}...")
+            try:
+                species_response = requests.get(f'https://api.gbif.org/v1/species/{genus["key"]}/children?limit={limit}', timeout=1)
+                species_response.raise_for_status()
+                species_response = species_response.json()
+                species_response = [spec for spec in species_response['results'] if spec['rank'] == "SPECIES"]
+            except requests.exceptions.HTTPError as errh:
+                print(f"HTTP Error while fetching species of genus '{genus_name}") 
+                print(errh.args[0])
+                continue
+            except KeyError as e:
+                print(e)
+                continue
 
             for sp in species_response:
                 for key in keys_to_delete:
