@@ -31,10 +31,43 @@ keys_to_delete = [
     "lastInterpreted",
     "issues",
 ]
+keys_to_delete = [
+    "nubKey",
+    "nameKey",
+    "taxonID",
+    "sourceTaxonKey",
+    "kingdom",
+    "phylum",
+    "kingdomKey",
+    "phylumKey",
+    "classKey",
+    "orderKey",
+    "familyKey",
+    "genusKey",
+    "speciesKey",
+    "datasetKey",
+    "constituentKey",
+    "parentKey",
+    "authorship",
+    "nameType",
+    "rank",
+    "origin",
+    "taxonomicStatus",
+    "nomenclaturalStatus",
+    "remarks",
+    "numDescendants",
+    "lastCrawled",
+    "lastInterpreted",
+    "issues",
+]
 
 orders_response = requests.get('https://api.gbif.org/v1/species/216/children?limit=50').json()
 orders_response = [order for order in orders_response['results'] if order['rank'] == "ORDER"]
 orders_pbar = tqdm(orders_response, position=0, leave=True)
+
+limit = 800
+
+species = []
 
 limit = 800
 
@@ -95,3 +128,4 @@ with open('resources/taxonomy/taxonomy.json', 'w') as f:
     json.dump(species, f, indent=4)
 
 print("Taxonomy saved to taxonomy.json")
+
