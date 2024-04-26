@@ -76,8 +76,8 @@ for order in orders_pbar:
     order_name = order['order']
     try:
         families_response = requests.get(f'https://api.gbif.org/v1/species/{order["key"]}/children?limit={limit}')
-        family_response.raise_for_status()
-        family_response = family_response.json()
+        families_response.raise_for_status()
+        families_response = families_response.json()
         families_response = [fam for fam in families_response['results'] if fam['rank'] == "FAMILY"]
     except requests.exceptions.HTTPError as errh:
         print(f"HTTP Error while fetching families of order '{order_name}") 
