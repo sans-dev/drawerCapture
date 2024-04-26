@@ -2,7 +2,7 @@ import sys
 import logging
 import logging.config
 
-from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout, QHBoxLayout, QPushButton
+from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout, QHBoxLayout, QPushButton, QMessageBox
 from PyQt6.QtCore import pyqtSignal, Qt
 
 from src.widgets.DataCollection import DataCollection
@@ -105,8 +105,8 @@ class ImageWidget(QWidget):
         logger.info("Send data to db")
         
         if self.db_adapter.send_data_to_db(image_data, meta_info):
-            self.close()
-
+            if QMessageBox.question(self, 'Title', 'Data where saved into database. Continue capturing?').name == 'Yes':    
+                self.close()
 
 def main():
     from src.db.DB import DBAdapter, DBManager
@@ -114,7 +114,7 @@ def main():
     db_adapter = DBAdapter()
     db = DBManager(project_root_dir='tests/test-project')
     db.connect_db_adapter(db_adapter)
-    window = ImageWidget(DBAdapter())
+    window = ImageWidget(db_adapter)
     window.setImage("tests/data/test_img.jpg")
     window.show()
     sys.exit(app.exec())
