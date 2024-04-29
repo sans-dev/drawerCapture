@@ -1,85 +1,32 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QListWidget, QListWidgetItem, QLabel, QTabWidget, QSpacerItem, QSizePolicy, QDateEdit, QCheckBox, QHBoxLayout, QPushButton
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QListWidget, QListWidgetItem, QLabel, QTabWidget, QSpacerItem, QSizePolicy, QDateEdit, QCheckBox
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
-import string
-
-class TextInputWidget(QWidget):
-    def __init__(self, label_text : str, mandatory=False):
-        super().__init__()
-        self.mandatory = mandatory
-        self.max_input_length = 30
-        self.allowed_characters = string.ascii_letters + string.digits + "_"
-        self.init_ui(label_text)
-        self.name = label_text.strip("*")
-
-    def init_ui(self, label_text : str):
-        layout = QVBoxLayout()
-        self.label = QLabel(label_text)
-        layout.addWidget(self.label)
-        self.edit = QLineEdit()
-        self.edit.setPlaceholderText("Collection Name")
-        self.edit.textChanged.connect(self.limit_text_length)
-        self.edit.textChanged.connect(self.escape_invalid_chars)
-        self.checkbox = QCheckBox("Keep Data")
-        layout.addWidget(self.checkbox)
-        self.error_label = QLabel()
-        layout.addWidget(self.error_label)
-        spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-        layout.addItem(spacer)
-        self.setLayout(layout)
-
-    def get_data(self):
-        text = self.edit.text().strip()
-        if self.mandatory and not text:
-                 raise ValueError(f"{self.name} is a mandatory field. Please provide valid info.")
-        else: 
-            return text
-        
-    def limit_text_length(self, text):
-        if len(text) > self.max_input_length:
-            self.edit.setText(self.old_text)
-        else:
-            self.old_text = text
-
-    def escape_invalid_chars(self, text):
-        if len(text) > 0:
-            if text[-1] not in self.allowed_characters:
-                self.edit.setText(self.old_text)
-
-    def show_error(self, message):
-        self.error_label.setStyleSheet("color: red;")
-        self.error_label.setText(message)
-
-    def hide_error(self):
-        self.error_label.clear()
+import logging
+import logging.config
+logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
+from src.utils.searching import init_taxonomy
+logger = logging.getLogger(__name__)
 
 class SearchableItemListWidget(QWidget):
-    def __init__(self, label_text : str, item_file : str, mandadory=False):
+    def __init__(self, label_text, mandatory):
         super().__init__()
-        self.mandatory = mandadory
-        self.max_input_length = 30
-        self.allowed_characters = string.ascii_letters + string.digits + "_"
-        self._load_items(item_file)
+        logger.info(f"Initializing {self.__class__.__name__}")
+        self.name = label_text.strip("*")
+        self.mandatory = mandatory
 
         self.init_ui(label_text)
-        self.name = label_text.strip("*")
 
     def init_ui(self, label_text : str):
         layout = QVBoxLayout()
         self.label = QLabel(label_text)
         layout.addWidget(self.label)
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("Search...")
-        self.search_edit.textChanged.connect(self.limit_text_length)
-        self.search_edit.textChanged.connect(self.escape_invalid_chars)
-        self.search_edit.textChanged.connect(self.filter_items)
+        self.search_edit.setPlaceholderText(self.name)
+        self.search_edit.setMaxLength(30)
         layout.addWidget(self.search_edit)
 
         self.item_list = QListWidget()
         self.item_list.setMaximumHeight(80)
-        self.item_list.itemClicked.connect(self.item_clicked)
-        # populate item list
-        self.item_list.addItems(self.items)
         layout.addWidget(self.item_list)
         self.checkbox = QCheckBox("Keep Data")
         layout.addWidget(self.checkbox)
@@ -89,34 +36,8 @@ class SearchableItemListWidget(QWidget):
         layout.addItem(spacer)
         self.setLayout(layout)
 
-    def limit_text_length(self, text):
-        if len(text) > self.max_input_length:
-            self.search_edit.setText(self.old_text)
-        else:
-            self.old_text = text
-
-    def escape_invalid_chars(self, text):
-        if len(text) > 0:
-            if text[-1] not in self.allowed_characters:
-                self.search_edit.setText(self.old_text)
-
-    def filter_items(self, text):
-        self.item_list.clear()
-        if text.strip():  # Check if search text is not empty
-            # Replace this with your actual list of items
-            filtered_items = [item for item in self.items if text.lower() in item.lower()]
-            self.item_list.addItems(filtered_items)
-        else:
-            self.item_list.addItems(self.items)
-
-    def item_clicked(self, item : QListWidgetItem):
-        self.search_edit.setText(item.text())
-
-    def _load_items(self, item_file):
-        with open(item_file, 'r') as f:
-            self.items = f.readlines()
-
     def keyPressEvent(self, event):
+        logger.info("Key pressed")
         if event.key() == Qt.Key.Key_Down:
             self.item_list.setFocus()
             if self.item_list.currentRow() < self.item_list.count() - 1:
@@ -126,6 +47,74 @@ class SearchableItemListWidget(QWidget):
             if selected_item is not None:
                 self.search_edit.setText(selected_item.text())
                 self.search_edit.setFocus()
+        
+    def show_error(self, message):
+        self.error_label.setStyleSheet("color: red;")
+        self.error_label.setText(message)
+
+    def hide_error(self):
+        self.error_label.clear()
+
+class CollectionField(SearchableItemListWidget):
+    def __init__(self, label_text, items_file, mandatory):
+        super().__init__(label_text, mandatory)
+        self.search_edit.textEdited.connect(self.filter_items)
+        self._load_items(items_file)
+        self.item_list.addItems(self.items)
+        self.item_list.itemClicked.connect(self.item_clicked)
+        
+    def filter_items(self, text):
+        logger.info("Filtering items for preview list")
+        self.item_list.clear()
+        if text.strip():  # Check if search text is not empty
+            # Replace this with your actual list of items
+            filtered_items = [item for item in self.items if text.lower() in item.lower()]
+            self.item_list.addItems(filtered_items)
+        else:
+            self.item_list.addItems(self.items)
+
+    def get_data(self):
+        logger.info("Preparing data for saving")
+        if self.mandatory and self.item_list.count() != 1:
+                 raise ValueError(f"{self.name} is a mandatory field. Please provide valid info.")
+        if not self.mandatory and self.item_list.count() != 1:
+            return ""
+        else: 
+            return self.item_list.item(0).text().strip()
+        
+    def item_clicked(self, item: QListWidgetItem):
+        text = item.text()
+        self.item_list.clearSelection()
+        self.item_list.clearFocus()
+        self.item_list.clear()
+        self.item_list.addItems([text])
+        self.search_edit.setText(text)
+
+    def _load_items(self, item_file):
+        with open(item_file, 'r') as f:
+            self.items = f.readlines()
+class TaxonomyField(SearchableItemListWidget):
+    parents_signal = pyqtSignal(list)
+    clear_child_signal = pyqtSignal()
+    def __init__(self, label_text, taxonomy, level, mandatory):
+        super().__init__(label_text, mandatory)
+        self.taxonomy = taxonomy
+        self.item_list.itemClicked.connect(self.item_clicked)
+        if isinstance(level, int):
+            self.level = level
+        else:
+            raise ValueError("level must be an integer")
+        self.search_edit.textEdited.connect(self.filter_items)
+
+    def filter_items(self, text):
+        logger.info("Filter list entry suggestions")
+        self.item_list.clear()
+        if text.strip():  # Check if search text is not empty
+            # Replace this with your actual list of items
+            filtered_items = self.taxonomy.prefix_search(self.level, text)
+            self.item_list.addItems(filtered_items)
+        else:
+            self.item_list.clear()
 
     def get_data(self):
         if self.mandatory and self.item_list.count() != 1:
@@ -135,16 +124,39 @@ class SearchableItemListWidget(QWidget):
         else: 
             return self.item_list.item(0).text().strip()
         
-    def show_error(self, message):
-        self.error_label.setStyleSheet("color: red;")
-        self.error_label.setText(message)
+    def item_clicked(self, item: QListWidgetItem):
+        logger.info(f"Searching for parents of {item.text()}: level = {self.name}")
+        text = item.text()
+        parents = self.taxonomy.get_parents(text)
+        self.item_list.clearSelection()
+        self.item_list.clearFocus()
+        self.item_list.clear()
+        self.item_list.addItems([text])
+        self.search_edit.setText(text)
+        self.parents_signal.emit(parents)
+        self.clear_child_signal.emit()
 
-    def hide_error(self):
-        self.error_label.clear()
-            
+    def set_text(self, parents):
+        logger.info("Setting parent text")
+        parent = parents.pop()
+        if parent == 'root':
+            return
+        self.item_list.clear()
+        self.item_list.addItems([parent])
+        self.search_edit.setText(parent)
+        self.parents_signal.emit(parents)
+
+    def clear_text(self):
+        logger.info(f"Clearing text in {self.name}")
+        self.search_edit.setText(self.name)
+        self.item_list.clear()
+        self.clear_child_signal.emit()
+
+        
 class DateInputWidget(QWidget):
     def __init__(self, label_text : str):
         super().__init__()
+        logger.info(f"Initializing {self.__class__.__name__}")
         self.name = label_text.strip("*")
         self.init_ui(label_text)
 
@@ -205,6 +217,7 @@ class DataCollection(QWidget):
 
     def __init__(self):
         super().__init__()
+        self.taxonomy = init_taxonomy("resources/taxonomy/taxonomy_test.json")
         self.init_ui()
 
     def init_ui(self):
@@ -216,31 +229,28 @@ class DataCollection(QWidget):
         # Create forms for each tab
         collection_info_form = QWidget()
         collection_info_layout = QVBoxLayout(collection_info_form)
-        self.museum_widget = SearchableItemListWidget("Museum*", 'resources/meta_info_lists/museums.txt', mandadory=True)
+        self.museum_widget = CollectionField("Museum*", 'resources/meta_info_lists/museums.txt', mandatory=True)
         collection_info_layout.addWidget(self.museum_widget)
-        self.collection_name_widget = TextInputWidget("Collection Name")
-        collection_info_layout.addWidget(self.collection_name_widget)
         self.collection_date_widget = DateInputWidget("Collection Date*")
         collection_info_layout.addWidget(self.collection_date_widget)
-        self.collection_location_widget = SearchableItemListWidget("Collection Location*", 'resources/meta_info_lists/regions.txt', mandadory=True)
+        self.collection_location_widget = CollectionField("Collection Location*", 'resources/meta_info_lists/regions.txt', mandatory=True)
         collection_info_layout.addWidget(self.collection_location_widget)
         tab_widget.addTab(collection_info_form, "Collection Info")
 
         specimen_info_form = QWidget()
         specimen_info_layout = QVBoxLayout(specimen_info_form)
-        self.order_widget = SearchableItemListWidget("Order", 'resources/meta_info_lists/orders.txt')
+        self.order_widget = TaxonomyField("Order", self.taxonomy, level=int(1), mandatory=False)
         specimen_info_layout.addWidget(self.order_widget)
-        self.family_widget = SearchableItemListWidget("Family", 'resources/meta_info_lists/families.txt')
+        self.family_widget = TaxonomyField("Family", self.taxonomy, level=int(2), mandatory=False)
         specimen_info_layout.addWidget(self.family_widget)
-        self.genus_widget = SearchableItemListWidget("Genus", 'resources/meta_info_lists/genera.txt')
+        self.genus_widget = TaxonomyField("Genus", self.taxonomy, level=int(3), mandatory=False)
         specimen_info_layout.addWidget(self.genus_widget)
-        self.species_widget = SearchableItemListWidget("Species*", 'resources/meta_info_lists/species.txt', mandadory=True)
+        self.species_widget = TaxonomyField("Species*", self.taxonomy, level=int(4), mandatory=True)
         specimen_info_layout.addWidget(self.species_widget)
         tab_widget.addTab(specimen_info_form, "Specimen Info")
 
         self.widgets = [
                     self.museum_widget, 
-                    self.collection_name_widget, 
                     self.collection_date_widget,
                     self.collection_location_widget, 
                     self.order_widget, 
@@ -250,8 +260,15 @@ class DataCollection(QWidget):
 
         layout.addWidget(tab_widget)
 
-        spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-        layout.addItem(spacer)
+        self.species_widget.parents_signal.connect(self.genus_widget.set_text)
+        self.genus_widget.parents_signal.connect(self.family_widget.set_text)
+        self.family_widget.parents_signal.connect(self.order_widget.set_text)
+        
+        self.order_widget.clear_child_signal.connect(self.family_widget.clear_text)
+        self.family_widget.clear_child_signal.connect(self.genus_widget.clear_text)
+        self.genus_widget.clear_child_signal.connect(self.species_widget.clear_text)
+        # spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        # layout.addItem(spacer)
         self.setLayout(layout)
         self.setWindowTitle("Data Collection")
 
@@ -275,7 +292,7 @@ def handle_data(dict):
 def main():
     app = QApplication(sys.argv)
     window = DataCollection()
-    window.emitter.connect(handle_data)
+    window.meta_signal.connect(handle_data)
     window.show()
     sys.exit(app.exec())
 

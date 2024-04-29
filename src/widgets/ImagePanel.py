@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import QLabel, QFileDialog
 from PyQt6.QtGui import QImage, QPixmap
 import cv2
 
-from processors import AdaptiveHE
+from src.processors.adaptive_he import AdaptiveHE
 
 logging.config.fileConfig('configs/logging.conf',
                           disable_existing_loggers=False)

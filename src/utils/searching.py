@@ -1,3 +1,5 @@
+import json
+
 class TrieNode:
     def __init__(self):
         self.children = {}
@@ -47,9 +49,8 @@ class TreeNode:
     def get_possible_values(self, prefix):
         return self.trie.search(prefix)
 
-    def insert_into_trie(self):
-        for child in self.children.values():
-            self.trie.insert(child.name)
+    def insert_into_trie(self, child):
+        self.trie.insert(child.name)
 
 
 class TaxonomyTree:
@@ -62,8 +63,10 @@ class TaxonomyTree:
             if not current_node.get_child(taxon):
                 new_node = TreeNode(taxon, parent=current_node)
                 current_node.add_child(taxon, new_node)
-            current_node = current_node.get_child(taxon)
-            current_node.insert_into_trie()
+                current_node.insert_into_trie(new_node)
+                current_node = new_node
+            else:
+                current_node = current_node.get_child(taxon)
 
     def get_parents(self, taxon_name):
         node = self._find_node(self.root, taxon_name)
@@ -93,24 +96,45 @@ class TaxonomyTree:
                 return []
         return current_node.get_possible_values(prefix)
 
+    def prefix_search(self, level, prefix):
+        if level < 0 or level > 4:
+            raise ValueError("Invalid level: " + str(level))
+        results = []
+        self._prefix_search_recursive(self.root, level, prefix, results, 0)
+        return results
 
-# Beispiel-Nutzung:
-taxonomy = TaxonomyTree()
+    def _prefix_search_recursive(self, node, level, prefix, results, current_level):
+        if current_level == level - 1:
+            results.extend(node.trie.search(prefix))
+        if current_level < level - 1:
+            for child in node.children.values():
+                self._prefix_search_recursive(child, level, prefix, results, current_level + 1)
 
-# Füge Taxon-Pfade hinzu
-taxonomy.add_taxon(["Animalia", "Chordata", "Mammalia", "Felidae", "Felis"])
-taxonomy.add_taxon(["Animalia", "Chordata", "Mammalia", "Felidae", "Felas"])
-taxonomy.add_taxon(["Animalia", "Chordata", "Mammalia", "Felidae", "Fulas"])
-taxonomy.add_taxon(["Animalia", "Chordata", "Mammalia", "Felidae", "Panthera"])
-taxonomy.add_taxon(["Plantae", "Angiosperms", "Rosaceae", "Rosa"])
-taxonomy.add_taxon(["Plantae", "Angiosperms", "Rosaceae", "Prunus"])
-taxonomy.add_taxon(["Plantae", "Gymnosperms", "Cupressaceae", "Cupressus"])
+def init_taxonomy(taxonomy_dir):
+    taxonomy_tree = TaxonomyTree()
 
-# Beispielanwendung
-current_path = ["Animalia", "Chordata"]
-prefix = "M"
-possible_species = taxonomy.get_possible_values(current_path, prefix=prefix)
-print(f"Mögliche Arten innerhalb von Felidae mit dem Präfix '{prefix}':", possible_species)
+    with open(taxonomy_dir, "r") as f:
+        taxonomy_dict = json.load(f)
+    for entry in taxonomy_dict:
+        taxonomy_tree.add_taxon([
+            entry['order'],
+            entry['family'],
+            entry['genus'],
+            entry['species']
+        ])
+    return taxonomy_tree
 
-taxon_name = "Felis"
-print(f"Taxon-Pfad fuer {taxon_name}: {taxonomy.get_parents(taxon_name)}")
+if __name__ == "__main__":
+    taxonomy_dir = "resources/taxonomy/taxonomy_prod.json"
+
+    taxonomy = init_taxonomy(taxonomy_dir)
+
+    print(taxonomy.get_parents("Dasyleptus brongniarti"))
+    current_path = ['Archaeognatha']
+    prefix = "M"
+    print(taxonomy.get_possible_values(current_path, prefix))
+
+    f_genera = taxonomy.prefix_search(4, "Da")
+    print(f"Found {len(f_genera)} species")
+    # for genus in f_genera:
+    #    print(genus, taxonomy.get_parents(genus))
