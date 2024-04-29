@@ -47,10 +47,8 @@ except Exception as e:
     print(e)
 
 limit = 800
-limit = 800
+species = []
 
-species = []
-species = []
 for order in orders_pbar:
     order_name = order['order']
     try:
@@ -120,4 +118,3 @@ with open('resources/taxonomy/taxonomy.json', 'w') as f:
     json.dump(species, f, indent=4)
 
 print("Taxonomy saved to taxonomy.json")
-
