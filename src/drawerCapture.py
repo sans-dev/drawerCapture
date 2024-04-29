@@ -8,6 +8,7 @@ from src.widgets.MainWidget import MainWidget
 from src.widgets.LiveWidget import LiveWidget 
 from src.widgets.ImageWidget import ImageWidget
 from src.db.DB import DBAdapter, DBManager
+from src.widgets.Project import ProjectCreator
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -29,20 +30,22 @@ class MainWindow(QMainWindow):
         """
         logger.debug("initializing main window")
         super().__init__()
-        self.dbAdapter = DBAdapter()
-        self.dbManager = DBManager('tests/test-project')
-        self.dbManager.connect_db_adapter(self.dbAdapter)
-
+        project_creator = ProjectCreator()
         imageWidget = ImageWidget(self.dbAdapter)
         self.widgets = {
             "main": MainWidget(),
             "live": LiveWidget(imageWidget),
-            "image": imageWidget
+            "image": imageWidget,
+            "create": project_creator
         }
         self.stackedWidget = QStackedWidget()
         for widget in self.widgets.values():
             self.stackedWidget.addWidget(widget)
             widget.changed.connect(self.switchWidget)
+        
+        self.dbAdapter = DBAdapter()
+        self.dbManager = DBManager(project_creator.get_dir())
+        self.dbManager.connect_db_adapter(self.dbAdapter)
 
         self.initUI()
 
