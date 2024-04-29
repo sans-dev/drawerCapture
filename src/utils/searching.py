@@ -1,5 +1,5 @@
 import json
-
+from functools import lru_cache
 class TrieNode:
     def __init__(self):
         self.children = {}
@@ -9,6 +9,7 @@ class Trie:
     def __init__(self):
         self.root = TrieNode()
 
+    @lru_cache(maxsize=None)
     def insert(self, word):
         node = self.root
         for char in word:
@@ -126,7 +127,7 @@ def init_taxonomy(taxonomy_dir):
     return taxonomy_tree
 
 if __name__ == "__main__":
-    taxonomy_dir = "resources/taxonomy/taxonomy_test.json"
+    taxonomy_dir = "resources/taxonomy/taxonomy_prod.json"
 
     taxonomy = init_taxonomy(taxonomy_dir)
 
@@ -137,5 +138,5 @@ if __name__ == "__main__":
 
     f_genera = taxonomy.prefix_search(4, "Da")
     print(f"Found {len(f_genera)} species")
-    for genus in f_genera:
-        print(genus, taxonomy.get_parents(genus))
+    # for genus in f_genera:
+    #    print(genus, taxonomy.get_parents(genus))
