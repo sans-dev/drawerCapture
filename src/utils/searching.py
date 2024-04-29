@@ -64,8 +64,10 @@ class TaxonomyTree:
             if not current_node.get_child(taxon):
                 new_node = TreeNode(taxon, parent=current_node)
                 current_node.add_child(taxon, new_node)
-            current_node.insert_into_trie()
-            current_node = current_node.get_child(taxon)
+                current_node.insert_into_trie()
+                current_node = new_node
+            else:
+                current_node = current_node.get_child(taxon)
 
     def get_parents(self, taxon_name):
         node = self._find_node(self.root, taxon_name)
@@ -134,5 +136,6 @@ if __name__ == "__main__":
     print(taxonomy.get_possible_values(current_path, prefix))
 
     f_genera = taxonomy.prefix_search(4, "Da")
+    print(f"Found {len(f_genera)} species")
     for genus in f_genera:
         print(genus, taxonomy.get_parents(genus))
