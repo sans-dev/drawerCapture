@@ -124,7 +124,7 @@ def init_taxonomy(taxonomy_dir):
     return taxonomy_tree
 
 if __name__ == "__main__":
-    taxonomy_dir = "resources/taxonomy/taxonomy.json"
+    taxonomy_dir = "resources/taxonomy/taxonomy_test.json"
 
     taxonomy = init_taxonomy(taxonomy_dir)
 
