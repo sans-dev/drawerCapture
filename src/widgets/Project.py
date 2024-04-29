@@ -43,6 +43,9 @@ class ProjectCreator(QWidget):
         if directory:
             self.dir.setText(directory)
 
+    def get_dir(self):
+        return self.dir.text()
+    
     def create_project(self):
         directory = self.dir.text()
         if not QDir().exists(directory):
