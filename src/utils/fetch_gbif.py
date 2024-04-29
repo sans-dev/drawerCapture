@@ -47,7 +47,9 @@ except Exception as e:
     print(e)
 
 limit = 800
+limit = 800
 
+species = []
 species = []
 for order in orders_pbar:
     order_name = order['order']
@@ -107,6 +109,10 @@ for order in orders_pbar:
                     try:
                         del sp[key]
                     except KeyError as e:
+                        orders_pbar.set_description(f"Key '{e}' missing in species response results of {sp['scientificName']}")
+                species.append(sp)
+
+with open('resources/taxonomy/taxonomy.json', 'w') as f:
                         orders_pbar.set_description(f"Key '{e}' missing in species response results of {sp['scientificName']}")
                 species.append(sp)
 

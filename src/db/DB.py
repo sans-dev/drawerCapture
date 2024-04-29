@@ -50,8 +50,16 @@ class DBAdapter(QObject):
         super().__init__()
 
     def send_data_to_db(self, image_data, meta_info):
+        logger.info(f"Validating data...")
+        is_valid, msg = DataValidator.validate_image_data(image_data)
+        if not is_valid:
+            print("Invalid image data", msg)
+            return False
+        is_valid, msg = DataValidator.validate_meta_info(meta_info)
+        if not is_valid:
+            print("Invalid meta data", msg)
+            return False
         logger.info(f"Sending data to DB...")
-        print(meta_info)
         payload = {'image': image_data, 'meta_info': meta_info}
         self.put_signal.emit(payload)
         return True
@@ -83,14 +91,6 @@ class DBManager:
     def save_image_and_meta_info(self, payload):
         image_data = payload.get('image')
         meta_info = payload.get('meta_info')
-        is_valid, msg = DataValidator.validate_image_data(image_data)
-        if not is_valid:
-            print("Invalid image data", msg)
-            return
-        is_valid, msg = DataValidator.validate_meta_info(meta_info)
-        if not is_valid:
-            print("Invalid meta data", msg)
-            return
         # Save data to the database
         logger.info("Saving data")
         img_name, meta_name = self.create_save_name(meta_info)

@@ -6,7 +6,9 @@ import logging.config
 from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QVBoxLayout, QLabel, QStackedLayout
 from PyQt6.QtCore import Qt, pyqtSignal
 
-from widgets import SelectCameraListWidget, PreviewPanel, LoadingSpinner 
+from src.widgets.SelectCameraListWidget import SelectCameraListWidget
+from src.widgets.PreviewPanel import PreviewPanel
+from src.widgets.SpinnerWidget import LoadingSpinner 
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)

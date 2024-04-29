@@ -1,12 +1,13 @@
+import sys
 import logging
 import logging.config
 
-from PyQt6.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QPushButton
+from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout, QHBoxLayout, QPushButton, QMessageBox
 from PyQt6.QtCore import pyqtSignal, Qt
 
-from widgets import DataCollection
-from widgets import ImagePanel
-from signals import ProcessEmitter
+from src.widgets.DataCollection import DataCollection
+from src.widgets.ImagePanel import ImagePanel
+from src.signals.ProcessEmitter import ProcessEmitter
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -103,5 +104,21 @@ class ImageWidget(QWidget):
         meta_info = self.data_collector.get_data()
         logger.info("Send data to db")
         
-        self.db_adapter.send_data_to_db(image_data, meta_info)
-        self.close()
+        if self.db_adapter.send_data_to_db(image_data, meta_info):
+            if QMessageBox.question(self, 'Title', 'Data where saved into database. Continue capturing?').name == 'Yes':    
+                self.close()
+
+def main():
+    from src.db.DB import DBAdapter, DBManager
+    app = QApplication(sys.argv)
+    db_adapter = DBAdapter()
+    db = DBManager(project_root_dir='tests/test-project')
+    db.connect_db_adapter(db_adapter)
+    window = ImageWidget(db_adapter)
+    window.setImage("tests/data/test_img.jpg")
+    window.show()
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()
