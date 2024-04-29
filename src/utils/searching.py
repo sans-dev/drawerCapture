@@ -1,5 +1,5 @@
 import json
-from functools import lru_cache
+
 class TrieNode:
     def __init__(self):
         self.children = {}
@@ -9,7 +9,6 @@ class Trie:
     def __init__(self):
         self.root = TrieNode()
 
-    @lru_cache(maxsize=None)
     def insert(self, word):
         node = self.root
         for char in word:
@@ -50,9 +49,8 @@ class TreeNode:
     def get_possible_values(self, prefix):
         return self.trie.search(prefix)
 
-    def insert_into_trie(self):
-        for child in self.children.values():
-            self.trie.insert(child.name)
+    def insert_into_trie(self, child):
+        self.trie.insert(child.name)
 
 
 class TaxonomyTree:
@@ -65,7 +63,7 @@ class TaxonomyTree:
             if not current_node.get_child(taxon):
                 new_node = TreeNode(taxon, parent=current_node)
                 current_node.add_child(taxon, new_node)
-                current_node.insert_into_trie()
+                current_node.insert_into_trie(new_node)
                 current_node = new_node
             else:
                 current_node = current_node.get_child(taxon)
