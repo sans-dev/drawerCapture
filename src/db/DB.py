@@ -2,6 +2,7 @@ import numpy as np
 import yaml
 from pathlib import Path
 import cv2
+import configparser
 from PyQt6.QtCore import QObject, pyqtSignal
 import logging
 import logging.config
@@ -44,10 +45,18 @@ class DataValidator:
 class DBAdapter(QObject):
     put_signal = pyqtSignal(dict)
     get_signal = pyqtSignal(dict)
+    create_project_signal = pyqtSignal(dict, Path)
+    load_project_signal = pyqtSignal(Path)
     validation_error_signal = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
+
+    def create_project(self, project_info, project_dir):
+        self.create_project_signal.emit(project_info, Path(project_dir))
+
+    def load_project(self, project_dir):
+        self.load_project_signal.emit(Path(project_dir))
 
     def send_data_to_db(self, image_data, meta_info):
         logger.info(f"Validating data...")
@@ -69,24 +78,19 @@ class DBAdapter(QObject):
             self.validation_error_signal.emit("Validation failed: Invalid data received from DB")
             return
         self.get_signal.emit(data)
+    
 
+    
 class DBManager:
-    def __init__(self, project_root_dir, project_info=None):
-        self.project_root_dir = Path(project_root_dir)
-        if not project_info:
-            self.load_project()
-        else:
-            self.init_project(project_info)
+    def __init__(self):
+        self.project_root_dir = None
+        self.project_info = configparser.ConfigParser()
+        self.image_number = None
 
-    def init_project(project_info):
-        meta_dir, img_dir = None
-        img_dir.parent.mkdir(exist_ok=True, parents=True)
-        meta_dir.parent.mkdir(exist_ok=True, parents=True)
-
-    def load_project(self):
-        project_info_file = self.project_root_dir / ".project-info.yaml"
-        self.project_info = yaml.safe_load(project_info_file.read_text())
-        self.image_number = self.project_info['image-number']
+    def load_project(self, project_dir):
+        self.project_info.read((project_dir / 'project.ini'))
+        self.image_number = self.project_info.get('VARS', "image-number")
+        self.project_root_dir = project_dir
 
     def save_image_and_meta_info(self, payload):
         image_data = payload.get('image')
@@ -116,10 +120,29 @@ class DBManager:
         pass
 
     def update_project_info(self):
-        self.project_info['image-number'] = self.image_number
-        with (self.project_root_dir / ".project-info.yaml").open('w') as f:
-            yaml.dump(self.project_info, f)
+        self.project_info.set('VARS', 'image-number', self.image_number)
+        (self.project_root_dir / 'project.ini').write_text(self.project_info)
+
+    def create_project(self, project_info, project_dir):
+        project_dir = project_dir
+        project_dir.mkdir(exist_ok=True)
+        (project_dir / 'Captures').mkdir(exist_ok=True)
+        (project_dir / 'captures.csv').write_text("date, session, museum, order, family, genus, species\n")
+        self.create_config_from_dict(project_info)
+        with (project_dir / 'project.ini').open('w') as config_file:
+            self.project_info.write(config_file)
+
+        self.project_root_dir = project_dir
+        self.project_info = project_info
 
     def connect_db_adapter(self, db_adapter):
         db_adapter.put_signal.connect(self.save_image_and_meta_info)
         db_adapter.get_signal.connect(self.load_image_and_meta_info)
+        db_adapter.create_project_signal.connect(self.create_project)
+        db_adapter.load_project_signal.connect(self.load_project)
+
+    def create_config_from_dict(self, config_dict):
+        for section, options in config_dict.items():
+            self.project_info.add_section(section)
+            for option, value in options.items():
+                self.project_info.set(section, option, str(value))

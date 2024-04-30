@@ -37,11 +37,11 @@ class MainWidget(QWidget):
         This method is called when the user clicks the "Offline Mode" button.
         """
 
-        self.changed.emit('project')
+        self.changed.emit('create')
 
     def enterLiveMode(self):
         """
         This method is called when the user clicks the "Live Mode" button.
         It emits a signal with the string "live".
         """
-        self.changed.emit("live")
+        self.changed.emit("load")

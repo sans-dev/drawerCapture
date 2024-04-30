@@ -8,7 +8,7 @@ from src.widgets.MainWidget import MainWidget
 from src.widgets.LiveWidget import LiveWidget 
 from src.widgets.ImageWidget import ImageWidget
 from src.db.DB import DBAdapter, DBManager
-from src.widgets.Project import ProjectCreator
+from src.widgets.Project import ProjectCreator, ProjectLoader
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -30,22 +30,24 @@ class MainWindow(QMainWindow):
         """
         logger.debug("initializing main window")
         super().__init__()
-        project_creator = ProjectCreator()
-        imageWidget = ImageWidget(self.dbAdapter)
+        self.db_adapter = DBAdapter()
+        project_creator = ProjectCreator(self.db_adapter)
+        project_loader = ProjectLoader(self.db_adapter)
+        imageWidget = ImageWidget(self.db_adapter)
         self.widgets = {
             "main": MainWidget(),
             "live": LiveWidget(imageWidget),
             "image": imageWidget,
-            "create": project_creator
+            "create": project_creator,
+            "load" : project_loader
         }
         self.stackedWidget = QStackedWidget()
         for widget in self.widgets.values():
             self.stackedWidget.addWidget(widget)
             widget.changed.connect(self.switchWidget)
         
-        self.dbAdapter = DBAdapter()
-        self.dbManager = DBManager(project_creator.get_dir())
-        self.dbManager.connect_db_adapter(self.dbAdapter)
+        self.dbManager = DBManager()
+        self.dbManager.connect_db_adapter(self.db_adapter)
 
         self.initUI()
 
@@ -73,7 +75,7 @@ if __name__ == '__main__':
     STYLES = ["Photoxo", "Combinear", "Diffnes", "SyNet"]
     CURRENT_STYLE = STYLES[3]
     # switch to the Photoxo style
-    app.setStyleSheet(load_style_sheet(CURRENT_STYLE))
+    # app.setStyleSheet(load_style_sheet(CURRENT_STYLE))
     mainWindow = MainWindow()
     mainWindow.show()
     sys.exit(app.exec())

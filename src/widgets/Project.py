@@ -1,14 +1,12 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QFileDialog, QLabel
-from PyQt6.QtCore import QDir
-import os
-import configparser
 from PyQt6.QtCore import pyqtSignal
 
 class ProjectCreator(QWidget):
     changed = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self, db_adapter):
         super().__init__()
+        self.db_adapter = db_adapter
 
         layout = QVBoxLayout()
 
@@ -47,26 +45,48 @@ class ProjectCreator(QWidget):
         return self.dir.text()
     
     def create_project(self):
-        directory = self.dir.text()
-        if not QDir().exists(directory):
-            QDir().mkpath(directory)
-
-        config = configparser.ConfigParser()
-        config['PROJECT'] = {'Project Name': self.project_name.text(),
+        project_dir = self.dir.text()
+        project_info = dict()
+        project_info['INFO'] = {'Project Name': self.project_name.text(),
                              'Author': self.author.text(),
                              'Description': self.description.text()}
-        config['VARS'] = {
-            'img-number'
-        }
-
-        with open(os.path.join(directory, 'project.ini'), 'w') as configfile:
-            config.write(configfile)
-
-        QDir().mkdir(os.path.join(directory, "Captures"))
-        with open(os.path.join(directory, "captures.csv"), 'w') as f:
-            f.write("date, session, museum, order, family, genus, species\n")
+        project_info['VARS'] = { 'image-number' : 0}
+        self.db_adapter.create_project(project_info, project_dir)
         self.changed.emit("live")
 
+class ProjectLoader(QWidget):
+    changed = pyqtSignal(str)
+
+    def __init__(self, db_adapter):
+        super().__init__()
+        self.db_adapter = db_adapter
+
+        layout = QVBoxLayout()
+
+        self.dir = QLineEdit()
+        layout.addWidget(QLabel("Project Directory"))
+        layout.addWidget(self.dir)
+
+        self.dir_dialog = QPushButton("Choose Project Directory")
+        self.dir_dialog.clicked.connect(self.choose_dir)
+        layout.addWidget(self.dir_dialog)
+
+        self.load_button = QPushButton("Load Project")
+        self.load_button.clicked.connect(self.load_project)
+        layout.addWidget(self.load_button)
+
+        self.setLayout(layout)
+
+    def choose_dir(self):
+        directory = QFileDialog.getExistingDirectory(self, "Choose Project Directory")
+        if directory:
+            self.dir.setText(directory)
+
+    def load_project(self):
+        project_dir = self.dir.text()
+        self.db_adapter.load_project(project_dir)
+        self.changed.emit("live")
+    
 if __name__ == "__main__":
     app = QApplication([])
     window = ProjectCreator()
