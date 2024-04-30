@@ -89,7 +89,7 @@ class DBManager:
 
     def load_project(self, project_dir):
         self.project_info.read((project_dir / 'project.ini'))
-        self.image_number = self.project_info.get('VARS', "image-number")
+        self.image_number = self.project_info.getint('VARS', "image-number")
         self.project_root_dir = project_dir
 
     def save_image_and_meta_info(self, payload):
