@@ -167,6 +167,8 @@ class DateInputWidget(QWidget):
         layout.addWidget(self.label)
         self.date_edit = QDateEdit()
         self.date_edit.setCalendarPopup(True)  # Enable calendar popup for date selection
+        self.date_edit.setDisplayFormat('dd.MM.yyyy')
+        self.date_edit.setMaximumDate(QDate.currentDate())
         self.date_edit.setDate(QDate.currentDate())
         layout.addWidget(self.date_edit)
         self.checkbox = QCheckBox("Keep Data")
