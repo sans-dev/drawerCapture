@@ -217,9 +217,9 @@ class LabeledTextField(QWidget):
 class DataCollection(QWidget):
     meta_signal = pyqtSignal(dict)
 
-    def __init__(self):
+    def __init__(self, taxonomy):
         super().__init__()
-        self.taxonomy = init_taxonomy("resources/taxonomy/taxonomy_test.json")
+        self.taxonomy = taxonomy
         self.init_ui()
 
     def init_ui(self):
@@ -293,7 +293,8 @@ def handle_data(dict):
 
 def main():
     app = QApplication(sys.argv)
-    window = DataCollection()
+    taxonomy = init_taxonomy("resources/taxonomy/taxonomy_test.json")
+    window = DataCollection(taxonomy)
     window.meta_signal.connect(handle_data)
     window.show()
     sys.exit(app.exec())
