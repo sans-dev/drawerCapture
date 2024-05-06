@@ -19,7 +19,6 @@ venv*
 resources/flows
 resources/click_dummy
 
-tests/test-project
 resources/taxonomy
 tests/data
 profiling/
