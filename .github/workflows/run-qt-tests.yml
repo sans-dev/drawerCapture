@@ -23,8 +23,9 @@ jobs:
 
     - name: install python test dependencies
       run: |
+        python -m pip install --upgrade pip
         pip install pytest pytest-qt pytest-cov
-
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: run tests
       run: |
         python -m pytest
