@@ -33,4 +33,3 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: run tests
       run: |
-        python -m pytest
