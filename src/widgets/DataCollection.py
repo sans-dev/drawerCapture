@@ -84,11 +84,14 @@ class CollectionField(SearchableItemListWidget):
         
     def item_clicked(self, item: QListWidgetItem):
         text = item.text()
-        self.item_list.clearSelection()
-        self.item_list.clearFocus()
-        self.item_list.clear()
-        self.item_list.addItems([text])
-        self.search_edit.setText(text)
+        if not self.item_list.findItems(text, Qt.MatchFlag.MatchExactly):
+            raise ValueError(f"Item '{text}' not found in the list.")
+        else:
+            self.item_list.clearSelection()
+            self.item_list.clearFocus()
+            self.item_list.clear()
+            self.item_list.addItems([text])
+            self.search_edit.setText(text)
 
     def _load_items(self, item_file):
         with open(item_file, 'r') as f:
@@ -217,9 +220,9 @@ class LabeledTextField(QWidget):
 class DataCollection(QWidget):
     meta_signal = pyqtSignal(dict)
 
-    def __init__(self):
+    def __init__(self, taxonomy):
         super().__init__()
-        self.taxonomy = init_taxonomy("resources/taxonomy/taxonomy_test.json")
+        self.taxonomy = taxonomy
         self.init_ui()
 
     def init_ui(self):
@@ -293,7 +296,8 @@ def handle_data(dict):
 
 def main():
     app = QApplication(sys.argv)
-    window = DataCollection()
+    taxonomy = init_taxonomy("resources/taxonomy/taxonomy_test.json")
+    window = DataCollection(taxonomy)
     window.meta_signal.connect(handle_data)
     window.show()
     sys.exit(app.exec())

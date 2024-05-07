@@ -4,7 +4,7 @@ gphoto2==2.5.0
 idna==3.7
 mysql-connector-python==8.2.0
 numpy==1.25.1
-opencv-python==4.8.0.74
+opencv-python-headless
 Pillow==10.1.0
 protobuf==4.21.12
 PyQt6==6.5.1
