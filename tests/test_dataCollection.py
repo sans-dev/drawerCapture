@@ -35,35 +35,47 @@ def test_labeled_text_field(qtbot):
     qtbot.addWidget(widget)
     assert widget.name == "Test Label"
 
-def test_data_collection(qtbot):
-    widget = DataCollection()
-    qtbot.addWidget(widget)
-    assert widget.taxonomy is not None
-    assert len(widget.widgets) == 7
-
-def test_get_data_exception(qtbot):
-    widget = DataCollection()
-    qtbot.addWidget(widget)
-    data = widget.get_data()
-    assert isinstance(data, dict)
-    assert len(data) == 7
-
-def test_taxonomy_integrety(qtbot):
+class TestTaxonomyFields:
     taxonomy = init_taxonomy("resources/taxonomy/taxonomy_test.json")
-    widget = DataCollection(taxonomy)
-    qtbot.addWidget(widget)
-    item = QListWidgetItem()
-    item.setText("Dasyleptus artinskianus")
-    widget.species_widget.item_clicked(item)
-    data = widget.get_data()
 
-    expected = {
-            "order": "Archaeognatha",
-            "family": "Dasyleptidae",
-            "genus": "Dasyleptus",
-            "species": "Dasyleptus artinskianus",
-        }
-    assert data.get("Order") == expected.get("order")
-    assert data.get("Family") == expected.get("family")
-    assert data.get("Genus") == expected.get("genus")
-    assert data.get("Species") == expected.get("species")
+    def test_set_species_name(self, qtbot):
+        widget = DataCollection(self.taxonomy)
+        qtbot.addWidget(widget)
+        item = QListWidgetItem()
+        item.setText("Dasyleptus artinskianus")
+        widget.species_widget.item_clicked(item)
+        data = widget.get_data()
+
+        expected = {
+                "order": "Archaeognatha",
+                "family": "Dasyleptidae",
+                "genus": "Dasyleptus",
+                "species": "Dasyleptus artinskianus",
+            }
+        assert data.get("Order") == expected.get("order")
+        assert data.get("Family") == expected.get("family")
+        assert data.get("Genus") == expected.get("genus")
+        assert data.get("Species") == expected.get("species")
+        
+    def test_get_data(self, qtbot):
+        widget = DataCollection(self.taxonomy)
+        qtbot.addWidget(widget)
+        data = widget.get_data()
+
+        assert isinstance(data, dict)
+        assert len(data) == 7
+        assert data.get("Order") == ""
+        assert data.get("Family") == ""
+        assert data.get("Genus") == ""
+        assert type(data.get("Species")) == ValueError
+        assert type(data.get("Museum")) == ValueError
+        assert type(data.get("Collection Date")) == ValueError
+        assert type(data.get("Collection Location")) == ValueError
+        
+    def test_set_museum(self, qtbot):
+        widget = DataCollection(self.taxonomy)
+        qtbot.addWidget(widget)
+        item = QListWidgetItem()
+        item.setText("Museum of Natural History")
+        with pytest.raises(ValueError):
+            widget.museum_widget.item_clicked(item)

@@ -84,11 +84,14 @@ class CollectionField(SearchableItemListWidget):
         
     def item_clicked(self, item: QListWidgetItem):
         text = item.text()
-        self.item_list.clearSelection()
-        self.item_list.clearFocus()
-        self.item_list.clear()
-        self.item_list.addItems([text])
-        self.search_edit.setText(text)
+        if not self.item_list.findItems(text, Qt.MatchFlag.MatchExactly):
+            raise ValueError(f"Item '{text}' not found in the list.")
+        else:
+            self.item_list.clearSelection()
+            self.item_list.clearFocus()
+            self.item_list.clear()
+            self.item_list.addItems([text])
+            self.search_edit.setText(text)
 
     def _load_items(self, item_file):
         with open(item_file, 'r') as f:
