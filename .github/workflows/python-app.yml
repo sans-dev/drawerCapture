@@ -20,8 +20,8 @@ jobs:
       DISPLAY: ':99.0'
     steps:
     - uses: actions/checkout@v3
-    - uses: awalsh128/cache-apt-pkgs-action@latest
     - uses: tlambert03/setup-qt-libs@v1
+    - uses: awalsh128/cache-apt-pkgs-action@latest
       with:
           packages: gphoto2 libgphoto2-6 ffmpeg libgl1-mesa-dev 
     - name: Set up Python 3.10.12
