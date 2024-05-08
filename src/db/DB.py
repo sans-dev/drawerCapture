@@ -84,10 +84,10 @@ class DBAdapter(QObject):
 class DBManager:
     def __init__(self):
         self.project_root_dir = None
-        self.project_info = configparser.ConfigParser()
         self.image_number = None
 
     def load_project(self, project_dir):
+        self.project_info = configparser.ConfigParser()
         self.project_info.read((project_dir / 'project.ini'))
         self.image_number = self.project_info.getint('VARS', "image-number")
         self.project_root_dir = project_dir
@@ -124,7 +124,8 @@ class DBManager:
         (self.project_root_dir / 'project.ini').write_text(self.project_info)
 
     def create_project(self, project_info, project_dir):
-        project_dir = project_dir
+        self.project_info = configparser.ConfigParser()
+        project_dir = project_dir / project_info['INFO']['Name']
         project_dir.mkdir(exist_ok=True)
         (project_dir / 'Captures').mkdir(exist_ok=True)
         (project_dir / 'captures.csv').write_text("date, session, museum, order, family, genus, species\n")
@@ -133,7 +134,6 @@ class DBManager:
             self.project_info.write(config_file)
 
         self.project_root_dir = project_dir
-        self.project_info = project_info
 
     def connect_db_adapter(self, db_adapter):
         db_adapter.put_signal.connect(self.save_image_and_meta_info)

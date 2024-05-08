@@ -82,10 +82,11 @@ class ProjectCreator(QWidget):
         self.dir_error_label.hide()
         self.description_errror_label.hide()
 
-        project_dir = self.dir.text()
         authors = self.authors.text().strip().split(",")
         description = self.description.text().strip()
         project_name = self.project_name.text().strip()
+        project_dir = self.dir.text()
+        
         is_valid = True 
         if not project_name:
             self.project_error_label.setText("Project name cannot be empty")
@@ -95,7 +96,7 @@ class ProjectCreator(QWidget):
             self.dir_error_label.setText("Directory does not exist")
             self.dir_error_label.show()
             is_valid = False
-        if (Path(project_dir) / 'project.ini').exists():
+        if (Path(project_dir) / project_name / 'project.ini').exists():
             self.dir_error_label.setText("Project already exists")
             self.dir_error_label.show()
             is_valid = False
@@ -112,7 +113,7 @@ class ProjectCreator(QWidget):
     def create_project(self):
         if self.handle_errors():
             project_info = dict()
-            project_info['INFO'] = {'Project Name': self.project_name.text().strip(),
+            project_info['INFO'] = {'Name': self.project_name.text().strip(),
                                     'Author': self.authors.text().strip().split(","),
                                     'Description': self.description.text().strip()}
             project_info['VARS'] = {'image-number': 0}
