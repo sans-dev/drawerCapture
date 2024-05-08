@@ -1,4 +1,5 @@
 import sys
+from argparse import ArgumentParser
 import logging
 import logging.config
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
@@ -25,18 +26,17 @@ class MainWindow(QMainWindow):
         stackedWidget (QStackedWidget): A stacked widget containing all the widgets.
     """
 
-    def __init__(self):
+    def __init__(self, taxonomy):
         """
         Initializes the main window.
         """
         logger.debug("initializing main window")
         super().__init__()
         logger.info("initlializing taxonomy")
-        taxononmy = init_taxonomy("resources/taxonomy/taxonomy_prod.json")
         self.db_adapter = DBAdapter()
         project_creator = ProjectCreator(self.db_adapter)
         project_loader = ProjectLoader(self.db_adapter)
-        imageWidget = ImageWidget(self.db_adapter, taxononmy)
+        imageWidget = ImageWidget(self.db_adapter, taxonomy)
         self.widgets = {
             "main": MainWidget(),
             "live": LiveWidget(imageWidget),
@@ -74,11 +74,25 @@ class MainWindow(QMainWindow):
         self.stackedWidget.setCurrentWidget(self.widgets[widget])
 
 if __name__ == '__main__':
+    styles = ["Default", "Photoxo", "Combinear", "Diffnes", "SyNet"]
+    parser = ArgumentParser()
+    parser.add_argument("--debug", action="store_true", help="enable debug mode")
+    parser.add_argument("--style", type=str, choices=styles, help="set the style", default=styles[0])
+    args = parser.parse_args()
+    if args.debug:
+        logger.setLevel(level=logging.DEBUG)
+        logger.debug("debug mode enabled")
+        logger.info("loading taxonomy")
+        taxonomy = init_taxonomy("tests/data/taxonomy_test.json")
+    else:
+        logger.setLevel(level=logging.INFO)
+        logger.debug("debug mode disabled")
+        logger.info("loading taxonomy")
+        taxonomy = init_taxonomy("resources/taxonomy/taxonomy_prod.json")
+    
     app = QApplication(sys.argv)
-    STYLES = ["Photoxo", "Combinear", "Diffnes", "SyNet"]
-    CURRENT_STYLE = STYLES[3]
-    # switch to the Photoxo style
-    # app.setStyleSheet(load_style_sheet(CURRENT_STYLE))
-    mainWindow = MainWindow()
+    if args.style != styles[0]:
+        app.setStyleSheet(load_style_sheet(args.style))
+    mainWindow = MainWindow(taxonomy)
     mainWindow.show()
     sys.exit(app.exec())
