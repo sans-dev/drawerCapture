@@ -9,6 +9,7 @@ from src.widgets.LiveWidget import LiveWidget
 from src.widgets.ImageWidget import ImageWidget
 from src.db.DB import DBAdapter, DBManager
 from src.widgets.Project import ProjectCreator, ProjectLoader
+from src.utils.searching import init_taxonomy
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -30,10 +31,12 @@ class MainWindow(QMainWindow):
         """
         logger.debug("initializing main window")
         super().__init__()
+        logger.info("initlializing taxonomy")
+        taxononmy = init_taxonomy("resources/taxonomy/taxonomy_prod.json")
         self.db_adapter = DBAdapter()
         project_creator = ProjectCreator(self.db_adapter)
         project_loader = ProjectLoader(self.db_adapter)
-        imageWidget = ImageWidget(self.db_adapter)
+        imageWidget = ImageWidget(self.db_adapter, taxononmy)
         self.widgets = {
             "main": MainWidget(),
             "live": LiveWidget(imageWidget),

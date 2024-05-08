@@ -20,7 +20,8 @@ class ImageWidget(QWidget):
     procClicked = pyqtSignal(str)
     processed = pyqtSignal()
 
-    def __init__(self, db_adapter):
+    def __init__(self, db_adapter, taxonomy):
+        self.taxonomy = taxonomy
         self.db_adapter = db_adapter
         self.emitter = ProcessEmitter()
         self.panel = ImagePanel(self.emitter)
@@ -33,7 +34,7 @@ class ImageWidget(QWidget):
         """
         Initializes the user interface of the widget.
         """
-        self.data_collector = DataCollection()
+        self.data_collector = DataCollection(self.taxonomy)
         # create a horizontal layout for the buttons (crop, enahnce, save, close)
         # create a vertical layout for the panel and buttons
         # add the collectionField right to the layout
