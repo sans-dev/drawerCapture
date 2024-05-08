@@ -26,14 +26,14 @@ class ProjectCreator(QWidget):
         layout.addLayout(project_name_layout)
 
         author_layout = QVBoxLayout()
-        self.author = QLineEdit()
-        regex = QRegularExpression(r'^[a-zA-Z\s]+$')
+        self.authors = QLineEdit()
+        regex = QRegularExpression(r'^[a-zA-Z\s,]+$')
         validator = QRegularExpressionValidator(regex)
-        self.author.setValidator(validator)
+        self.authors.setValidator(validator)
         self.author_error_label = QLabel()
         self.author_error_label.setStyleSheet("color: red")
         author_layout.addWidget(QLabel("Author"))
-        author_layout.addWidget(self.author)
+        author_layout.addWidget(self.authors)
         author_layout.addWidget(self.author_error_label)
         author_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.addLayout(author_layout)
@@ -83,7 +83,7 @@ class ProjectCreator(QWidget):
         self.description_errror_label.hide()
 
         project_dir = self.dir.text()
-        authors = self.author.text().strip().split(",")
+        authors = self.authors.text().strip().split(",")
         description = self.description.text().strip()
         project_name = self.project_name.text().strip()
         is_valid = True 
@@ -93,6 +93,10 @@ class ProjectCreator(QWidget):
             is_valid = False
         if not project_dir or not Path(project_dir).exists():
             self.dir_error_label.setText("Directory does not exist")
+            self.dir_error_label.show()
+            is_valid = False
+        if (Path(project_dir) / 'project.ini').exists():
+            self.dir_error_label.setText("Project already exists")
             self.dir_error_label.show()
             is_valid = False
         if not authors:
