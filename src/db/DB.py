@@ -45,15 +45,17 @@ class DataValidator:
 class DBAdapter(QObject):
     put_signal = pyqtSignal(dict)
     get_signal = pyqtSignal(dict)
-    create_project_signal = pyqtSignal(dict, Path)
+    create_project_signal = pyqtSignal(dict, str)
     load_project_signal = pyqtSignal(Path)
     validation_error_signal = pyqtSignal(str)
+    project_changed_signal = pyqtSignal(dict)
 
-    def __init__(self):
+    def __init__(self, db_manager):
         super().__init__()
+        self.db_manager = db_manager
 
     def create_project(self, project_info, project_dir):
-        self.create_project_signal.emit(project_info, Path(project_dir))
+        self.project_changed_signal.emit(self.db_manager.create_project(project_info, project_dir))
 
     def load_project(self, project_dir):
         self.load_project_signal.emit(Path(project_dir))
@@ -78,19 +80,20 @@ class DBAdapter(QObject):
             self.validation_error_signal.emit("Validation failed: Invalid data received from DB")
             return
         self.get_signal.emit(data)
-    
 
     
-class DBManager:
+class FileAgnosticDB:
     def __init__(self):
+        super().__init__()
         self.project_root_dir = None
         self.image_number = None
 
     def load_project(self, project_dir):
         self.project_info = configparser.ConfigParser()
         self.project_info.read((project_dir / 'project.ini'))
-        self.image_number = self.project_info.getint('VARS', "image-number")
+        self.image_number = self.project_info.getint('Captures Info', "num_imgs")
         self.project_root_dir = project_dir
+        self.db_adapter.project_changed_signal.emit(self.project_info)
 
     def save_image_and_meta_info(self, payload):
         image_data = payload.get('image')
@@ -120,12 +123,12 @@ class DBManager:
         pass
 
     def update_project_info(self):
-        self.project_info.set('VARS', 'image-number', self.image_number)
+        self.project_info.set('Captures Info', 'num_imgs', self.image_number)
         (self.project_root_dir / 'project.ini').write_text(self.project_info)
 
     def create_project(self, project_info, project_dir):
         self.project_info = configparser.ConfigParser()
-        project_dir = project_dir / project_info['INFO']['Name']
+        project_dir = Path(project_dir) / project_info['Project Info']['name']
         project_dir.mkdir(exist_ok=True)
         (project_dir / 'Captures').mkdir(exist_ok=True)
         (project_dir / 'captures.csv').write_text("date, session, museum, order, family, genus, species\n")
@@ -134,15 +137,18 @@ class DBManager:
             self.project_info.write(config_file)
 
         self.project_root_dir = project_dir
-
-    def connect_db_adapter(self, db_adapter):
-        db_adapter.put_signal.connect(self.save_image_and_meta_info)
-        db_adapter.get_signal.connect(self.load_image_and_meta_info)
-        db_adapter.create_project_signal.connect(self.create_project)
-        db_adapter.load_project_signal.connect(self.load_project)
+        return self.create_dict_from_config()
 
     def create_config_from_dict(self, config_dict):
         for section, options in config_dict.items():
             self.project_info.add_section(section)
             for option, value in options.items():
                 self.project_info.set(section, option, str(value))
+
+    def create_dict_from_config(self):
+        config_dict = {}
+        for section in self.project_info.sections():
+            config_dict[section] = {}
+            for option in self.project_info.options(section):
+                config_dict[section][option] = self.project_info.get(section, option)
+        return config_dict

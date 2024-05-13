@@ -8,7 +8,7 @@ from src.utils.load_style_sheet import load_style_sheet
 from src.widgets.MainWidget import MainWidget
 from src.widgets.LiveWidget import LiveWidget 
 from src.widgets.ImageWidget import ImageWidget
-from src.db.DB import DBAdapter, DBManager
+from src.db.DB import DBAdapter, FileAgnosticDB
 from src.widgets.Project import ProjectCreator, ProjectLoader
 from src.utils.searching import init_taxonomy
 
@@ -33,7 +33,8 @@ class MainWindow(QMainWindow):
         logger.debug("initializing main window")
         super().__init__()
         logger.info("initlializing taxonomy")
-        self.db_adapter = DBAdapter()
+        self.db = FileAgnosticDB()
+        self.db_adapter = DBAdapter(db_manager=self.db)
         project_creator = ProjectCreator(self.db_adapter)
         project_loader = ProjectLoader(self.db_adapter)
         imageWidget = ImageWidget(self.db_adapter, taxonomy)
@@ -48,9 +49,6 @@ class MainWindow(QMainWindow):
         for widget in self.widgets.values():
             self.stackedWidget.addWidget(widget)
             widget.changed.connect(self.switchWidget)
-        
-        self.dbManager = DBManager()
-        self.dbManager.connect_db_adapter(self.db_adapter)
 
         self.initUI()
 
