@@ -121,7 +121,7 @@ class ProjectCreator(QWidget):
                 'description': self.description.text().strip()}
             project_info['Captures Info'] = {'num_imgs': 0}
             self.db_adapter.create_project(project_info, self.dir.text().strip())
-            self.changed.emit("live")
+            self.changed.emit("project")
 
 
 class ProjectLoader(QWidget):
@@ -156,7 +156,7 @@ class ProjectLoader(QWidget):
     def load_project(self):
         project_dir = self.dir.text()
         self.db_adapter.load_project(project_dir)
-        self.changed.emit("live")
+        self.changed.emit("project")
 
 
 class SessionViewer(QWidget):
@@ -212,16 +212,25 @@ class ProjectViewer(QWidget):
         self.db_adapter = db_adapter
         main_layout = QVBoxLayout()
         top_layout = QHBoxLayout()
+        button_layout = QVBoxLayout()
         self.project_info_list = QListWidget()
         top_layout.addWidget(self.project_info_list)
         self.new_session_button = QPushButton("New Capture Session")
-        top_layout.addWidget(self.new_session_button)
+        self.close_project_button = QPushButton("Close Project")
+        button_layout.addWidget(self.new_session_button)
+        button_layout.addWidget(self.close_project_button)
+        top_layout.addLayout(button_layout)
         self.new_session_button.clicked.connect(self.new_session)
         main_layout.addLayout(top_layout)
         main_layout.addWidget(self.session_view)
         self.setLayout(main_layout)
         self.db_adapter.project_changed_signal.connect(self.update_project_list)
         self.db_adapter.project_changed_signal.connect(self.update_session_view)
+        self.close_project_button.clicked.connect(self.close_project)
+
+    def close_project(self):
+        self.changed.emit("main")
+        super().close()
 
     def update_project_list(self, project_info):
         print(project_info)

@@ -186,7 +186,7 @@ class LiveWidget(QWidget):
         self.selectCameraListWidget.close()
         self.selectCameraListWidget = None
         self.selectCameraListWidget = SelectCameraListWidget()
-        self.changed.emit("main")
+        self.changed.emit("project")
 
     def _hidePanelWidgets(self):
         logger.debug("hiding panel widgets")

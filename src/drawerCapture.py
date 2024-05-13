@@ -9,7 +9,7 @@ from src.widgets.MainWidget import MainWidget
 from src.widgets.LiveWidget import LiveWidget 
 from src.widgets.ImageWidget import ImageWidget
 from src.db.DB import DBAdapter, FileAgnosticDB
-from src.widgets.Project import ProjectCreator, ProjectLoader
+from src.widgets.Project import ProjectCreator, ProjectLoader, ProjectViewer
 from src.utils.searching import init_taxonomy
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
@@ -37,13 +37,15 @@ class MainWindow(QMainWindow):
         self.db_adapter = DBAdapter(db_manager=self.db)
         project_creator = ProjectCreator(self.db_adapter)
         project_loader = ProjectLoader(self.db_adapter)
+        project_viewer = ProjectViewer(self.db_adapter)
         imageWidget = ImageWidget(self.db_adapter, taxonomy)
         self.widgets = {
             "main": MainWidget(),
             "live": LiveWidget(imageWidget),
             "image": imageWidget,
             "create": project_creator,
-            "load" : project_loader
+            "load" : project_loader,
+            'project': project_viewer
         }
         self.stackedWidget = QStackedWidget()
         for widget in self.widgets.values():
