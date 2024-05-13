@@ -119,7 +119,7 @@ class ProjectCreator(QWidget):
                 'name': self.project_name.text().strip(),
                 'authors': self.authors.text().strip().split(","),
                 'description': self.description.text().strip()}
-            project_info['Caputres Info'] = {'num_imgs': 0}
+            project_info['Captures Info'] = {'num_imgs': 0}
             self.db_adapter.create_project(project_info, self.dir.text().strip())
             self.changed.emit("live")
 
@@ -212,33 +212,41 @@ class ProjectViewer(QWidget):
         self.db_adapter = db_adapter
         main_layout = QVBoxLayout()
         top_layout = QHBoxLayout()
-        self.project_list = QListWidget()
-        top_layout.addWidget(self.project_list)
+        self.project_info_list = QListWidget()
+        top_layout.addWidget(self.project_info_list)
         self.new_session_button = QPushButton("New Capture Session")
         top_layout.addWidget(self.new_session_button)
         self.new_session_button.clicked.connect(self.new_session)
         main_layout.addLayout(top_layout)
         main_layout.addWidget(self.session_view)
         self.setLayout(main_layout)
-        self.db_adapter.project_changed.connect(self.update_project_list)
-        self.db_adapter.project_changed.connect(self.update_session_view)
+        self.db_adapter.project_changed_signal.connect(self.update_project_list)
+        self.db_adapter.project_changed_signal.connect(self.update_session_view)
 
     def update_project_list(self, project_info):
-        self.project_list.clear()
-        pass
+        print(project_info)
+        self.project_info_list.clear()
+        project_info = project_info['Project Info']
+        item_strings = self._create_project_info_item_str_list(project_info)
+        self.project_info_list.addItems(item_strings)
 
+    def _create_project_info_item_str_list(self, project_info):
+        item_strings = []
+        for key, value in project_info.items():
+            item_strings.append(f"{key}: {value}")
+        return item_strings
+    
     def update_session_view(self, project_info):
-        self.session_view.clearSpans()
-        session_info = project_info["sessions"]
-        self.session_view.set_data(session_info)
+        print(project_info)
+        pass
 
     def new_session(self):
         self.changed.emit("live")
 
 
 
-def init_project_viewer():
-    pass
+def init_project_viewer(db_adapter):
+    db_adapter.load_project()
 
 def init_project_creator():
     pass
@@ -248,7 +256,7 @@ def init_project_loader():
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
-    from src.db.DB import DBAdapter, DBManager
+    from src.db.DB import DBAdapter, FileAgnosticDB
     widgets = ["creator", "loader", "viewer"]
     widgets_dict = {
         "creator": ProjectCreator,
@@ -259,11 +267,12 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--widget", choices=widgets, default="creator")
     args = parser.parse_args()
-    db_adapter = DBAdapter()
-    db_manager = DBManager()
-    db_manager.connect_db_adapter(db_adapter)
+    db_manager = FileAgnosticDB()
+    db_adapter = DBAdapter(db_manager=db_manager)
 
     app = QApplication([])
     window = widgets_dict[args.widget](db_adapter)
+    if args.widget == "viewer":
+        db_adapter.load_project('tests/data/')
     window.show()
     app.exec()

@@ -58,7 +58,7 @@ class DBAdapter(QObject):
         self.project_changed_signal.emit(self.db_manager.create_project(project_info, project_dir))
 
     def load_project(self, project_dir):
-        self.load_project_signal.emit(Path(project_dir))
+        self.project_changed_signal.emit(self.db_manager.load_project(project_dir))
 
     def send_data_to_db(self, image_data, meta_info):
         logger.info(f"Validating data...")
@@ -90,10 +90,10 @@ class FileAgnosticDB:
 
     def load_project(self, project_dir):
         self.project_info = configparser.ConfigParser()
-        self.project_info.read((project_dir / 'project.ini'))
+        self.project_info.read((Path(project_dir) / 'project.ini'))
         self.image_number = self.project_info.getint('Captures Info', "num_imgs")
         self.project_root_dir = project_dir
-        self.db_adapter.project_changed_signal.emit(self.project_info)
+        return self.create_dict_from_config()
 
     def save_image_and_meta_info(self, payload):
         image_data = payload.get('image')
