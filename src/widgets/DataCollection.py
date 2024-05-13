@@ -294,7 +294,7 @@ def handle_data(dict):
 
 def main():
     app = QApplication(sys.argv)
-    taxonomy = init_taxonomy("resources/taxonomy/taxonomy_test.json")
+    taxonomy = init_taxonomy("tests/data/taxonomy_test.json")
     window = DataCollection(taxonomy)
     window.meta_signal.connect(handle_data)
     window.show()
@@ -304,5 +304,5 @@ def main():
 if __name__ == "__main__":
     import sys
     from PyQt6.QtWidgets import QApplication
-    from utils.searching import init_taxonomy
+    from src.utils.searching import init_taxonomy
     main()

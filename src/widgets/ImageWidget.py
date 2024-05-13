@@ -3,7 +3,7 @@ import logging
 import logging.config
 
 from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout, QHBoxLayout, QPushButton, QMessageBox
-from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtCore import pyqtSignal
 
 from src.widgets.DataCollection import DataCollection
 from src.widgets.ImagePanel import ImagePanel
@@ -110,12 +110,14 @@ class ImageWidget(QWidget):
                 self.close()
 
 def main():
-    from src.db.DB import DBAdapter, DBManager
+    from src.db.DB import DBAdapter, FileAgnosticDB
+    from src.utils.searching import init_taxonomy
+
     app = QApplication(sys.argv)
-    db_adapter = DBAdapter()
-    db = DBManager(project_root_dir='tests/test-project')
-    db.connect_db_adapter(db_adapter)
-    window = ImageWidget(db_adapter)
+    db = FileAgnosticDB()
+    db_adapter = DBAdapter(db)
+    taxonomy_dir = "tests/data/taxonomy_test.json"
+    window = ImageWidget(db_adapter, init_taxonomy(taxonomy_dir))
     window.setImage("tests/data/test_img.jpg")
     window.show()
     sys.exit(app.exec())
