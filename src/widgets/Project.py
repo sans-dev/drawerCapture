@@ -171,6 +171,8 @@ class SessionViewer(QWidget):
         self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table_view.verticalHeader().setVisible(False)
 
+        self.table_view.setSortingEnabled(True)
+
         # Set the table model (you need to provide the data)
         self.table_model = None  # Replace with your data model
 
@@ -200,6 +202,13 @@ class SessionViewer(QWidget):
             self.table_model.setItem(row, 4, num_captures)
 
         self.table_view.setModel(self.table_model)
+
+    def sort_by_column(self, column):
+        self.table_model.sort(column, Qt.AscendingOrder)
+
+    def column_clicked(self, column):
+        self.sort_by_column(column)
+
 class CaptureViewer(QWidget):
     pass
 
@@ -214,7 +223,15 @@ class ProjectViewer(QWidget):
         top_layout = QHBoxLayout()
         button_layout = QVBoxLayout()
         self.project_info_list = QListWidget()
-        top_layout.addWidget(self.project_info_list)
+        project_info_layout = QVBoxLayout()
+        session_layout = QVBoxLayout()
+        session_label = QLabel("Capture Sessions")
+        session_layout.addWidget(session_label)
+        session_layout.addWidget(self.session_view)
+        project_info_label = QLabel("Project Info")
+        project_info_layout.addWidget(project_info_label)
+        project_info_layout.addWidget(self.project_info_list)
+        top_layout.addLayout(project_info_layout)
         self.new_session_button = QPushButton("New Capture Session")
         self.close_project_button = QPushButton("Close Project")
         button_layout.addWidget(self.new_session_button)
@@ -222,7 +239,7 @@ class ProjectViewer(QWidget):
         top_layout.addLayout(button_layout)
         self.new_session_button.clicked.connect(self.new_session)
         main_layout.addLayout(top_layout)
-        main_layout.addWidget(self.session_view)
+        main_layout.addLayout(session_layout)
         self.setLayout(main_layout)
         self.db_adapter.project_changed_signal.connect(self.update_project_list)
         self.db_adapter.project_changed_signal.connect(self.update_session_view)
@@ -233,7 +250,6 @@ class ProjectViewer(QWidget):
         super().close()
 
     def update_project_list(self, project_info):
-        print(project_info)
         self.project_info_list.clear()
         project_info = project_info['Project Info']
         item_strings = self._create_project_info_item_str_list(project_info)
@@ -246,8 +262,18 @@ class ProjectViewer(QWidget):
         return item_strings
     
     def update_session_view(self, project_info):
-        print(project_info)
-        pass
+        self.sessions = []
+        for key, value in project_info.items():
+            if "Session" in key:
+                data = dict()
+                data['session_id'] = key
+                data['date'] = value.get('date')
+                data['capturer'] = value.get('capturer')
+                data['museum'] = value.get('museum')
+                data['num_captures'] = value.get('num_captures')
+                self.sessions.append(data)
+            continue
+        self.session_view.set_data(self.sessions)
 
     def new_session(self):
         self.changed.emit("live")
