@@ -54,6 +54,9 @@ class DBAdapter(QObject):
         super().__init__()
         self.db_manager = db_manager
 
+    def create_session(self, session_data):
+        self.project_changed_signal.emit(self.db_manager.create_session(session_data))
+
     def create_project(self, project_info, project_dir):
         self.project_changed_signal.emit(self.db_manager.create_project(project_info, project_dir))
 
@@ -92,7 +95,7 @@ class FileAgnosticDB:
         self.project_info = configparser.ConfigParser()
         self.project_info.read((Path(project_dir) / 'project.ini'))
         self.image_number = self.project_info.getint('Captures Info', "num_imgs")
-        self.project_root_dir = project_dir
+        self.project_root_dir = Path(project_dir)
         return self.create_dict_from_config()
 
     def save_image_and_meta_info(self, payload):
@@ -152,3 +155,15 @@ class FileAgnosticDB:
             for option in self.project_info.options(section):
                 config_dict[section][option] = self.project_info.get(section, option)
         return config_dict
+
+    def create_session(self, session_data):
+        if self.project_info:
+            section = session_data.pop('name')
+            self.project_info.add_section(section)
+            for option, value in session_data.items():
+                self.project_info.set(section, option, str(value))
+            with (self.project_root_dir / 'project.ini').open('w') as config_file:
+                self.project_info.write(config_file)
+            return self.create_dict_from_config()
+        else:
+            raise ValueError('No project info available')

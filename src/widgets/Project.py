@@ -1,11 +1,11 @@
 from pathlib import Path
 from datetime import datetime
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QFileDialog, QLabel, QListWidget, QHBoxLayout,QTableView, QAbstractItemView, QHeaderView
+from PyQt6.QtWidgets import (QApplication, QDialog, QWidget, QVBoxLayout, QLineEdit, QPushButton, QFileDialog, QLabel, 
+                             QListWidget, QHBoxLayout,QTableView, QAbstractItemView, QHeaderView, QCheckBox, QSpacerItem, QSizePolicy)
 from PyQt6.QtGui import QRegularExpressionValidator
 from PyQt6.QtCore import QRegularExpression
 from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
-
 
 class ProjectCreator(QWidget):
     changed = pyqtSignal(str)
@@ -212,6 +212,101 @@ class SessionViewer(QWidget):
 class CaptureViewer(QWidget):
     pass
 
+class SessionCreator(QDialog):
+    def __init__(self, db_adapter, sessions, parent=None):
+        super().__init__(parent)
+        self.db_adapter = db_adapter
+        self.sessions = sessions
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+
+        # Capturer
+        capturer_layout = QVBoxLayout()
+        self.capturer_label = QLabel("Capturer*")
+        self.capturer_edit = QLineEdit()
+        capturer_layout.addWidget(self.capturer_label)
+        capturer_layout.addWidget(self.capturer_edit)
+        layout.addLayout(capturer_layout)
+
+        # Museum
+        museum_layout = QVBoxLayout()
+        self.museum_label = QLabel("Museum*")
+        self.museum_edit = QLineEdit()
+        museum_layout.addWidget(self.museum_label)
+        museum_layout.addWidget(self.museum_edit)
+        layout.addLayout(museum_layout)
+
+        # Collection Name
+        collection_name_layout = QVBoxLayout()
+        self.collection_name_label = QLabel("Collection Name")
+        self.collection_name_edit = QLineEdit()
+        collection_name_layout.addWidget(self.collection_name_label)
+        collection_name_layout.addWidget(self.collection_name_edit)
+        layout.addLayout(collection_name_layout)
+
+        # Keep Data Checkbox
+        self.keep_data_checkbox = QCheckBox("Keep Data")
+        layout.addWidget(self.keep_data_checkbox)
+
+        # Error Label
+        self.error_label = QLabel()
+        self.error_label.setStyleSheet("color: red")
+        layout.addWidget(self.error_label)
+
+        # Spacer
+        spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        layout.addItem(spacer)
+
+        # Create Session Button
+        self.create_session_button = QPushButton("Create Session")
+        self.create_session_button.clicked.connect(self.create_session)
+        layout.addWidget(self.create_session_button)
+
+        self.setLayout(layout)
+        self.setWindowTitle("Create Capture Session")
+
+    def create_session(self):
+        capturer = self.capturer_edit.text().strip()
+        museum = self.museum_edit.text().strip()
+        collection_name = self.collection_name_edit.text().strip()
+
+        if not capturer or not museum:
+            self.show_error("Capturer and Museum are mandatory fields.")
+            return
+        max_id = 0
+        for session in self.sessions:
+            _id = int(session.get("session_id"))
+            if _id > max_id:
+                max_id = _id
+        session_id = max_id + 1
+        session_name = f"Session {session_id}"
+        session_data = {
+            "name": session_name,
+            "id": str(session_id),
+            "capturer": capturer,
+            "museum": museum,
+            "collection_name": collection_name if collection_name else None,
+            "date" : datetime.now().strftime("%Y-%m-%d"),
+        }
+
+        # Call the appropriate function in your db_adapter to create the session
+        self.db_adapter.create_session(session_data)
+        self.close()
+
+        # Clear the input fields
+        self.capturer_edit.clear()
+        self.museum_edit.clear()
+        self.collection_name_edit.clear()
+        self.keep_data_checkbox.setChecked(False)
+        self.hide_error()
+
+    def show_error(self, message):
+        self.error_label.setText(message)
+
+    def hide_error(self):
+        self.error_label.clear()    
 class ProjectViewer(QWidget):
     changed = pyqtSignal(str)
 
@@ -237,13 +332,20 @@ class ProjectViewer(QWidget):
         button_layout.addWidget(self.new_session_button)
         button_layout.addWidget(self.close_project_button)
         top_layout.addLayout(button_layout)
-        self.new_session_button.clicked.connect(self.new_session)
+        
         main_layout.addLayout(top_layout)
         main_layout.addLayout(session_layout)
         self.setLayout(main_layout)
         self.db_adapter.project_changed_signal.connect(self.update_project_list)
         self.db_adapter.project_changed_signal.connect(self.update_session_view)
         self.close_project_button.clicked.connect(self.close_project)
+        self.new_session_button.clicked.connect(self.create_new_session)
+
+    def create_new_session(self):
+        self.new_session_window = SessionCreator(self.db_adapter, self.sessions, parent=self)
+        self.new_session_window.setWindowModality(Qt.WindowModality.ApplicationModal)
+        self.new_session_window.exec()
+        self.changed.emit("live")
 
     def close_project(self):
         self.changed.emit("main")
@@ -266,7 +368,7 @@ class ProjectViewer(QWidget):
         for key, value in project_info.items():
             if "Session" in key:
                 data = dict()
-                data['session_id'] = key
+                data['session_id'] = value.get('id')
                 data['date'] = value.get('date')
                 data['capturer'] = value.get('capturer')
                 data['museum'] = value.get('museum')
@@ -274,10 +376,6 @@ class ProjectViewer(QWidget):
                 self.sessions.append(data)
             continue
         self.session_view.set_data(self.sessions)
-
-    def new_session(self):
-        self.changed.emit("live")
-
 
 
 def init_project_viewer(db_adapter):
