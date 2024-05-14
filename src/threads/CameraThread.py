@@ -48,6 +48,7 @@ class CameraThread(QThread):
         self.model = None
         self.port = None
         self.config = dict()
+        self.error_log = []
 
         self.proc = None
 
@@ -114,6 +115,7 @@ class CameraThread(QThread):
         --------
         None
         """
+        print("In Camera Thread proc_finished")
         self.proc = None
 
     def _buildKwargs(self):
@@ -142,8 +144,8 @@ class CameraThread(QThread):
         --------
         None
         """
-        stdOut = self.proc.readAllStandardOutput().data().decode('utf-8')
-        print(stdOut)
+        self.error_log.append(self.proc.readAllStandardOutput().data().decode('utf-8'))
+        print(self.error_log[-1])
 
     def printStdErr(self):
         """
@@ -153,9 +155,15 @@ class CameraThread(QThread):
         --------
         None
         """
-        stdErr = self.proc.readAllStandardError().data().decode('utf-8')
-        print(stdErr)
+        self.error_log.append(self.proc.readAllStandardError().data().decode('utf-8'))
+        print(self.error_log[-1])
 
+    def get_std_err(self):
+        """
+        Returns the standard error of the gphoto2 process.
+        """
+        return self.error_log
+    
     def quit(self):
         """
         Stops any running gphoto2 slave processes and quits the thread.

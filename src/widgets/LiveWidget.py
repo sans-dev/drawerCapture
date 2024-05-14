@@ -3,7 +3,7 @@ from datetime import datetime
 import logging
 import logging.config
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QVBoxLayout, QLabel, QStackedLayout
+from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QVBoxLayout, QLabel, QMessageBox
 from PyQt6.QtCore import Qt, pyqtSignal
 
 from src.widgets.SelectCameraListWidget import SelectCameraListWidget
@@ -29,10 +29,10 @@ class LiveWidget(QWidget):
 class LiveWidget(QWidget):
     changed = pyqtSignal(str)
 
-    def __init__(self, imagePanel):
+    def __init__(self, imageWidget):
         logger.debug("initializing live widget")
         super().__init__()
-        self.imagePanel = imagePanel
+        self.imagePanel = imageWidget
         self.initUI()
         self.connectSignals()
 
@@ -129,6 +129,10 @@ class LiveWidget(QWidget):
         self.previewPanel.previewStopped.connect(self.loadingSpinner.hide)
 
         self.previewPanel.imageCapture.imageCaptured.connect(self.imageCaptured)
+        self.previewPanel.imageCapture.failed_signal.connect(self.show_error_dialog)
+
+    def show_error_dialog(self, msg):
+        QMessageBox.critical(self, "Error", msg)
 
     def enableStartLivePreviewButton(self):
         logger.debug("enabling start live preview button")
@@ -224,3 +228,20 @@ class LiveWidget(QWidget):
         self.captureImageButton.setEnabled(True)
         self.closeButton.setEnabled(True)
         self.stopLivePreviewButton.setEnabled(True)
+        
+        
+        
+if __name__ == "__main__":
+    import sys
+    from PyQt6.QtWidgets import QApplication
+    from src.db.DB import DBAdapter, FileAgnosticDB
+    from src.utils.searching import init_taxonomy
+    from src.widgets.ImageWidget import ImageWidget
+    app = QApplication(sys.argv)
+    db = FileAgnosticDB()
+    db_adapter = DBAdapter(db)
+    taxonomy_dir = "tests/data/taxonomy_test.json"
+    image_widget = ImageWidget(db_adapter, init_taxonomy(taxonomy_dir))
+    window = LiveWidget(image_widget)
+    window.show()
+    sys.exit(app.exec())

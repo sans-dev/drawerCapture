@@ -24,6 +24,7 @@ class ImageCapture(CameraThread):
     WAIT_TIME_MS = 20_000
 
     imageCaptured = pyqtSignal(str)
+    failed_signal = pyqtSignal(str)
 
     def __init__(self, cameraData=None):
         super().__init__(cameraData=cameraData)
@@ -51,23 +52,31 @@ class ImageCapture(CameraThread):
             self.proc = QProcess()
             self.proc.readyReadStandardError.connect(self.printStdErr)
             self.proc.readyReadStandardOutput.connect(self.printStdOut)
-            self.proc.finished.connect(self._procFinished)
 
             logger.debug("starting image capture process")
             self.proc.start(self.cmd, self._buildKwargs())
             started = self.proc.waitForStarted()
-
             if not started:
                 logger.warining("failed to start image capture process")
+                self.failed_signal.emit("failed to start image capture process")
                 return
             self.proc.waitForFinished(ImageCapture.WAIT_TIME_MS)
+            if self.proc.exitCode()!= 0 and not "Saving file as " in " ".join(self.get_std_err()):
+                logger.warning("image capture process exited with code {}. {}".format(self.proc.exitCode(), self.get_std_err()))
+                self.failed_signal.emit("image capture process exited with code {}. {}".format(self.proc.exitCode(), self.get_std_err()))
+                return
+            logger.info("image capture process finished")
+            self.imageCaptured.emit(self.config['--image_dir'] + self.config['--image_name'] + self.config['--image_format'])
+        else:
+            logger.warning("image capture process already running")
+            print("debug")
         
     def quit(self):
         """
         Quits the image capture thread and emits the imageCaptured signal.
         """
         logger.info("quitting image capture thread")
-        self.imageCaptured.emit(f"{self.config['--image_dir']}/{self.config['--image_name']}{self.config['--image_format']}")
+        self.proc.terminate()
         super()._stopGphoto2Slaves()
 
     def setUpConfig(self, config: dict):

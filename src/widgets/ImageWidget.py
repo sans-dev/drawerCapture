@@ -1,8 +1,7 @@
-import sys
 import logging
 import logging.config
 
-from PyQt6.QtWidgets import QApplication, QWidget, QGridLayout, QHBoxLayout, QPushButton, QMessageBox
+from PyQt6.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QPushButton, QMessageBox
 from PyQt6.QtCore import pyqtSignal
 
 from src.widgets.DataCollection import DataCollection
@@ -109,7 +108,11 @@ class ImageWidget(QWidget):
             if QMessageBox.question(self, 'Title', 'Data where saved into database. Continue capturing?').name == 'Yes':    
                 self.close()
 
-def main():
+
+
+if __name__ == "__main__":
+    import sys
+    from PyQt6.QtWidgets import QApplication
     from src.db.DB import DBAdapter, FileAgnosticDB
     from src.utils.searching import init_taxonomy
 
@@ -121,7 +124,3 @@ def main():
     window.setImage("tests/data/test_img.jpg")
     window.show()
     sys.exit(app.exec())
-
-
-if __name__ == "__main__":
-    main()

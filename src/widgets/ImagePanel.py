@@ -54,6 +54,7 @@ class ImagePanel(QLabel):
         """
         logger.debug("connecting signals for preview panel")
         self.emitter.processed.connect(self._updatePanel)
+        
 
     def emptyPreview(self):
         """
