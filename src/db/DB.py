@@ -75,7 +75,7 @@ class DBAdapter(QObject):
             return False
         logger.info(f"Sending data to DB...")
         payload = {'image': image_data, 'meta_info': meta_info}
-        self.put_signal.emit(payload)
+        self.project_changed_signal.emit(self.db_manager.post_new_image(payload))
         return True
 
     def receive_data_from_db(self, data):
@@ -90,6 +90,7 @@ class FileAgnosticDB:
         super().__init__()
         self.project_root_dir = None
         self.image_number = None
+        self.current_session = None
 
     def load_project(self, project_dir):
         self.project_info = configparser.ConfigParser()
@@ -98,16 +99,33 @@ class FileAgnosticDB:
         self.project_root_dir = Path(project_dir)
         return self.create_dict_from_config()
 
-    def save_image_and_meta_info(self, payload):
+    def post_new_image(self, payload):
         image_data = payload.get('image')
         meta_info = payload.get('meta_info')
         # Save data to the database
         logger.info("Saving data")
         img_name, meta_name = self.create_save_name(meta_info)
+        img_name.parent.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(img_name.as_posix(),image_data)
         with meta_name.open('w') as f:
             yaml.dump(meta_info, f)
-        self.update_project_info()
+        
+        self.image_number += 1
+        self.project_info.set('Captures Info', "num_imgs", str(self.image_number))
+        try:
+            session_captures = self.project_info.getint(f'Session {self.current_session_id}', 'num_captures')
+        except:
+            session_captures = 0
+        self.project_info.set(f'Session {self.current_session_id}', 'num_captures', str(session_captures + 1))
+        with open((self.project_root_dir / 'project.ini'), 'w') as configfile:
+            self.project_info.write(configfile)
+        return self.create_dict_from_config()
+    
+    def update_project_info(self):
+        self.project_info.set('Captures Info', "num_imgs", str(self.image_number + 1))
+        with open((self.project_root_dir / 'project.ini'), 'w') as configfile:
+            self.project_info.write(configfile)
+        return True
 
     def load_image_and_meta_info(self, data):
         # Validate data received from DB
@@ -117,12 +135,13 @@ class FileAgnosticDB:
         # Process and load data from the database
 
     def create_save_name(self, meta_info):
+        session_name = f"session_{self.current_session_id}"
         self.image_number += 1 
-        img_name = self.project_root_dir / "images" / f"{str(self.image_number).zfill(4)}-{meta_info['Museum']}-{meta_info['Species'].replace(' ', '_')}.jpg"
-        meta_name = self.project_root_dir / "meta_info" / f"{str(self.image_number).zfill(4)}-{meta_info['Museum']}-{meta_info['Species'].replace(' ', '_')}.yaml"
+        img_name = self.project_root_dir / "captures" / session_name / f"{str(self.image_number).zfill(4)}-{meta_info['Museum']}-{meta_info['Species'].replace(' ', '_')}.jpg"
+        meta_name = self.project_root_dir / "captures" / session_name / f"{str(self.image_number).zfill(4)}-{meta_info['Museum']}-{meta_info['Species'].replace(' ', '_')}.yaml"
         return img_name, meta_name
 
-    def add_exif_info(self, image):
+    def add_exif_info(self, image, info):
         pass
 
     def update_project_info(self):
@@ -133,7 +152,7 @@ class FileAgnosticDB:
         self.project_info = configparser.ConfigParser()
         project_dir = Path(project_dir) / project_info['Project Info']['name']
         project_dir.mkdir(exist_ok=True)
-        (project_dir / 'Captures').mkdir(exist_ok=True)
+        (project_dir / 'captures').mkdir(exist_ok=True)
         (project_dir / 'captures.csv').write_text("date, session, museum, order, family, genus, species\n")
         self.create_config_from_dict(project_info)
         with (project_dir / 'project.ini').open('w') as config_file:
@@ -164,6 +183,7 @@ class FileAgnosticDB:
                 self.project_info.set(section, option, str(value))
             with (self.project_root_dir / 'project.ini').open('w') as config_file:
                 self.project_info.write(config_file)
+            self.current_session_id = self.project_info.get(section, 'id')
             return self.create_dict_from_config()
         else:
             raise ValueError('No project info available')

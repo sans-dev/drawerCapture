@@ -79,6 +79,9 @@ class ImagePanel(QLabel):
         """
         logger.info("updating image panel with new image: %s", image_dir)
         self._loadImage(image_dir)
+        if self.image is None:
+            print("Error with autofocus?")
+            return
         h, w, ch = self.image.shape
         # scale to fit the preview panel
         self._setPanelFormat(w, h)
