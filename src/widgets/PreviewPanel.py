@@ -141,7 +141,7 @@ class PreviewPanel(QLabel):
             self.freezePreview()
         self.imageCapture.setUpConfig(config)
         self.imageCapture.start()
-        self.capturedImage.emit(config['--image_name'])
+        self.capturedImage.emit(config['--image_name']) #TODO check, if this is neccessary
 
     def close(self):
         """

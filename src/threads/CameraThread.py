@@ -1,7 +1,7 @@
 import subprocess
 import logging
 import logging.config
-from PyQt6.QtCore import QThread
+from PyQt6.QtCore import QThread, QProcess
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)

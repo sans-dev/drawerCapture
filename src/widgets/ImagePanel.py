@@ -125,7 +125,7 @@ class ImagePanel(QLabel):
         h, w, ch = self.image.shape
         bytesPerLine = ch * w
         qt_image = QImage(self.image.data, w, h, bytesPerLine,
-                          QImage.Format.Format_RGB888)
+                          QImage.Format.Format_BGR888)
         pixmap = QPixmap.fromImage(qt_image)
         self.setPixmap(pixmap)
 
@@ -161,3 +161,12 @@ class ImagePanel(QLabel):
 
     def get_image(self):
         return self.image
+
+
+if __name__ == "__main__":
+    import sys
+    from PyQt6.QtWidgets import QApplication
+    app = QApplication(sys.argv)
+    window = ImagePanel()
+    window.show()
+    sys.exit(app.exec_())

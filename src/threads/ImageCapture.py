@@ -3,7 +3,9 @@ import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 
-from PyQt6.QtCore import QProcess, pyqtSignal
+from PyQt6.QtCore import pyqtSignal, QProcess
+
+from PyQt6.QtGui import QPixmap
 from src.threads.CameraThread import CameraThread
 
 logger = logging.getLogger(__name__)
@@ -33,7 +35,12 @@ class ImageCapture(CameraThread):
         self.config['--image_dir'] = ''
         self.config['--image_name'] = ''
         self.config['--image_format'] = '.jpg'
-
+        self.proc = QProcess()
+        self.proc.readyReadStandardError.connect(self.printStdErr)
+        self.proc.readyReadStandardOutput.connect(self.printStdOut)
+        self.proc.finished.connect(self.finished)
+        self.proc.moveToThread(self)
+        # self.finished.connect(self.proc.deleteLater)
         self.finished.connect(self.quit)
 
     def run(self):
@@ -48,10 +55,7 @@ class ImageCapture(CameraThread):
         """
         Starts the image capture process.
         """
-        if self.proc is None:
-            self.proc = QProcess()
-            self.proc.readyReadStandardError.connect(self.printStdErr)
-            self.proc.readyReadStandardOutput.connect(self.printStdOut)
+        if self.proc.state() is QProcess.ProcessState.NotRunning:
 
             logger.debug("starting image capture process")
             self.proc.start(self.cmd, self._buildKwargs())
@@ -69,15 +73,15 @@ class ImageCapture(CameraThread):
             self.imageCaptured.emit(self.config['--image_dir'] + self.config['--image_name'] + self.config['--image_format'])
         else:
             logger.warning("image capture process already running")
-            print("debug")
+            print(self.proc.state())
         
     def quit(self):
         """
         Quits the image capture thread and emits the imageCaptured signal.
         """
         logger.info("quitting image capture thread")
-        self.proc.terminate()
-        super()._stopGphoto2Slaves()
+        #super()._stopGphoto2Slaves()
+        #self.proc.kill()
 
     def setUpConfig(self, config: dict):
         """

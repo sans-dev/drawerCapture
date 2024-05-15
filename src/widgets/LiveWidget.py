@@ -153,10 +153,10 @@ class LiveWidget(QWidget):
             logger.debug("refreshing camera list")
             self.selectCameraListWidget.refreshButtonClicked()
     
-    def buildConfig(self, config={}):
+    def buildConfig(self, config={}): # TODO: move to config builder/own class/document holding the configuration
         logger.debug("building config")
         config['--image_name'] = datetime.now().isoformat().replace(':','_').replace('.','-')
-        config['--image_dir'] = 'data/captures' 
+        config['--image_dir'] = 'data/captures/' 
         return config
     
     def captureImage(self):
@@ -243,5 +243,6 @@ if __name__ == "__main__":
     taxonomy_dir = "tests/data/taxonomy_test.json"
     image_widget = ImageWidget(db_adapter, init_taxonomy(taxonomy_dir))
     window = LiveWidget(image_widget)
+    window.changed.connect(lambda: image_widget.show())
     window.show()
     sys.exit(app.exec())
