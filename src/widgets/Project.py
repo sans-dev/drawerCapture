@@ -115,12 +115,13 @@ class ProjectCreator(QWidget):
         if self.handle_errors():
             project_info = dict()
             project_info['Project Info'] = {
-                'creation_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'creation_date': datetime.now().strftime("%Y-%m-%d"),
                 'name': self.project_name.text().strip(),
                 'authors': self.authors.text().strip().split(","),
-                'description': self.description.text().strip()}
-            project_info['Captures Info'] = {'num_imgs': 0}
-            self.db_adapter.create_project(project_info, self.dir.text().strip())
+                'description': self.description.text().strip(),
+                'num_captures' : 0}
+            project_dir = (Path(self.dir.text().strip()) / self.project_name.text().strip()).as_posix()
+            self.db_adapter.create_project(project_info, project_dir)
             self.changed.emit("project")
 
 
@@ -283,16 +284,15 @@ class SessionCreator(QDialog):
         session_id = max_id + 1
         session_name = f"Session {session_id}"
         session_data = {
-            "name": session_name,
             "id": str(session_id),
             "capturer": capturer,
             "museum": museum,
             "collection_name": collection_name if collection_name else None,
             "date" : datetime.now().strftime("%Y-%m-%d"),
+            "num_captures" : 0
         }
-
         # Call the appropriate function in your db_adapter to create the session
-        self.db_adapter.create_session(session_data)
+        self.db_adapter.create_session(session_name, session_data)
         self.close()
 
         # Clear the input fields
@@ -306,7 +306,9 @@ class SessionCreator(QDialog):
         self.error_label.setText(message)
 
     def hide_error(self):
-        self.error_label.clear()    
+        self.error_label.clear()
+
+
 class ProjectViewer(QWidget):
     changed = pyqtSignal(str)
 
