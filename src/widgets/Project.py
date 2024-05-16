@@ -7,6 +7,11 @@ from PyQt6.QtCore import QRegularExpression
 from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
 
+import logging
+import logging.config
+logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
+logger = logging.getLogger(__name__)
+
 class ProjectCreator(QWidget):
     changed = pyqtSignal(str)
 
@@ -354,6 +359,9 @@ class ProjectViewer(QWidget):
         super().close()
 
     def update_project_list(self, project_info):
+        if isinstance(project_info, Exception):
+            logger.info(f"{project_info}")
+            return
         self.project_info_list.clear()
         project_info = project_info['Project Info']
         item_strings = self._create_project_info_item_str_list(project_info)

@@ -31,6 +31,9 @@ class DataValidator:
         if image_data.shape[2] < 3:
             return False, "Image data must have at least 3 channels (RGB or BGR)"
 
+        # Check if bit depth of image_data is 8 or 16
+        if image_data.dtype!= np.uint8 and image_data.dtype!= np.uint16:
+            return False, "Image data must be of type uint8 or uint16"
         # Additional checks can be added as needed
 
         # If all checks pass, return True for valid image data
@@ -59,7 +62,13 @@ class DBAdapter(QObject):
         self.project_changed_signal.emit(self.db_manager.create_session(session_data))
 
     def create_project(self, project_info, project_dir):
-        self.project_changed_signal.emit(self.db_manager.create_project(project_info, project_dir))
+        try:
+            response = self.db_manager.create_project(project_info, project_dir)
+            self.project_changed_signal.emit(response)
+            return response
+        except Exception as e:
+            logger.info(f"{e}")
+            return e
 
     def load_project(self, project_dir):
         self.project_changed_signal.emit(self.db_manager.load_project(project_dir))
@@ -95,7 +104,6 @@ class FileAgnosticDB:
     def load_project(self, project_dir):
         self.project_info = configparser.ConfigParser()
         self.project_info.read((Path(project_dir) / 'project.ini'))
-        self.image_number = self.project_info.getint('Captures Info', "num_imgs")
         self.project_root_dir = Path(project_dir)
         return self.create_dict_from_config()
 
@@ -130,16 +138,18 @@ class FileAgnosticDB:
             # delete image and meta file
             Path(img_name).unlink()
             Path(meta_name).unlink()
-
-            return self.create_dict_from_config()
-        
+            raise e
+        except TypeError as e:
+            logger.error(e)
+            self.project_info = old_conf
+            raise e
         except Exception as e:
             logger.error(e)
             self.project_info = old_conf
             Path(img_name).unlink()
             Path(meta_name).unlink()
-            return self.create_dict_from_config()
-
+            raise e
+        
     def update_project_config(self, section, options):
         if section not in self.project_info.sections():
             self.project_info.add_section(section)
@@ -207,3 +217,24 @@ class FileAgnosticDB:
             return self.create_dict_from_config()
         else:
             raise ValueError('No project info available')
+        
+
+
+class DummyDB:
+   def create_session(self, payload):
+       pass
+
+   def create_project(self, payload, dir):
+       if not payload:
+           raise NotADirectoryError("Wrong request format.")
+       else:
+           return payload
+
+   def load_project(self, payload):
+       pass
+
+   def post_new_image(self, payload):
+       pass
+   
+
+    

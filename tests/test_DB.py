@@ -1,7 +1,26 @@
 import pytest
 import numpy as np
 from configparser import ConfigParser
-from src.db.DB import FileAgnosticDB
+from src.db.DB import FileAgnosticDB, DBAdapter, DummyDB
+
+
+
+@pytest.fixture
+def agnostic_project_dir(tmp_path):
+    project_dir = tmp_path / "test"
+    project_dir.mkdir()
+    config = dict()
+    # create project ini
+    config['Project Info'] = {
+            'num_captures': 0,
+            'name' : 'foo',
+            'description' : 'bar',
+            'date' : '2020-01-01',
+            'authors' : 'baz',
+    }
+    db = FileAgnosticDB()
+    db.create_project(config, project_dir=project_dir)
+    return project_dir
 
 @pytest.fixture
 def file_agnostic_db(tmp_path):
@@ -31,6 +50,10 @@ def dummy_meta():
     return meta_infos
 
 @pytest.fixture
+def corrupted_dummy_img():
+    pass
+
+@pytest.fixture
 def dummy_post(dummy_img, dummy_meta):
     post = {}
     post['image'] = dummy_img
@@ -57,7 +80,7 @@ class TestFileAgnosticDB:
         file_agnostic_db.write_project_config()
         conf = ConfigParser()
         conf.read(project_dir / "project.ini")
-        assert conf.getint('Test', 'Test1') == 1
+        assert conf.getint('Project Info', 'num_captures') == 0
 
     def test_ceate_session(self, file_agnostic_db, dummy_session):
         session_name, session_data = dummy_session
@@ -71,5 +94,66 @@ class TestFileAgnosticDB:
         file_agnostic_db.create_session(session_name, session_data)
         file_agnostic_db.post_new_image(dummy_post)
         conf = file_agnostic_db.get_project_config()
+        img_name, meta_name = file_agnostic_db.create_save_name(dummy_post['meta_info'])
+        assert img_name.is_file()
+        assert meta_name.is_file()
         assert conf.getint(session_name, 'num_captures') == 1
         assert conf.getint("Project Info", 'num_captures') == 1
+        
+    def test_post_image_fail(self, file_agnostic_db, dummy_post, dummy_session):
+        session_name, session_data = dummy_session
+        file_agnostic_db.create_session(session_name, session_data)
+        file_agnostic_db.project_root_dir = ""
+        with pytest.raises(TypeError):
+            file_agnostic_db.post_new_image(dummy_post)
+        
+    def test_load_project(self, agnostic_project_dir):
+        db = FileAgnosticDB()
+        db.load_project(agnostic_project_dir)
+        conf = db.get_project_config()
+        assert conf.getint('Project Info', 'num_captures') == 0
+        assert conf.get("Project Info", "date") == "2020-01-01"
+        assert conf.get("Project Info", "authors") == "baz"
+        assert conf.get("Project Info", "name") == "foo"
+        assert conf.get("Project Info", "description") == "bar"
+    
+    def test_load_project_with_session(self, agnostic_project_dir, dummy_session):
+        db = FileAgnosticDB()
+        db.load_project(agnostic_project_dir)
+        db.create_session(dummy_session[0], dummy_session[1])
+        conf = db.get_project_config()
+        assert conf.getint('Project Info', 'num_captures') == 0
+        assert conf.get("Project Info", "date") == "2020-01-01"
+        assert conf.get("Project Info", "authors") == "baz"
+        assert conf.get("Project Info", "name") == "foo"
+        assert conf.get("Project Info", "description") == "bar"
+        assert conf.getint(dummy_session[0], 'num_captures') == 0
+        assert conf.getint(dummy_session[0], 'id') == 1
+        
+
+
+@pytest.fixture
+def project_creation_request():
+    request = {
+        'header': 'project.create',
+        'sender': None,
+        'data': {
+            'name': 'test_name',
+            'date': 'test_date'
+        }
+    }
+    return request
+
+class TestDBAdapter:
+    def test_create_project(self, project_creation_request, tmp_path):
+        project_creation_request['sender'] = self.__class__.__name__
+        adapter = DBAdapter(DummyDB())
+        response = adapter.create_project(project_creation_request, tmp_path)
+        assert response['data']['name'] == project_creation_request['data']['name']
+        assert response['data']['date'] == project_creation_request['data']['date']
+        response = adapter.create_project(None, tmp_path)
+        assert isinstance(response, NotADirectoryError)
+
+
+
+
