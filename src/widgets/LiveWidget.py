@@ -234,12 +234,11 @@ class LiveWidget(QWidget):
 if __name__ == "__main__":
     import sys
     from PyQt6.QtWidgets import QApplication
-    from src.db.DB import DBAdapter, FileAgnosticDB
+    from src.db.DB import DBAdapter, DummyDB
     from src.utils.searching import init_taxonomy
     from src.widgets.ImageWidget import ImageWidget
     app = QApplication(sys.argv)
-    db = FileAgnosticDB()
-    db_adapter = DBAdapter(db)
+    db_adapter = DBAdapter(DummyDB())
     taxonomy_dir = "tests/data/taxonomy_test.json"
     image_widget = ImageWidget(db_adapter, init_taxonomy(taxonomy_dir))
     window = LiveWidget(image_widget)

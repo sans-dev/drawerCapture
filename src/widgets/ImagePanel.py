@@ -79,18 +79,20 @@ class ImagePanel(QLabel):
             image_dir: The path to the image file.
         """
         logger.info("updating image panel with new image: %s", image_dir)
-        self._loadImage(image_dir)
-        if self.image is None:
-            print("Error with autofocus?")
-            return
-        h, w, ch = self.image.shape
-        # scale to fit the preview panel
-        self._setPanelFormat(w, h)
-        h_scale = h / self.height()
-        w_scale = w / self.width()
-        self.image = cv2.resize(
-            self.image, (int(w / w_scale), int(h / h_scale)))
-        self._updatePanel()
+        try:
+            self._loadImage(image_dir)
+
+            h, w, ch = self.image.shape
+            # scale to fit the preview panel
+            self._setPanelFormat(w, h)
+            h_scale = h / self.height()
+            w_scale = w / self.width()
+            self.image = cv2.resize(
+                self.image, (int(w / w_scale), int(h / h_scale)))
+            self._updatePanel()
+        except FileNotFoundError as e:
+            logger.error("could not load image: %s", e)
+            # return to preview. Dont show imageWidget
 
     def processImage(self, processor: str):
         """

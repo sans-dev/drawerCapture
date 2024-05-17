@@ -23,7 +23,7 @@ class ImageCapture(CameraThread):
     IMG_FORMATS = {
         'Fuji' : '.raf',
     }
-    WAIT_TIME_MS = 20_000
+    WAIT_TIME_MS = 30_000
 
     imageCaptured = pyqtSignal(str)
     failed_signal = pyqtSignal(str)
@@ -64,7 +64,11 @@ class ImageCapture(CameraThread):
                 logger.warining("failed to start image capture process")
                 self.failed_signal.emit("failed to start image capture process")
                 return
-            self.proc.waitForFinished(ImageCapture.WAIT_TIME_MS)
+            finished = self.proc.waitForFinished(ImageCapture.WAIT_TIME_MS)
+            if not finished:
+                logger.warning("image capture process did not finish in {} ms".format(ImageCapture.WAIT_TIME_MS))
+                self.failed_signal.emit("image capture process did not finish in {} ms".format(ImageCapture.WAIT_TIME_MS))
+                return
             if self.proc.exitCode()!= 0 and not "Saving file as " in " ".join(self.get_std_err()):
                 logger.warning("image capture process exited with code {}. {}".format(self.proc.exitCode(), self.get_std_err()))
                 self.failed_signal.emit("image capture process exited with code {}. {}".format(self.proc.exitCode(), self.get_std_err()))
