@@ -3,7 +3,19 @@ import numpy as np
 from configparser import ConfigParser
 from src.db.DB import FileAgnosticDB, DBAdapter, DummyDB
 
-
+@pytest.fixture
+def project_dict(tmp_path):
+    project_dir = tmp_path / "test"
+    config = dict()
+    config['Project Info'] = {
+            'project_dir' : str(project_dir),
+            'num_captures': 0,
+            'name' : 'foo',
+            'description' : 'bar',
+            'date' : '2020-01-01',
+            'authors' : 'baz',
+    }
+    return config
 
 @pytest.fixture
 def agnostic_project_dir(tmp_path):
@@ -12,6 +24,7 @@ def agnostic_project_dir(tmp_path):
     config = dict()
     # create project ini
     config['Project Info'] = {
+            'project_dir' : str(project_dir),
             'num_captures': 0,
             'name' : 'foo',
             'description' : 'bar',
@@ -19,7 +32,7 @@ def agnostic_project_dir(tmp_path):
             'authors' : 'baz',
     }
     db = FileAgnosticDB()
-    db.create_project(config, project_dir=project_dir)
+    db.create_project(config)
     return project_dir
 
 @pytest.fixture
@@ -29,9 +42,10 @@ def file_agnostic_db(tmp_path):
     project_dir.mkdir()
     test_info = {}
     test_info['Project Info'] = {
+            'project_dir' : str(project_dir),
             'num_captures': 0}
     
-    db.create_project(test_info, project_dir=project_dir)
+    db.create_project(test_info)
     return db
 
 @pytest.fixture
@@ -130,29 +144,14 @@ class TestFileAgnosticDB:
         assert conf.getint(dummy_session[0], 'num_captures') == 0
         assert conf.getint(dummy_session[0], 'id') == 1
         
-
-
-@pytest.fixture
-def project_creation_request():
-    request = {
-        'header': 'project.create',
-        'sender': None,
-        'data': {
-            'name': 'test_name',
-            'date': 'test_date'
-        }
-    }
-    return request
-
 class TestDBAdapter:
-    def test_create_project(self, project_creation_request, tmp_path):
-        project_creation_request['sender'] = self.__class__.__name__
+    def test_create_project(self, project_dict):
         adapter = DBAdapter(DummyDB())
-        response = adapter.create_project(project_creation_request, tmp_path)
-        assert response['data']['name'] == project_creation_request['data']['name']
-        assert response['data']['date'] == project_creation_request['data']['date']
-        response = adapter.create_project(None, tmp_path)
-        assert isinstance(response, NotADirectoryError)
+        response = adapter.create_project(project_dict)
+        assert response['Project Info']['name'] == project_dict['Project Info']['name']
+        assert response['Project Info']['date'] == project_dict['Project Info']['date']
+        with pytest.raises(NotADirectoryError):
+            response = adapter.create_project(None)
 
 
 

@@ -4,7 +4,10 @@ from pathlib import Path
 import cv2
 import copy
 import configparser
+from pymongo import MongoClient
+from bson import ObjectId
 from PyQt6.QtCore import QObject, pyqtSignal
+
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
@@ -46,6 +49,91 @@ class DataValidator:
             return False, "Mandatory fields left open"
         else: return True, None 
 
+from abc import ABC, abstractmethod
+
+class RESTfulDBAdapter(ABC):
+
+    @abstractmethod
+    def post(self, data, parent_id=None, collection="projects"):
+        """Create a new entry in the database, optionally within a subcollection."""
+        pass
+
+    @abstractmethod
+    def get(self, identifier=None, parent_id=None, collection="projects"):
+        """Retrieve an entry or entries from the database or subcollection."""
+        pass
+
+    @abstractmethod
+    def put(self, identifier, data, parent_id=None, collection="projects"):
+        """Replace an existing entry in the database or subcollection."""
+        pass
+
+    @abstractmethod
+    def patch(self, identifier, data, parent_id=None, collection="projects"):
+        """Update an existing entry in the database or subcollection."""
+        pass
+
+    @abstractmethod
+    def delete(self, identifier, parent_id=None, collection="projects"):
+        """Delete an entry from the database or subcollection."""
+        pass
+
+class MongoDBRESTAdapter(RESTfulDBAdapter):
+    def __init__(self, uri="mongodb://localhost:27017/", db_name="mydatabase"):
+        self.client = MongoClient(uri)
+        self.db = self.client[db_name]
+
+    def post(self, data, parent_id=None, collection="projects"):
+        if parent_id:
+            # Assuming data for subcollections like sessions or images
+            return self.db[collection].update_one(
+                {"_id": ObjectId(parent_id)},
+                {"$push": {"sessions": data}}  # Modify according to your data structure
+            )
+        else:
+            return self.db[collection].insert_one(data).inserted_id
+
+    def get(self, identifier=None, parent_id=None, collection="projects"):
+        if identifier:
+            return self.db[collection].find_one({"_id": ObjectId(identifier)})
+        elif parent_id:
+            # Fetch subcollection data
+            project = self.db[collection].find_one({"_id": ObjectId(parent_id)})
+            return project.get('sessions', [])  # Adjust according to your data structure
+        else:
+            return list(self.db[collection].find({}))
+
+    def put(self, identifier, data, parent_id=None, collection="projects"):
+        if parent_id:
+            # Replace specific subcollection item
+            return self.db[collection].update_one(
+                {"_id": ObjectId(parent_id), "sessions._id": ObjectId(identifier)},
+                {"$set": {"sessions.$": data}}
+            )
+        else:
+            return self.db[collection].replace_one({"_id": ObjectId(identifier)}, data)
+
+    def patch(self, identifier, data, parent_id=None, collection="projects"):
+        if parent_id:
+            # Update specific subcollection item
+            return self.db[collection].update_one(
+                {"_id": ObjectId(parent_id), "sessions._id": ObjectId(identifier)},
+                {"$set": {f"sessions.$.{key}": value for key, value in data.items()}}
+            )
+        else:
+            return self.db[collection].update_one({"_id": ObjectId(identifier)}, {"$set": data})
+
+    def delete(self, identifier, parent_id=None, collection="projects"):
+        if parent_id:
+            # Remove specific subcollection item
+            return self.db[collection].update_one(
+                {"_id": ObjectId(parent_id)},
+                {"$pull": {"sessions": {"_id": ObjectId(identifier)}}}
+            )
+        else:
+            return self.db[collection].delete_one({"_id": ObjectId(identifier)})
+
+
 class DBAdapter(QObject):
     put_signal = pyqtSignal(dict)
     get_signal = pyqtSignal(dict)
@@ -61,15 +149,16 @@ class DBAdapter(QObject):
     def create_session(self, session_data):
         self.project_changed_signal.emit(self.db_manager.create_session(session_data))
 
-    def create_project(self, project_info, project_dir):
+    def create_project(self, project_info):
+
         try:
-            response = self.db_manager.create_project(project_info, project_dir)
+            response = self.db_manager.create_project(project_info)
             self.project_changed_signal.emit(response)
             return response
         except Exception as e:
             logger.info(f"{e}")
-            return e
-
+            raise e
+        
     def load_project(self, project_dir):
         self.project_changed_signal.emit(self.db_manager.load_project(project_dir))
 
@@ -181,9 +270,9 @@ class FileAgnosticDB:
     def add_exif_info(self, image, info):
         pass
 
-    def create_project(self, project_info, project_dir):
+    def create_project(self, project_info):
         self.project_info = configparser.ConfigParser()
-        project_dir = Path(project_dir)
+        project_dir = Path(project_info['Project Info']['project_dir'])
         project_dir.mkdir(exist_ok=True)
         (project_dir / 'captures').mkdir(exist_ok=True)
         (project_dir / 'captures.csv').write_text("date, session, museum, order, family, genus, species\n")
@@ -208,9 +297,9 @@ class FileAgnosticDB:
                 config_dict[section][option] = self.project_info.get(section, option)
         return config_dict
 
-    def create_session(self, session_name, session_data):
+    def create_session(self, session_data):
         if self.project_info:
-            section = session_name
+            section = session_data['name']
             self.update_project_config(section, session_data)
             self.current_session_id = session_data['id']
             self.write_project_config()
@@ -218,13 +307,11 @@ class FileAgnosticDB:
         else:
             raise ValueError('No project info available')
         
-
-
 class DummyDB:
    def create_session(self, payload):
        pass
 
-   def create_project(self, payload, dir):
+   def create_project(self, payload):
        if not payload:
            raise NotADirectoryError("Wrong request format.")
        else:

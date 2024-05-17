@@ -120,13 +120,13 @@ class ProjectCreator(QWidget):
         if self.handle_errors():
             project_info = dict()
             project_info['Project Info'] = {
+                'project_dir' : (Path(self.dir.text().strip()) / self.project_name.text().strip()).as_posix(),
                 'creation_date': datetime.now().strftime("%Y-%m-%d"),
                 'name': self.project_name.text().strip(),
                 'authors': self.authors.text().strip().split(","),
                 'description': self.description.text().strip(),
                 'num_captures' : 0}
-            project_dir = (Path(self.dir.text().strip()) / self.project_name.text().strip()).as_posix()
-            self.db_adapter.create_project(project_info, project_dir)
+            self.db_adapter.create_project(project_info)
             self.changed.emit("project")
 
 
@@ -289,6 +289,7 @@ class SessionCreator(QDialog):
         session_id = max_id + 1
         session_name = f"Session {session_id}"
         session_data = {
+            "name" : session_name,
             "id": str(session_id),
             "capturer": capturer,
             "museum": museum,
@@ -297,7 +298,7 @@ class SessionCreator(QDialog):
             "num_captures" : 0
         }
         # Call the appropriate function in your db_adapter to create the session
-        self.db_adapter.create_session(session_name, session_data)
+        self.db_adapter.create_session(session_data)
         self.close()
 
         # Clear the input fields
