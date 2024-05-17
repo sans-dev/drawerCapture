@@ -60,6 +60,7 @@ class ImageWidget(QWidget):
         """
         self.procClicked.connect(self.panel.processImage)
         self.emitter.processed.connect(self.enableButtons)
+        self.db_adapter.session_created_signal.connect(self.data_collector.set_session_data)
 
     def close(self):
         """
@@ -123,4 +124,12 @@ if __name__ == "__main__":
     window = ImageWidget(db_adapter, init_taxonomy(taxonomy_dir))
     window.setImage("tests/data/test_img.jpg")
     window.show()
+    db_adapter.session_created_signal.emit(
+        {
+            'Name' : 'Session 1',
+            'ID' : '1',
+            'Capturer' : 'Sebastian',
+            'Museum' : 'Senkenberg Frankfurt'
+        }
+    )
     sys.exit(app.exec())

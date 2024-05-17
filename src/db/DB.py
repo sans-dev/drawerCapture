@@ -141,6 +141,7 @@ class DBAdapter(QObject):
     load_project_signal = pyqtSignal(Path)
     validation_error_signal = pyqtSignal(str)
     project_changed_signal = pyqtSignal(dict)
+    session_created_signal = pyqtSignal(dict)
 
     def __init__(self, db_manager):
         super().__init__()
@@ -148,6 +149,7 @@ class DBAdapter(QObject):
 
     def create_session(self, session_data):
         self.project_changed_signal.emit(self.db_manager.create_session(session_data))
+        self.session_created_signal.emit(session_data)
 
     def create_project(self, project_info):
 

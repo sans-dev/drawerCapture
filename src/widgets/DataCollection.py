@@ -1,3 +1,4 @@
+from PyQt6.QtGui import QMouseEvent
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QListWidget, QListWidgetItem, QLabel, QTabWidget, QSpacerItem, QSizePolicy, QDateEdit, QCheckBox
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
 import logging
@@ -53,6 +54,68 @@ class SearchableItemListWidget(QWidget):
     def hide_error(self):
         self.error_label.clear()
 
+class NonClickableListWidget(QListWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def mousePressEvent(self, event):
+        # Ignore the mouse press event
+        event.ignore()
+
+    def mouseDoubleClickEvent(self, event):
+        event.ignore()
+
+    def mouseReleaseEvent(self, event):
+        # Ignore the mouse release event
+        event.ignore()
+
+    def mouseDoubleClickEvent(self, event):
+        # Ignore the mouse double click event
+        event.ignore()
+
+    def mouseMoveEvent(self, event):
+        # Ignore the mouse move event
+        event.ignore()
+
+class SessionInfoField(QWidget):
+    def __init__(self, label_text=None, label_value=None):
+        super().__init__()
+        self.label_text = label_text
+        self.value = None
+        hlayout = QVBoxLayout()
+        self.label = QLabel(label_text)
+        self.value = NonClickableListWidget()
+        self.value.addItem(QListWidgetItem(str(label_value)))
+        self.value.setFixedHeight(20)
+        self.label.setFixedHeight(20)
+        self.value.setStyleSheet("color: gray;")
+        hlayout.addWidget(self.label)
+        hlayout.addWidget(self.value)
+        hlayout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.setLayout(hlayout)
+
+    def onClicked(self):
+        pass
+
+class SessionInfoWidget(QWidget):
+    def init__(self):
+        super().__init__()
+        self._layout = QVBoxLayout()
+        self._layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+    def set_session_data(self, data):
+        self.session_data = data
+        _layout = QVBoxLayout()
+        _layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        for label, value in data.items():
+            field = SessionInfoField(label, value)
+            field.setFixedHeight(60)
+            _layout.addWidget(field)
+        self.setLayout(_layout)
+
+    def get_data(self):
+        return self.session_data
+
 class CollectionField(SearchableItemListWidget):
     def __init__(self, label_text, items_file, mandatory):
         super().__init__(label_text, mandatory)
@@ -94,6 +157,7 @@ class CollectionField(SearchableItemListWidget):
     def _load_items(self, item_file):
         with open(item_file, 'r') as f:
             self.items = f.readlines()
+
 class TaxonomyField(SearchableItemListWidget):
     parents_signal = pyqtSignal(list)
     clear_child_signal = pyqtSignal()
@@ -226,14 +290,18 @@ class DataCollection(QWidget):
     def init_ui(self):
         layout = QVBoxLayout()
 
-        # Create tab widget
+        # Create tab widget 
         tab_widget = QTabWidget()
 
         # Create forms for each tab
+        session_info_form = QWidget()
+        session_info_layout = QVBoxLayout(session_info_form)
+        self.session_widget = SessionInfoWidget()
+        session_info_layout.addWidget(self.session_widget)
+        tab_widget.addTab(session_info_form, "Session Info")  
+
         collection_info_form = QWidget()
         collection_info_layout = QVBoxLayout(collection_info_form)
-        self.museum_widget = CollectionField("Museum*", 'resources/meta_info_lists/museums.txt', mandatory=True)
-        collection_info_layout.addWidget(self.museum_widget)
         self.collection_date_widget = DateInputWidget("Collection Date*")
         collection_info_layout.addWidget(self.collection_date_widget)
         self.collection_location_widget = CollectionField("Collection Location*", 'resources/meta_info_lists/regions.txt', mandatory=True)
@@ -253,7 +321,7 @@ class DataCollection(QWidget):
         tab_widget.addTab(specimen_info_form, "Specimen Info")
 
         self.widgets = [
-                    self.museum_widget, 
+                    self.session_widget, 
                     self.collection_date_widget,
                     self.collection_location_widget, 
                     self.order_widget, 
@@ -288,6 +356,9 @@ class DataCollection(QWidget):
                 print(e)
                 raise e
         return data
+    
+    def set_session_data(self, data):
+        self.session_widget.set_session_data(data)
         
 def handle_data(dict):
     print('Received Data', dict)
