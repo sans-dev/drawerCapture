@@ -7,12 +7,13 @@ numpy==1.25.1
 opencv-python-headless
 Pillow==10.1.0
 protobuf==4.21.12
-PyQt6==6.5.1
-PyQt6-Qt6==6.5.1
-PyQt6-sip==13.5.1
+PyQt6==6.7.0
 PyYAML==6.0.1
 rawpy==0.18.1
 requests==2.31.0
 tifffile==2023.9.26
 tqdm==4.66.1
 urllib3==2.2.1
+pygbif
+folium
+PyQt6-WebEngine

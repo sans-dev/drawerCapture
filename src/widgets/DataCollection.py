@@ -304,7 +304,7 @@ class DataCollection(QWidget):
         collection_info_layout = QVBoxLayout(collection_info_form)
         self.collection_date_widget = DateInputWidget("Collection Date*")
         collection_info_layout.addWidget(self.collection_date_widget)
-        self.collection_location_widget = CollectionField("Collection Location*", 'resources/meta_info_lists/regions.txt', mandatory=True)
+        self.collection_location_widget = CollectionField("Country*", 'resources/meta_info_lists/regions.txt', mandatory=True)
         collection_info_layout.addWidget(self.collection_location_widget)
         tab_widget.addTab(collection_info_form, "Collection Info")
 
