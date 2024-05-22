@@ -6,21 +6,16 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtCore import QUrl, Qt
 import PyQt6.QtCore as QtCore
 
-class MapWindow(QMainWindow):
-    def __init__(self, server_api, map_id):
+class MapWindow(QWidget):
+    def __init__(self, server_api='http://localhost:3650/api/maps/', map_id='openmapbasic', search_bar=None):
         super().__init__()
-        self.setWindowTitle("Offline World Map with Pins")
+        self.setWindowTitle("Offline World Map")
         self.server_api = server_api
         self.map_id = map_id
-
-        self.initUI()
+        self.initUI(search_bar)
         self.load_country_data()
 
-    def initUI(self):
-        # Create the central widget
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        
+    def initUI(self, search_bar):  
         # Create layout
         layout = QVBoxLayout()
         
@@ -28,17 +23,20 @@ class MapWindow(QMainWindow):
         search_layout = QHBoxLayout()
         
         # Create search bar
-        self.search_bar = QLineEdit()
-        self.search_bar.setPlaceholderText("Enter a country name...")
+        if search_bar is not None:
+            self.search_bar = search_bar()
+        else:
+            self.search_bar = QLineEdit()
+            self.search_bar.setPlaceholderText("Enter a country name...")
         
         # Create search button
         self.search_button = QPushButton("Search")
+        self.search_button.setFixedHeight(20)
         self.search_button.clicked.connect(self.search_country)
         
         # Add search bar and button to search layout
         search_layout.addWidget(self.search_bar)
         search_layout.addWidget(self.search_button)
-        
         # Add search layout to main layout
         layout.addLayout(search_layout)
         
@@ -51,7 +49,7 @@ class MapWindow(QMainWindow):
         layout.addWidget(self.web_view)
         
         # Set layout to central widget
-        central_widget.setLayout(layout)
+        self.setLayout(layout)
         
         self.show()
 

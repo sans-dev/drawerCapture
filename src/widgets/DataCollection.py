@@ -1,6 +1,10 @@
 from PyQt6.QtGui import QMouseEvent
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QListWidget, QListWidgetItem, QLabel, QTabWidget, QSpacerItem, QSizePolicy, QDateEdit, QCheckBox
+from PyQt6.QtWidgets import QPushButton, QWidget, QComboBox, QTextEdit, QCompleter, QHBoxLayout, QVBoxLayout, QLineEdit, QListWidget, QDoubleSpinBox, QListWidgetItem, QLabel, QTabWidget, QSpacerItem, QSizePolicy, QDateEdit, QCheckBox
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
+from PyQt6.QtGui import QRegularExpressionValidator
+from PyQt6.QtCore import QRegularExpression
+
+from src.widgets.MapWidget import MapWindow
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
@@ -12,12 +16,12 @@ class SearchableItemListWidget(QWidget):
         logger.info(f"Initializing {self.__class__.__name__}")
         self.name = label_text.strip("*")
         self.mandatory = mandatory
+        self.init_ui()
 
-        self.init_ui(label_text)
 
-    def init_ui(self, label_text : str):
+    def init_ui(self):
         layout = QVBoxLayout()
-        self.label = QLabel(label_text)
+        self.label = QLabel(self.name)
         layout.addWidget(self.label)
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText(self.name)
@@ -116,13 +120,116 @@ class SessionInfoWidget(QWidget):
     def get_data(self):
         return self.session_data
 
-class CollectionField(SearchableItemListWidget):
+class GeoDataField(QWidget):
     def __init__(self, label_text, items_file, mandatory):
-        super().__init__(label_text, mandatory)
-        self.search_edit.textEdited.connect(self.filter_items)
-        self._load_items(items_file)
-        self.item_list.addItems(self.items)
-        self.item_list.itemClicked.connect(self.item_clicked)
+        super().__init__()
+        self.label_text = label_text
+        self.items_file = items_file
+        self.mandatory = mandatory
+        self.init_ui()
+
+        self.map_button.clicked.connect(self.map_button_clicked)
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+        self.label = QLabel(self.label_text)
+        self.region_field = RegionField()
+        self.geo_coords = GeoCoordinatesField()
+        self.map_button = QPushButton("Open Map")
+        self.description_field = GeoDescriptionField()
+        self.map = MapWindow(search_bar=RegionField)
+        self.map.hide()
+        layout.addWidget(self.label)
+        layout.addWidget(self.region_field)
+        layout.addWidget(self.geo_coords)
+        layout.addWidget(self.map_button)
+        layout.addWidget(self.description_field)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.setLayout(layout)
+
+    def map_button_clicked(self):
+        self.map.show()
+
+class GeoDescriptionField(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+        self.label = QLabel("Description")
+        self.label.setFixedHeight(20)
+        self.description_field = QTextEdit()
+        self.description_field.setFixedHeight(200)
+        layout.addWidget(self.label)
+        layout.addWidget(self.description_field)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.setLayout(layout)
+
+class RegionField(QWidget):
+    region_changed = pyqtSignal(str)
+
+    def __init__(self):
+        super().__init__()
+        self.init_ui()
+    
+    def init_ui(self):
+        layout = QVBoxLayout()
+        label = QLabel("Region")
+        label.setFixedHeight(20)
+        self.region_input = QComboBox()
+        self.region_input.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self.region_input.setFixedHeight(20)
+        region_edit = QLineEdit()
+        self.region_input.setLineEdit(region_edit)
+        # self.region_input.setEditable(True)
+        self.regions = ["Africa", "Asia", "Europe", "North America", "South America"]
+        region_completer = QCompleter(self.regions)
+        region_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        region_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        region_completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        region_completer.setModelSorting(QCompleter.ModelSorting.CaseInsensitivelySortedModel)
+
+        self.region_input.addItems(self.regions)
+        self.region_input.setCompleter(region_completer)
+        self.region_input.currentIndexChanged.connect(self.on_region_changed)
+        layout.addWidget(label)
+        layout.addWidget(self.region_input)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.setLayout(layout)
+        
+    def on_region_changed(self):
+        region = self.region_input.currentText()
+        self.region_changed.emit(region)
+
+class GeoCoordinatesField(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.init_ui()
+
+    def init_ui(self):
+        geo_layout = QVBoxLayout()
+        longitude_layout = QHBoxLayout()
+        lattitude_layout = QHBoxLayout()
+        longitude_label = QLabel("Longitude")
+        longitude_label.setFixedHeight(20)
+        longitude_input = QDoubleSpinBox()
+        longitude_input.setFixedHeight(20)
+        longitude_input.decimals = 5
+        longitude_input.setRange(-180, 180)
+        longitude_layout.addWidget(longitude_label)
+        longitude_layout.addWidget(longitude_input)
+        lattitude_label = QLabel("Lattitude")
+        lattitude_label.setFixedHeight(20)
+        lattitude_input = QDoubleSpinBox()
+        lattitude_input.setFixedHeight(20)
+        lattitude_input.decimals = 5
+        lattitude_input.setRange(-90, 90)
+        lattitude_layout.addWidget(lattitude_label)
+        lattitude_layout.addWidget(lattitude_input)
+        geo_layout.addLayout(longitude_layout)
+        geo_layout.addLayout(lattitude_layout)
+        self.setLayout(geo_layout)
         
     def filter_items(self, text):
         logger.info("Filtering items for preview list")
@@ -163,6 +270,7 @@ class TaxonomyField(SearchableItemListWidget):
     clear_child_signal = pyqtSignal()
     def __init__(self, label_text, taxonomy, level, mandatory):
         super().__init__(label_text, mandatory)
+        super().init_ui()
         self.taxonomy = taxonomy
         self.item_list.itemClicked.connect(self.item_clicked)
         if isinstance(level, int):
@@ -240,6 +348,7 @@ class DateInputWidget(QWidget):
         layout.addWidget(self.checkbox)
         self.error_label = QLabel()
         layout.addWidget(self.error_label)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         self.setLayout(layout)
 
@@ -260,7 +369,6 @@ class DateInputWidget(QWidget):
     def hide_error(self):
         self.error_label.clear()
     
-
 class LabeledTextField(QWidget):
     def __init__(self, label_text : str):
         super().__init__()
@@ -304,8 +412,9 @@ class DataCollection(QWidget):
         collection_info_layout = QVBoxLayout(collection_info_form)
         self.collection_date_widget = DateInputWidget("Collection Date*")
         collection_info_layout.addWidget(self.collection_date_widget)
-        self.collection_location_widget = CollectionField("Country*", 'resources/meta_info_lists/regions.txt', mandatory=True)
+        self.collection_location_widget = GeoDataField("Geo Information*", 'resources/meta_info_lists/regions.txt', mandatory=True)
         collection_info_layout.addWidget(self.collection_location_widget)
+        collection_info_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         tab_widget.addTab(collection_info_form, "Collection Info")
 
         specimen_info_form = QWidget()
