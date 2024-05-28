@@ -7,7 +7,7 @@ from PyQt6.QtCore import QUrl, Qt, QEvent
 from PyQt6.QtGui import QAction
 
 class MapWindow(QWidget):
-    def __init__(self, server_api='http://localhost:3650/api/maps/', map_id='openmapbasic', search_bar=None):
+    def __init__(self, server_api='http://localhost:3650/api/maps/', map_id='planet_basic', search_bar=None):
         super().__init__()
         self.setWindowTitle("Offline World Map")
         self.server_api = server_api

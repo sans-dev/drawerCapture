@@ -270,7 +270,6 @@ class TaxonomyField(SearchableItemListWidget):
     clear_child_signal = pyqtSignal()
     def __init__(self, label_text, taxonomy, level, mandatory):
         super().__init__(label_text, mandatory)
-        super().init_ui()
         self.taxonomy = taxonomy
         self.item_list.itemClicked.connect(self.item_clicked)
         if isinstance(level, int):
