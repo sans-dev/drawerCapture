@@ -103,7 +103,7 @@ class MapWindow(QWidget):
         if isinstance(self.search_bar, QLineEdit):
             country_name = self.search_bar.text()
         else:
-            self.search_bar.region_input.currentText()
+            country_name = self.search_bar.region_input.currentText()
         if country_name:
             coordinates = self.get_country_bounding_box(country_name)
             if coordinates:

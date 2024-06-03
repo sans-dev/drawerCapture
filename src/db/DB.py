@@ -323,7 +323,5 @@ class DummyDB:
        pass
 
    def post_new_image(self, payload):
-       pass
-   
-
-    
+       print(payload)
+       return payload
