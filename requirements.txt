@@ -17,3 +17,5 @@ urllib3==2.2.1
 pygbif
 folium
 PyQt6-WebEngine
+pymongo
+bson
