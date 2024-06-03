@@ -14,6 +14,7 @@ class MapWindow(QWidget):
         self.map_id = map_id
         self.initUI(search_bar)
         self.load_country_data()
+        self.search_country()
 
     def initUI(self, search_bar):  
         layout = QVBoxLayout()

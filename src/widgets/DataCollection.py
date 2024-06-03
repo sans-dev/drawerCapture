@@ -148,7 +148,8 @@ class GeoDataField(QWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.setLayout(layout)
 
-        self.map.search_bar.region_changed.connect(self.region_field.region_input.setCurrentIndex)
+        self.region_field.region_changed.connect(self.map.search_bar.set_region)
+        self.map.search_bar.region_changed.connect(self.region_field.set_region)
 
     def map_button_clicked(self):
         self.map.show()
@@ -176,6 +177,7 @@ class RegionField(QWidget):
         super().__init__()
         self.regions = pd.read_csv('resources/countries/administrative-level-0.csv', delimiter=',') #TODO: irgendwo anders angeben...
         self.init_ui()
+        self.set_region("Germany")
 
     def init_ui(self):
         layout = QVBoxLayout()
@@ -204,6 +206,11 @@ class RegionField(QWidget):
     def on_region_changed(self):
         region = self.region_input.currentText()
         self.region_changed.emit(region)
+
+    def set_region(self, region):
+        self.region_input.currentIndexChanged.disconnect(self.on_region_changed)
+        self.region_input.setCurrentText(region)
+        self.region_input.currentIndexChanged.connect(self.on_region_changed)
 
 class GeoCoordinatesField(QWidget):
     def __init__(self):
