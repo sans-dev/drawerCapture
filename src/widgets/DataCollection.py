@@ -1,3 +1,4 @@
+import pandas as pd
 from PyQt6.QtGui import QMouseEvent
 from PyQt6.QtWidgets import QPushButton, QWidget, QComboBox, QTextEdit, QCompleter, QHBoxLayout, QVBoxLayout, QLineEdit, QListWidget, QDoubleSpinBox, QListWidgetItem, QLabel, QTabWidget, QSpacerItem, QSizePolicy, QDateEdit, QCheckBox
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
@@ -147,6 +148,8 @@ class GeoDataField(QWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.setLayout(layout)
 
+        self.map.search_bar.region_changed.connect(self.region_field.region_input.setCurrentIndex)
+
     def map_button_clicked(self):
         self.map.show()
 
@@ -171,8 +174,9 @@ class RegionField(QWidget):
 
     def __init__(self):
         super().__init__()
+        self.regions = pd.read_csv('resources/countries/administrative-level-0.csv', delimiter=',') #TODO: irgendwo anders angeben...
         self.init_ui()
-    
+
     def init_ui(self):
         layout = QVBoxLayout()
         label = QLabel("Region")
@@ -183,14 +187,13 @@ class RegionField(QWidget):
         region_edit = QLineEdit()
         self.region_input.setLineEdit(region_edit)
         # self.region_input.setEditable(True)
-        self.regions = ["Africa", "Asia", "Europe", "North America", "South America"]
-        region_completer = QCompleter(self.regions)
+        region_completer = QCompleter(self.regions['name'].to_list())
         region_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         region_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
         region_completer.setFilterMode(Qt.MatchFlag.MatchContains)
         region_completer.setModelSorting(QCompleter.ModelSorting.CaseInsensitivelySortedModel)
 
-        self.region_input.addItems(self.regions)
+        self.region_input.addItems(self.regions['name'])
         self.region_input.setCompleter(region_completer)
         self.region_input.currentIndexChanged.connect(self.on_region_changed)
         layout.addWidget(label)

@@ -99,7 +99,10 @@ class MapWindow(QWidget):
         self.country_data = pd.read_csv('resources/countries/administrative-level-0.csv', delimiter=',')
 
     def search_country(self):
-        country_name = self.search_bar.text()
+        if isinstance(self.search_bar, QLineEdit):
+            country_name = self.search_bar.text()
+        else:
+            self.search_bar.region_input.currentText()
         if country_name:
             coordinates = self.get_country_bounding_box(country_name)
             if coordinates:
