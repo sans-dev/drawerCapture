@@ -141,7 +141,7 @@ class GeoDataField(ListWidget):
         self.items_file = items_file
         self.mandatory = mandatory
         self.init_ui()
-        self.name = 'geo data'
+        self.name = 'Geo Info'
 
         self.map_button.clicked.connect(self.map_button_clicked)
 
@@ -173,7 +173,13 @@ class GeoDataField(ListWidget):
         self.map.show()
     
     def get_data(self):
-        return self.geo_coords.get_data()
+        data = {}
+        data = {
+            'Country': self.region_field.get_data(),
+            'Coordinates': self.geo_coords.get_data(),
+            'Description': self.description_field.get_data()
+        }
+        return data
         
 class GeoDescriptionField(QWidget):
     def __init__(self):
@@ -191,7 +197,9 @@ class GeoDescriptionField(QWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.setLayout(layout)
 
-
+    def get_data(self):
+        return self.description_field.toPlainText()
+    
 class RegionField(QWidget):
     region_changed = pyqtSignal(str)
 
@@ -239,6 +247,9 @@ class RegionField(QWidget):
         self.region_input.setCurrentText(region)
         self.region_input.currentIndexChanged.connect(self.on_region_changed)
 
+    def get_data(self):
+        return self.region_input.currentText()
+
 
 class GeoCoordinatesField(QWidget):
     def __init__(self, mandatory=True):
@@ -273,8 +284,16 @@ class GeoCoordinatesField(QWidget):
     def get_data(self):
         if self.mandatory:
             if self.longitude_input.text() == '' or self.lattitude_input.text() == '':
+                self.longitude_input.clear()
+                self.lattitude_input.clear()
                 raise ValueError("Geocoordinates are mandatory.")
-        return f"coords: {self.longitude_input.text()},{self.lattitude_input.text()}"
+
+        data = {
+            'longitude': self.longitude_input.text(),
+            'lattitude': self.lattitude_input.text()
+        }
+
+        return data
 
 
 class TaxonomyField(SearchableItemListWidget):
