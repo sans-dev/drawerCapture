@@ -3,12 +3,13 @@ import pandas as pd
 import numpy as np
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget, QLineEdit, QPushButton, QHBoxLayout, QMenu
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtCore import QUrl, Qt, QEvent
+from PyQt6.QtCore import QUrl, Qt, QEvent, pyqtSignal
 from PyQt6.QtGui import QAction
 
 
 
 class MapWindow(QWidget):
+    new_coords_signal = pyqtSignal(tuple)
     def __init__(self, server_api='http://localhost:3650/api/maps/', map_id='openmap-basic', search_bar=None):
         super().__init__()
         self.setWindowTitle("Offline World Map")
@@ -70,12 +71,6 @@ class MapWindow(QWidget):
         tile_height_deg = 360.0 / (n * np.cosh(lat_rad))
         return tile_height_deg
 
-    def get_x_tile(self, zoom, center_long):
-        pass
-
-    def get_y_tile(self, zoom, center_lat):
-        pass
-    
     def pixel_to_geo(self, zoom, pixel_x, pixel_y, center_lat, center_lon):
         n_tiles = np.power(2,zoom)
         tile_width = 360 / n_tiles
@@ -90,14 +85,12 @@ class MapWindow(QWidget):
         lat = center_lat - ((pixel_y - (height / 2)) / height) * (tile_height*n_tiles_height)
         lon = center_lon + ((pixel_x - (width / 2)) / width) * tile_width*n_tiles_width
         url = f'{self.server_api}{self.map_id}#{zoom:.2f}/{lat}/{lon}'
-        print(url)
         self.web_view.load(QUrl(url))
+        self.new_coords_signal.emit((lon, lat))
+        country = self.search_bar.get_country_by_coords((lon, lat))
+        self.search_bar.set_region(country)
         return lat, lon
     
-    def show_coordinates(self, result):
-        print("Coordinates:", result)
-        # You can show the coordinates in a message box or other UI element if needed
-
     def load_country_data(self):
         self.country_data = pd.read_csv('resources/countries/administrative-level-0.csv', delimiter=',')
 

@@ -144,6 +144,8 @@ class GeoDataField(ListWidget):
         self.name = 'Geo Info'
 
         self.map_button.clicked.connect(self.map_button_clicked)
+        self.map.new_coords_signal.connect(self.geo_coords.set_coords)
+        self.map.new_coords_signal.connect(self.region_field.get_country_by_coords)
 
     def init_ui(self):
         layout = QVBoxLayout()
@@ -250,6 +252,16 @@ class RegionField(QWidget):
     def get_data(self):
         return self.region_input.currentText()
 
+    def get_country_by_coords(self, coords):
+        min_long = self.regions['bbox'].apply(lambda x: float(x.split()[0])).values
+        max_long = self.regions['bbox'].apply(lambda x: float(x.split()[2])).values
+        min_lat = self.regions['bbox'].apply(lambda x: float(x.split()[1])).values
+        max_lat = self.regions['bbox'].apply(lambda x: float(x.split()[3])).values
+    
+        closest_idx = ((min_long <= coords[0]) & (max_long >= coords[0]) & (min_lat <= coords[1]) & (max_lat >= coords[1])).argmax()
+        region = self.regions.loc[closest_idx, 'name']
+        self.set_region(region)
+        return region
 
 class GeoCoordinatesField(QWidget):
     def __init__(self, mandatory=True):
@@ -297,6 +309,9 @@ class GeoCoordinatesField(QWidget):
 
         return data
 
+    def set_coords(self, coords):
+        self.longitude_input.setValue(coords[0])
+        self.lattitude_input.setValue(coords[1])
 
 class TaxonomyField(SearchableItemListWidget):
     parents_signal = pyqtSignal(list)
