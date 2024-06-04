@@ -9,7 +9,7 @@ from PyQt6.QtGui import QAction
 
 
 class MapWindow(QWidget):
-    def __init__(self, server_api='https://api.maptiler.com/maps/openstreetmap/', map_id='openstreetmap', search_bar=None):
+    def __init__(self, server_api='http://localhost:3650/api/maps/', map_id='openmap-basic', search_bar=None):
         super().__init__()
         self.setWindowTitle("Offline World Map")
         self.server_api = server_api
@@ -41,7 +41,6 @@ class MapWindow(QWidget):
         self.setMouseTracking(True)
         self.web_view.setMouseTracking(True)
         api_address = f'{self.server_api}{self.map_id}'
-        api_address = 'https://api.maptiler.com/maps/openstreetmap/?key=nBPNiJ8FkcVw91tgRRl5#0.7/22.80535/2.86559'
         self.web_view.load(QUrl(api_address))
         
         layout.addWidget(self.web_view)
@@ -147,6 +146,6 @@ class MapWindow(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     api_address = 'http://localhost:3650/api/maps/'
-    window = MapWindow(api_address, 'planet_basic')
+    window = MapWindow(api_address, 'openmap-basic')
     window.show()
     sys.exit(app.exec())

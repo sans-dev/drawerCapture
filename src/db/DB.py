@@ -263,10 +263,13 @@ class FileAgnosticDB:
         # Process and load data from the database
 
     def create_save_name(self, meta_info):
-        session_name = f"session_{self.current_session_id}"
-        img_id = self.project_info.getint('Project Info', "num_captures")
-        img_name = self.project_root_dir / "captures" / session_name / f"{str(img_id).zfill(4)}-{meta_info['Museum']}-{meta_info['Species'].replace(' ', '_')}.jpg"
-        meta_name = self.project_root_dir / "captures" / session_name / f"{str(img_id).zfill(4)}-{meta_info['Museum']}-{meta_info['Species'].replace(' ', '_')}.yaml"
+        session_name = meta_info['Session Info']['name'].replace(" ","-").lower()
+        img_id = "cap-" + str(self.project_info.getint('Project Info', "num_captures")).zfill(4)
+        museum = meta_info['Session Info']['museum'].replace(" ","-").lower()
+        species_name = f"{meta_info['Species Info']['Genus']}_{meta_info['Species Info']['Species']}"
+
+        img_name = self.project_root_dir / "captures" / session_name / f"{img_id}_{museum}_{species_name}.jpg"
+        meta_name = self.project_root_dir / "captures" / session_name / f"{img_id}_{museum}_{species_name}.yml"
         return img_name, meta_name
 
     def add_exif_info(self, image, info):
