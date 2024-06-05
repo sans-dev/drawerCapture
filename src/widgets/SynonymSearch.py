@@ -1,6 +1,10 @@
+import json
 from PyQt6.QtGui import QMouseEvent
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QListWidget, QListWidgetItem, QLabel, QTabWidget, QSpacerItem, QSizePolicy, QDateEdit, QCheckBox
+from PyQt6.QtWidgets import QPushButton, QWidget, QComboBox, QTextEdit, QCompleter, QHBoxLayout, QVBoxLayout, QLineEdit, QListWidget, QDoubleSpinBox, QListWidgetItem, QLabel, QTabWidget, QSpacerItem, QSizePolicy, QDateEdit, QCheckBox
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
+from PyQt6.QtGui import QRegularExpressionValidator
+from PyQt6.QtCore import QRegularExpression
+
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
@@ -10,12 +14,12 @@ logger = logging.getLogger(__name__)
 class SynonymSearch(QWidget):
     def __init__(self):
         super().__init__()
-
+        self.synonymes = json.load(open('resources/taxonomy/species_synonymes.json'))
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-        label = QLabel("Region")
+        label = QLabel("Synonym Search")
         label.setFixedHeight(20)
         self.region_input = QComboBox()
         self.region_input.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
