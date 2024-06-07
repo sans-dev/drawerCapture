@@ -3,9 +3,10 @@ import pandas as pd
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLineEdit, QListWidget,
                              QListWidgetItem, QLabel, QTabWidget, QSpacerItem,
                              QSizePolicy, QDateEdit, QCheckBox, QPushButton, QComboBox,
-                             QCompleter, QHBoxLayout, QTextEdit, QDoubleSpinBox, QStackedLayout)
+                             QCompleter, QHBoxLayout, QTextEdit, QDoubleSpinBox, QStackedWidget)
 
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
+from src.configs.TaxonData import SYN_DIRS
 
 from src.widgets.MapWidget import MapWindow
 import logging
@@ -30,34 +31,26 @@ class ListWidget(QWidget):
 
 
 class SearchableItemListWidget(ListWidget):
-    def __init__(self, label_text, mandatory, info_type):
+    def __init__(self, mandatory, info_type):
         super().__init__()
         logger.info(f"Initializing {self.__class__.__name__}")
-        self.name = label_text.strip("*")
         self.mandatory = mandatory
         self.info_type = info_type
 
-        self.init_ui(label_text)
+        self.init_ui()
 
-    def init_ui(self, label_text: str):
+    def init_ui(self):
+        self.place_holder = "search"
         layout = QVBoxLayout()
-
-        self.label = QLabel(label_text)
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText(self.name)
+        self.search_edit.setPlaceholderText(self.place_holder)
         self.search_edit.setMaxLength(30)
         self.item_list = QListWidget()
-        self.item_list.setMaximumHeight(80)
-        self.checkbox = QCheckBox("Keep Data")
-        spacer = QSpacerItem(
-            20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.item_list.setMaximumHeight(60)
 
-        layout.addWidget(self.label)
         layout.addWidget(self.search_edit)
         layout.addWidget(self.item_list)
-        layout.addWidget(self.checkbox)
         layout.addWidget(self.error_label)
-        layout.addItem(spacer)
 
         self.setLayout(layout)
 
@@ -450,18 +443,50 @@ class TaxonomyField(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        layout = QStackedLayout()
+        layout = QVBoxLayout()
+        self.search_widget = QStackedWidget()
         self.direct_search = SearchableItemListWidget(
-            self.label_text, self.mandatory, "Specimen Info")
-        
-        layout.addWidget(self.direct_search)
+            self.mandatory, "Specimen Info")
+        spacer = QSpacerItem(
+            20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.label = QLabel(self.label_text)
+        self.syn_search = SynonymSearch()
+        self.syn_search.load_synonym_data(SYN_DIRS[self.name])
+        self.syn_search.populate_ui()
+        self.syn_search_button = QPushButton("Synonyme Search")
+        self.search_widget.addWidget(self.direct_search)
+        self.search_widget.addWidget(self.syn_search)
+        layout.addWidget(self.label)
+        layout.addWidget(self.syn_search_button)
+        layout.addWidget(self.search_widget)
+        layout.addItem(spacer)
         self.setLayout(layout)
+
         self.direct_search.item_list.itemClicked.connect(self.item_clicked)
         if isinstance(self.level, int):
             self.level = self.level
         else:
             raise ValueError("level must be an integer")
         self.direct_search.search_edit.textEdited.connect(self.filter_items)
+        
+        self.syn_search_button.clicked.connect(self.on_syn_botton_clicked)
+        self.syn_search.name_signal.connect(self.on_syn_accepted)
+        self.syn_search.close_button.clicked.connect(self.on_syn_search_close)
+        self.syn_search.accept_button.clicked.connect(self.on_syn_search_close)
+
+
+    def on_syn_botton_clicked(self):
+        if self.search_widget.currentIndex != -1 and self.search_widget.currentIndex != 1:
+            self.search_widget.setCurrentIndex(1)
+
+    def on_syn_search_close(self):
+        if self.search_widget.currentIndex != -1 and self.search_widget.currentIndex != 0:
+            self.search_widget.setCurrentIndex(0)
+     
+    def on_syn_accepted(self, text):
+        self.filter_items(text)
+        self.direct_search.search_edit.setText(text)
+        self.parents_signal.emit(self.taxonomy.get_parents(text))
 
     def filter_items(self, text):
         logger.info("Filter list entry suggestions")
@@ -502,7 +527,7 @@ class TaxonomyField(QWidget):
             return
         self.direct_search.item_list.clear()
         self.direct_search.item_list.addItems([parent])
-        self.search_edit.setText(parent)
+        self.direct_search.search_edit.setText(parent)
         self.parents_signal.emit(parents)
 
     def clear_text(self):
@@ -603,13 +628,13 @@ class DataCollection(QWidget):
         specimen_info_form = QWidget()
         specimen_info_layout = QVBoxLayout(specimen_info_form)
         self.order_widget = TaxonomyField(
-            "Order", self.taxonomy, level=int(1), mandatory=True)
+            "Order*", self.taxonomy, level=int(1), mandatory=True)
         specimen_info_layout.addWidget(self.order_widget)
         self.family_widget = TaxonomyField(
-            "Family", self.taxonomy, level=int(2), mandatory=True)
+            "Family*", self.taxonomy, level=int(2), mandatory=True)
         specimen_info_layout.addWidget(self.family_widget)
         self.genus_widget = TaxonomyField(
-            "Genus", self.taxonomy, level=int(3), mandatory=True)
+            "Genus*", self.taxonomy, level=int(3), mandatory=True)
         specimen_info_layout.addWidget(self.genus_widget)
         self.species_widget = TaxonomyField(
             "Species*", self.taxonomy, level=int(4), mandatory=False)
