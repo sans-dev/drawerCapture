@@ -328,15 +328,39 @@ class SynonymSearch(QWidget):
     def __init__(self):
         super().__init__()
         self.name_str = None
+        self.tool_tipp_text = "\
+            This search tool allows to search accepted taxonomy names based on synonymes.\n \
+            \n \
+            The synonym format differs in case of the historic taxonomic classification:\n \
+                ------------------------------------------------------------------------\n \
+                ? <species suffix> :                    | genus not described, species described\n \
+                ? <nr>-<species suffix> :               | genus not described, species ambigious\n \
+                <genus prefix> 12-<species suffix> :    | genus described, species ambigious\n \
+                <genus prefix> <species suffix> :       | genus and species described"
+        self.tool_tipp_text = """
+                This search tool allows to search accepted taxonomy names based on synonymes.
+                The synonym format differs in case of the historic taxonomic classification:
+        
+                        - ? <species suffix>: genus not described, species described
+                        - ? <nr>-<species suffix>: genus not described, species ambiguous
+                        - <genus prefix> 12-<species suffix>: genus described, species ambiguous
+                        - <genus prefix> <species suffix>: genus and species described
+                    """
+        
+        self.setToolTip(self.tool_tipp_text)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
+        head_layout = QHBoxLayout()
         label = QLabel("Synonym Search")
         label.setFixedHeight(20)
         result_label = QLabel("Accepted Name")
         self.accept_button = QPushButton("Accept")
         self.close_button = QPushButton("Close")
+        self.tool_tip_button = QPushButton("?")
+        self.tool_tip_button.setFixedHeight(20)
+        self.tool_tip_button.setFixedWidth(20)
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.accept_button)
         button_layout.addWidget(self.close_button)
@@ -345,11 +369,13 @@ class SynonymSearch(QWidget):
         self.syn_input.setFixedHeight(20)
         syn_edit = QLineEdit()
         self.syn_input.setLineEdit(syn_edit)
-
+        self.tool_label = QLabel(self.tool_tipp_text)
         self.name = NonClickableListWidget()
         self.name.setFixedHeight(20)
-
-        layout.addWidget(label)
+        head_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        head_layout.addWidget(label)
+        head_layout.addWidget(self.tool_tip_button)
+        layout.addLayout(head_layout)
         layout.addWidget(self.syn_input)
         layout.addWidget(result_label)
         layout.addWidget(self.name)
@@ -361,6 +387,15 @@ class SynonymSearch(QWidget):
         self.close_button.clicked.connect(self.close)
         self.accept_button.clicked.connect(self.accept_name)
 
+        self.tool_tip_button.clicked.connect(self.on_tool_button_clicked)
+
+    def on_tool_button_clicked(self):
+        self.tool_label.show()
+
+    def load_synonym_data(self, synonym_dir):
+        self.synonymes = json.load(
+            open(synonym_dir))
+
     def accept_name(self):
         self.name_signal.emit(self.name_str)
 
@@ -371,11 +406,7 @@ class SynonymSearch(QWidget):
             self.name_str = name
             self.name.addItem(QListWidgetItem(str(name)))
         except KeyError:
-            pass
-
-    def load_synonym_data(self, synonym_dir):
-        self.synonymes = json.load(
-            open(synonym_dir))
+            self.name_str = ""
 
     def populate_ui(self):
         synonyme_names = list(self.synonymes.keys())
@@ -389,43 +420,8 @@ class SynonymSearch(QWidget):
             QCompleter.ModelSorting.CaseInsensitivelySortedModel)
 
         self.syn_input.addItems(synonyme_names)
+        self.syn_input.clear()
         self.syn_input.setCompleter(syn_completer)
-        self.on_syn_changed(self.syn_input.currentText())
-        self.syn_input.currentTextChanged.connect(self.on_syn_changed)
-
-        self.close_button.clicked.connect(self.close)
-        self.accept_button.clicked.connect(self.accept_name)
-
-    def accept_name(self):
-        self.name_signal.emit(self.name_str)
-
-    def on_syn_changed(self, synonyme):
-        self.name.clear()
-        try:
-            name = self.synonymes[synonyme]
-            self.name_str = name
-            self.name.addItem(QListWidgetItem(str(name)))
-        except KeyError:
-            pass
-
-    def load_synonym_data(self, synonym_dir):
-        self.synonymes = json.load(
-            open(synonym_dir))
-
-    def populate_ui(self):
-        synonyme_names = list(self.synonymes.keys())
-        synonyme_names.sort()
-        syn_completer = QCompleter(synonyme_names)
-        syn_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        syn_completer.setCompletionMode(
-            QCompleter.CompletionMode.InlineCompletion)
-        syn_completer.setFilterMode(Qt.MatchFlag.MatchStartsWith)
-        syn_completer.setModelSorting(
-            QCompleter.ModelSorting.CaseInsensitivelySortedModel)
-
-        self.syn_input.addItems(synonyme_names)
-        self.syn_input.setCompleter(syn_completer)
-        self.on_syn_changed(self.syn_input.currentText())
 
 
 class TaxonomyField(QWidget):
@@ -484,9 +480,12 @@ class TaxonomyField(QWidget):
             self.search_widget.setCurrentIndex(0)
      
     def on_syn_accepted(self, text):
-        self.filter_items(text)
-        self.direct_search.search_edit.setText(text)
-        self.parents_signal.emit(self.taxonomy.get_parents(text))
+        if text:
+            self.filter_items(text)
+            self.direct_search.search_edit.setText(text)
+            self.parents_signal.emit(self.taxonomy.get_parents(text))
+        else:
+            return
 
     def filter_items(self, text):
         logger.info("Filter list entry suggestions")
