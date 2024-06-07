@@ -1,7 +1,7 @@
 import json
 import pandas as pd
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLineEdit, QListWidget, 
-                             QListWidgetItem, QLabel, QTabWidget, QSpacerItem, 
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLineEdit, QListWidget,
+                             QListWidgetItem, QLabel, QTabWidget, QSpacerItem,
                              QSizePolicy, QDateEdit, QCheckBox, QPushButton, QComboBox,
                              QCompleter, QHBoxLayout, QTextEdit, QDoubleSpinBox)
 
@@ -10,7 +10,8 @@ from PyQt6.QtCore import Qt, pyqtSignal, QDate
 from src.widgets.MapWidget import MapWindow
 import logging
 import logging.config
-logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
+logging.config.fileConfig('configs/logging.conf',
+                          disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 
@@ -29,28 +30,34 @@ class ListWidget(QWidget):
 
 
 class SearchableItemListWidget(ListWidget):
-    def __init__(self, label_text, mandatory, info_type):
-        super().__init__(info_type)
+    def __init__(self, label_text, mandatory):
+        super().__init__()
         logger.info(f"Initializing {self.__class__.__name__}")
         self.name = label_text.strip("*")
         self.mandatory = mandatory
-        self.init_ui()
 
-    def init_ui(self):
+        self.init_ui(label_text)
+
+    def init_ui(self, label_text: str):
+        search_layout = QHBoxLayout()
         layout = QVBoxLayout()
-        self.label = QLabel(self.name)
+        self.syn_search_button = SynonymSearch()
+        self.label = QLabel(label_text)
         layout.addWidget(self.label)
-        layout.addWidget(self.error_label)
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText(self.name)
         self.search_edit.setMaxLength(30)
-        layout.addWidget(self.search_edit)
+        search_layout.addWidget(self.search_edit)
+        search_layout.addWidget(self.syn_search_button)
+        layout.addLayout(search_layout)
 
         self.item_list = QListWidget()
         self.item_list.setMaximumHeight(80)
         layout.addWidget(self.item_list)
         self.checkbox = QCheckBox("Keep Data")
         layout.addWidget(self.checkbox)
+        self.error_label = QLabel()
+        layout.addWidget(self.error_label)
         spacer = QSpacerItem(
             20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         layout.addItem(spacer)
@@ -146,7 +153,8 @@ class GeoDataField(ListWidget):
 
         self.map_button.clicked.connect(self.map_button_clicked)
         self.map.new_coords_signal.connect(self.geo_coords.set_coords)
-        self.map.new_coords_signal.connect(self.region_field.get_country_by_coords)
+        self.map.new_coords_signal.connect(
+            self.region_field.get_country_by_coords)
 
     def init_ui(self):
         layout = QVBoxLayout()
@@ -174,7 +182,7 @@ class GeoDataField(ListWidget):
 
     def map_button_clicked(self):
         self.map.show()
-    
+
     def get_data(self):
         data = {}
         data = {
@@ -183,7 +191,8 @@ class GeoDataField(ListWidget):
             'Description': self.description_field.get_data()
         }
         return data
-        
+
+
 class GeoDescriptionField(QWidget):
     def __init__(self):
         super().__init__()
@@ -202,7 +211,8 @@ class GeoDescriptionField(QWidget):
 
     def get_data(self):
         return self.description_field.toPlainText()
-    
+
+
 class RegionField(QWidget):
     region_changed = pyqtSignal(str)
 
@@ -254,15 +264,21 @@ class RegionField(QWidget):
         return self.region_input.currentText()
 
     def get_country_by_coords(self, coords):
-        min_long = self.regions['bbox'].apply(lambda x: float(x.split()[0])).values
-        max_long = self.regions['bbox'].apply(lambda x: float(x.split()[2])).values
-        min_lat = self.regions['bbox'].apply(lambda x: float(x.split()[1])).values
-        max_lat = self.regions['bbox'].apply(lambda x: float(x.split()[3])).values
-    
-        closest_idx = ((min_long <= coords[0]) & (max_long >= coords[0]) & (min_lat <= coords[1]) & (max_lat >= coords[1])).argmax()
+        min_long = self.regions['bbox'].apply(
+            lambda x: float(x.split()[0])).values
+        max_long = self.regions['bbox'].apply(
+            lambda x: float(x.split()[2])).values
+        min_lat = self.regions['bbox'].apply(
+            lambda x: float(x.split()[1])).values
+        max_lat = self.regions['bbox'].apply(
+            lambda x: float(x.split()[3])).values
+
+        closest_idx = ((min_long <= coords[0]) & (max_long >= coords[0]) & (
+            min_lat <= coords[1]) & (max_lat >= coords[1])).argmax()
         region = self.regions.loc[closest_idx, 'name']
         self.set_region(region)
         return region
+
 
 class GeoCoordinatesField(QWidget):
     def __init__(self, mandatory=True):
@@ -314,6 +330,7 @@ class GeoCoordinatesField(QWidget):
         self.longitude_input.setValue(coords[0])
         self.lattitude_input.setValue(coords[1])
 
+
 class SynonymSearch(QWidget):
     name_signal = pyqtSignal(str)
 
@@ -364,11 +381,11 @@ class SynonymSearch(QWidget):
             self.name.addItem(QListWidgetItem(str(name)))
         except KeyError:
             pass
-    
+
     def load_synonym_data(self, synonym_dir):
         self.synonymes = json.load(
             open(synonym_dir))
-        
+
     def populate_ui(self):
         synonyme_names = list(self.synonymes.keys())
         synonyme_names.sort()
@@ -399,11 +416,11 @@ class SynonymSearch(QWidget):
             self.name.addItem(QListWidgetItem(str(name)))
         except KeyError:
             pass
-    
+
     def load_synonym_data(self, synonym_dir):
         self.synonymes = json.load(
             open(synonym_dir))
-        
+
     def populate_ui(self):
         synonyme_names = list(self.synonymes.keys())
         synonyme_names.sort()
@@ -619,7 +636,7 @@ class DataCollection(QWidget):
         for widget in self.widgets:
             try:
                 if widget.info_type == "Session Info":
-                    data["Session Info"] = widget.get_data() 
+                    data["Session Info"] = widget.get_data()
                 if widget.info_type == "Specimen Info":
                     species_info[widget.name] = widget.get_data()
                 elif widget.info_type == "Collection Info":
