@@ -1,15 +1,16 @@
+import json
 import pandas as pd
-from PyQt6.QtGui import QMouseEvent
-from PyQt6.QtWidgets import QPushButton, QWidget, QComboBox, QTextEdit, QCompleter, QHBoxLayout, QVBoxLayout, QLineEdit, QListWidget, QDoubleSpinBox, QListWidgetItem, QLabel, QTabWidget, QSpacerItem, QSizePolicy, QDateEdit, QCheckBox
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLineEdit, QListWidget, 
+                             QListWidgetItem, QLabel, QTabWidget, QSpacerItem, 
+                             QSizePolicy, QDateEdit, QCheckBox, QPushButton, QComboBox,
+                             QCompleter, QHBoxLayout, QTextEdit, QDoubleSpinBox)
+
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
-from PyQt6.QtGui import QRegularExpressionValidator
-from PyQt6.QtCore import QRegularExpression
 
 from src.widgets.MapWidget import MapWindow
 import logging
 import logging.config
-logging.config.fileConfig('configs/logging.conf',
-                          disable_existing_loggers=False)
+logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 
@@ -382,7 +383,6 @@ class SynonymSearch(QWidget):
         self.syn_input.addItems(synonyme_names)
         self.syn_input.setCompleter(syn_completer)
         self.on_syn_changed(self.syn_input.currentText())
-        self.setLayout(layout)
         self.syn_input.currentTextChanged.connect(self.on_syn_changed)
 
         self.close_button.clicked.connect(self.close)
