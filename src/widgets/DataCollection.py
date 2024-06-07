@@ -3,7 +3,7 @@ import pandas as pd
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLineEdit, QListWidget,
                              QListWidgetItem, QLabel, QTabWidget, QSpacerItem,
                              QSizePolicy, QDateEdit, QCheckBox, QPushButton, QComboBox,
-                             QCompleter, QHBoxLayout, QTextEdit, QDoubleSpinBox)
+                             QCompleter, QHBoxLayout, QTextEdit, QDoubleSpinBox, QStackedLayout)
 
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
 
@@ -30,37 +30,35 @@ class ListWidget(QWidget):
 
 
 class SearchableItemListWidget(ListWidget):
-    def __init__(self, label_text, mandatory):
+    def __init__(self, label_text, mandatory, info_type):
         super().__init__()
         logger.info(f"Initializing {self.__class__.__name__}")
         self.name = label_text.strip("*")
         self.mandatory = mandatory
+        self.info_type = info_type
 
         self.init_ui(label_text)
 
     def init_ui(self, label_text: str):
-        search_layout = QHBoxLayout()
         layout = QVBoxLayout()
-        self.syn_search_button = SynonymSearch()
+
         self.label = QLabel(label_text)
-        layout.addWidget(self.label)
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText(self.name)
         self.search_edit.setMaxLength(30)
-        search_layout.addWidget(self.search_edit)
-        search_layout.addWidget(self.syn_search_button)
-        layout.addLayout(search_layout)
-
         self.item_list = QListWidget()
         self.item_list.setMaximumHeight(80)
-        layout.addWidget(self.item_list)
         self.checkbox = QCheckBox("Keep Data")
-        layout.addWidget(self.checkbox)
-        self.error_label = QLabel()
-        layout.addWidget(self.error_label)
         spacer = QSpacerItem(
             20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        layout.addWidget(self.label)
+        layout.addWidget(self.search_edit)
+        layout.addWidget(self.item_list)
+        layout.addWidget(self.checkbox)
+        layout.addWidget(self.error_label)
         layout.addItem(spacer)
+
         self.setLayout(layout)
 
     def keyPressEvent(self, event):
@@ -437,50 +435,63 @@ class SynonymSearch(QWidget):
         self.on_syn_changed(self.syn_input.currentText())
 
 
-class TaxonomyField(SearchableItemListWidget):
+class TaxonomyField(QWidget):
     parents_signal = pyqtSignal(list)
     clear_child_signal = pyqtSignal()
 
     def __init__(self, label_text, taxonomy, level, mandatory):
-        super().__init__(label_text, mandatory, "Specimen Info")
+        super().__init__()
+        self.label_text = label_text
+        self.mandatory = mandatory
         self.taxonomy = taxonomy
         self.info_type = 'Specimen Info'
-        self.item_list.itemClicked.connect(self.item_clicked)
-        if isinstance(level, int):
-            self.level = level
+        self.level = level
+        self.name = label_text.strip("*")
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QStackedLayout()
+        self.direct_search = SearchableItemListWidget(
+            self.label_text, self.mandatory, "Specimen Info")
+        
+        layout.addWidget(self.direct_search)
+        self.setLayout(layout)
+        self.direct_search.item_list.itemClicked.connect(self.item_clicked)
+        if isinstance(self.level, int):
+            self.level = self.level
         else:
             raise ValueError("level must be an integer")
-        self.search_edit.textEdited.connect(self.filter_items)
+        self.direct_search.search_edit.textEdited.connect(self.filter_items)
 
     def filter_items(self, text):
         logger.info("Filter list entry suggestions")
-        self.item_list.clear()
+        self.direct_search.item_list.clear()
         if text.strip():  # Check if search text is not empty
             # Replace this with your actual list of items
             filtered_items = self.taxonomy.prefix_search(self.level, text)
-            self.item_list.addItems(filtered_items)
+            self.direct_search.item_list.addItems(filtered_items)
         else:
-            self.item_list.clear()
+            self.direct_search.item_list.clear()
 
     def get_data(self):
-        if self.mandatory and self.item_list.count() != 1:
+        if self.mandatory and self.direct_search.item_list.count() != 1:
             raise ValueError(
                 f"{self.name} is a mandatory field. Please provide valid info.")
-        if not self.mandatory and self.item_list.count() != 1:
+        if not self.mandatory and self.direct_search.item_list.count() != 1:
             return self.name
         else:
-            return self.item_list.item(0).text().strip()
+            return self.direct_search.item_list.item(0).text().strip()
 
     def item_clicked(self, item: QListWidgetItem):
         logger.info(
             f"Searching for parents of {item.text()}: level = {self.name}")
         text = item.text()
         parents = self.taxonomy.get_parents(text)
-        self.item_list.clearSelection()
-        self.item_list.clearFocus()
-        self.item_list.clear()
-        self.item_list.addItems([text])
-        self.search_edit.setText(text)
+        self.direct_search.item_list.clearSelection()
+        self.direct_search.item_list.clearFocus()
+        self.direct_search.item_list.clear()
+        self.direct_search.item_list.addItems([text])
+        self.direct_search.search_edit.setText(text)
         self.parents_signal.emit(parents)
         self.clear_child_signal.emit()
 
@@ -489,16 +500,16 @@ class TaxonomyField(SearchableItemListWidget):
         parent = parents.pop()
         if parent == 'root':
             return
-        self.item_list.clear()
-        self.item_list.addItems([parent])
+        self.direct_search.item_list.clear()
+        self.direct_search.item_list.addItems([parent])
         self.search_edit.setText(parent)
         self.parents_signal.emit(parents)
 
     def clear_text(self):
         logger.info(f"Clearing text in {self.name}")
-        self.item_list.clear()
-        self.search_edit.clear()
-        self.search_edit.setPlaceholderText(self.name)
+        self.direct_search.item_list.clear()
+        self.direct_search.search_edit.clear()
+        self.direct_search.search_edit.setPlaceholderText(self.name)
         self.clear_child_signal.emit()
 
 
