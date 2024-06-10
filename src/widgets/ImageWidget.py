@@ -19,9 +19,10 @@ class ImageWidget(QWidget):
     procClicked = pyqtSignal(str)
     processed = pyqtSignal()
 
-    def __init__(self, db_adapter, taxonomy):
+    def __init__(self, db_adapter, taxonomy, geo_data_dir):
         self.taxonomy = taxonomy
         self.db_adapter = db_adapter
+        self.geo_data_dir = geo_data_dir
         self.emitter = ProcessEmitter()
         self.panel = ImagePanel(self.emitter)
         logger.debug("initializing image widget")
@@ -33,7 +34,7 @@ class ImageWidget(QWidget):
         """
         Initializes the user interface of the widget.
         """
-        self.data_collector = DataCollection(self.taxonomy)
+        self.data_collector = DataCollection(self.taxonomy, geo_data_dir=geo_data_dir)
         # create a horizontal layout for the buttons (crop, enahnce, save, close)
         # create a vertical layout for the panel and buttons
         # add the collectionField right to the layout
@@ -115,13 +116,21 @@ if __name__ == "__main__":
     import sys
     from PyQt6.QtWidgets import QApplication
     from src.db.DB import DBAdapter, DummyDB
+    from argparse import ArgumentParser
     from src.utils.searching import init_taxonomy
+    from src.configs.DataCollection import *
 
-    app = QApplication(sys.argv)
+    parser = ArgumentParser()
+    parser.add_argument('--taxonomy', choices=['test', 'prod'])
+    parser.add_argument('--geo-data', choices=['level-0', 'level-1'])
+    args = parser.parse_args()
+    taxonomy = init_taxonomy(TAXONOMY[args.taxonomy])
     db = DummyDB()
     db_adapter = DBAdapter(db)
-    taxonomy_dir = "tests/data/taxonomy_test.json"
-    window = ImageWidget(db_adapter, init_taxonomy(taxonomy_dir))
+    geo_data_dir = GEO[args.geo_data]
+    
+    app = QApplication(sys.argv)
+    window = ImageWidget(db_adapter, taxonomy, geo_data_dir)
     window.setImage("tests/data/test_img.jpg")
     window.show()
     db_adapter.session_created_signal.emit(

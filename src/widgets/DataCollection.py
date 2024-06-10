@@ -1,5 +1,6 @@
 import json
 import pandas as pd
+import numpy as np
 from argparse import ArgumentParser
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLineEdit, QListWidget,
                              QListWidgetItem, QLabel, QTabWidget, QSpacerItem,
@@ -137,9 +138,11 @@ class SessionInfoWidget(ListWidget):
 class GeoDataField(ListWidget):
     def __init__(self, label_text, region_data, mandatory=True):
         super().__init__('Collection Info')
-        self.label_text = label_text
-        self.region_data = region_data
         self.mandatory = mandatory
+        if self.mandatory:
+            self.label_text = f"{label_text}*"
+        self.region_data = region_data
+        
         self.init_ui()
         self.name = 'Geo Info'
 
@@ -276,6 +279,7 @@ class GeoCoordinatesField(QWidget):
     def __init__(self, mandatory=True):
         super().__init__()
         self.mandatory = mandatory
+        self.type = None
         self.init_ui()
 
     def init_ui(self):
@@ -283,6 +287,7 @@ class GeoCoordinatesField(QWidget):
         longitude_layout = QHBoxLayout()
         lattitude_layout = QHBoxLayout()
         longitude_label = QLabel("Longitude (-180, 180)")
+        radius_layout = QHBoxLayout()
         longitude_label.setFixedHeight(20)
         self.longitude_input = QDoubleSpinBox()
         self.longitude_input.setFixedHeight(20)
@@ -300,8 +305,16 @@ class GeoCoordinatesField(QWidget):
         self.lattitude_input.clear()
         lattitude_layout.addWidget(lattitude_label)
         lattitude_layout.addWidget(self.lattitude_input)
+        self.radius_label = QLabel('Collection Radius (km)')
+        self.radius_input = QDoubleSpinBox()
+        self.radius_input.setFixedHeight(20)
+        self.radius_input.setDecimals(1)
+        self.radius_input.setRange(0, 50)
+        radius_layout.addWidget(self.radius_label)
+        radius_layout.addWidget(self.radius_input)
         geo_layout.addLayout(longitude_layout)
         geo_layout.addLayout(lattitude_layout)
+        geo_layout.addLayout(radius_layout)
         self.setLayout(geo_layout)
 
     def get_data(self):
@@ -313,7 +326,10 @@ class GeoCoordinatesField(QWidget):
 
         data = {
             'longitude': self.longitude_input.text(),
-            'lattitude': self.lattitude_input.text()
+            'lattitude': self.lattitude_input.text(),
+            'radius': self.radius_input.text(),
+            'bbox': self.calculate_bbox(float(self.longitude_input.text()),float(self.lattitude_input.text()), float(self.radius_input.text())),
+            'type': self.type
         }
 
         return data
@@ -322,7 +338,33 @@ class GeoCoordinatesField(QWidget):
         self.longitude_input.setValue(coords[0])
         self.lattitude_input.setValue(coords[1])
 
+    def km_to_deg_lat(self, km):
+        return km / 111.32
 
+    def km_to_deg_lon(self, km, lat):
+        return km / (111.32 * np.cos(np.radians(lat)))
+
+    def normalize_longitude(self, lon):
+        return ((lon + 180) % 360) - 180
+
+    def normalize_latitude(self, lat):
+        return np.clip(lat, -90, 90)
+
+    def calculate_bbox(self, lon, lat, radius_km):
+        lat_diff = self.km_to_deg_lat(radius_km)
+        lon_diff = self.km_to_deg_lon(radius_km, lat)
+        
+        upper_left_lat = self.normalize_latitude(lat + lat_diff)
+        upper_left_lon = self.normalize_longitude(lon - lon_diff)
+        lower_right_lat = self.normalize_latitude(lat - lat_diff)
+        lower_right_lon = self.normalize_longitude(lon + lon_diff)
+        
+        bbox = {
+            "upper_left": [upper_left_lat, upper_left_lon],
+            "lower_right": [lower_right_lat, lower_right_lon]
+        }
+        
+        return bbox
 class SynonymSearch(QWidget):
     name_signal = pyqtSignal(str)
 
@@ -425,18 +467,21 @@ class SynonymSearch(QWidget):
         self.syn_input.setCompleter(syn_completer)
 
 
-class TaxonomyField(QWidget):
+class TaxonomyField(ListWidget):
     parents_signal = pyqtSignal(list)
     clear_child_signal = pyqtSignal()
 
     def __init__(self, label_text, taxonomy, level, mandatory):
         super().__init__()
-        self.label_text = label_text
         self.mandatory = mandatory
+        if self.mandatory:
+            self.label_text = f"{label_text}*"
+        else:
+            self.label_text = label_text
         self.taxonomy = taxonomy
         self.info_type = 'Specimen Info'
         self.level = level
-        self.name = label_text.strip("*")
+        self.name = label_text
         self.init_ui()
 
     def init_ui(self):
@@ -454,6 +499,7 @@ class TaxonomyField(QWidget):
         self.search_widget.addWidget(self.direct_search)
         self.search_widget.addWidget(self.syn_search)
         layout.addWidget(self.label)
+        layout.addWidget(self.error_label)
         layout.addWidget(self.syn_search_button)
         layout.addWidget(self.search_widget)
         layout.addItem(spacer)
@@ -543,10 +589,12 @@ class TaxonomyField(QWidget):
 
 
 class DateInputWidget(ListWidget):
-    def __init__(self, label_text: str):
+    def __init__(self, label_text: str, mandatory=True):
         super().__init__("Collection Info")
         logger.info(f"Initializing {self.__class__.__name__}")
-        self.name = label_text.strip("*")
+        self.mandatory = mandatory
+        if self.mandatory:
+            self.name = f"{label_text}*"
         self.init_ui(label_text)
 
     def init_ui(self, label_text):
@@ -611,40 +659,40 @@ class DataCollection(QWidget):
         layout = QVBoxLayout()
 
         # Create tab widget
-        tab_widget = QTabWidget()
+        self.tab_widget = QTabWidget()
 
         # Create forms for each tab
         session_info_form = QWidget()
         session_info_layout = QVBoxLayout(session_info_form)
         self.session_widget = SessionInfoWidget()
         session_info_layout.addWidget(self.session_widget)
-        tab_widget.addTab(session_info_form, "Session Info")
+        self.tab_widget.addTab(session_info_form, "Session Info")
 
         collection_info_form = QWidget()
         collection_info_layout = QVBoxLayout(collection_info_form)
-        self.collection_date_widget = DateInputWidget("Collection Date*")
+        self.collection_date_widget = DateInputWidget("Collection Date", mandatory=True)
         collection_info_layout.addWidget(self.collection_date_widget)
         self.collection_location_widget = GeoDataField(
-            "Geo Information*", self.geo_data_dir, mandatory=True)
+            "Geo Information", self.geo_data_dir, mandatory=True)
         collection_info_layout.addWidget(self.collection_location_widget)
         collection_info_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        tab_widget.addTab(collection_info_form, "Collection Info")
+        self.tab_widget.addTab(collection_info_form, "Collection Info")
 
         specimen_info_form = QWidget()
         specimen_info_layout = QVBoxLayout(specimen_info_form)
         self.order_widget = TaxonomyField(
-            "Order*", self.taxonomy, level=int(1), mandatory=True)
+            "Order", self.taxonomy, level=int(1), mandatory=True)
         specimen_info_layout.addWidget(self.order_widget)
         self.family_widget = TaxonomyField(
-            "Family*", self.taxonomy, level=int(2), mandatory=True)
+            "Family", self.taxonomy, level=int(2), mandatory=True)
         specimen_info_layout.addWidget(self.family_widget)
         self.genus_widget = TaxonomyField(
-            "Genus*", self.taxonomy, level=int(3), mandatory=True)
+            "Genus", self.taxonomy, level=int(3), mandatory=True)
         specimen_info_layout.addWidget(self.genus_widget)
         self.species_widget = TaxonomyField(
-            "Species*", self.taxonomy, level=int(4), mandatory=False)
+            "Species", self.taxonomy, level=int(4), mandatory=False)
         specimen_info_layout.addWidget(self.species_widget)
-        tab_widget.addTab(specimen_info_form, "Specimen Info")
+        self.tab_widget.addTab(specimen_info_form, "Specimen Info")
 
         self.widgets = [
             self.session_widget,
@@ -655,7 +703,7 @@ class DataCollection(QWidget):
             self.genus_widget,
             self.species_widget]
 
-        layout.addWidget(tab_widget)
+        layout.addWidget(self.tab_widget)
 
         self.species_widget.parents_signal.connect(self.genus_widget.set_text)
         self.genus_widget.parents_signal.connect(self.family_widget.set_text)
@@ -684,6 +732,7 @@ class DataCollection(QWidget):
                     collection_info[widget.name] = widget.get_data()
                 widget.hide_error()
             except ValueError as e:
+                tab = self.find_widget_tab(widget)
                 widget.show_error(str(e))
                 data[widget.name] = e
             except Exception as e:
@@ -696,6 +745,19 @@ class DataCollection(QWidget):
     def set_session_data(self, data):
         self.session_widget.set_session_data(data)
 
+    def find_widget_tab(self, target_widget):
+        for index in range(self.tab_widget.count()):
+            tab = self.tab_widget.widget(index)
+            if self.widget_in_tab(tab, target_widget):
+                return index
+        return None
+
+    def widget_in_tab(self, tab, target_widget):
+        layout = tab.layout()
+        for i in range(layout.count()):
+            if layout.itemAt(i).widget() == target_widget:
+                return True
+        return False
 
 def handle_data(dict):
     print('Received Data', dict)
