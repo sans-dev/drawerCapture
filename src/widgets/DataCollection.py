@@ -483,7 +483,9 @@ class TaxonomyField(QWidget):
         if text:
             self.filter_items(text)
             self.direct_search.search_edit.setText(text)
-            self.parents_signal.emit(self.taxonomy.get_parents(text))
+            parents = self.taxonomy.get_parents(text)
+            if parents:
+                self.parents_signal.emit(self.taxonomy.get_parents(text))
         else:
             return
 
