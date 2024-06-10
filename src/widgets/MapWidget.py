@@ -10,11 +10,12 @@ from PyQt6.QtGui import QAction
 
 class MapWindow(QWidget):
     new_coords_signal = pyqtSignal(tuple)
-    def __init__(self, server_api='http://localhost:3650/api/maps/', map_id='openmap-basic', search_bar=None):
+    def __init__(self, server_api='http://localhost:3650/api/maps/', map_id='openmap-basic', region_data=None,  search_bar=None):
         super().__init__()
         self.setWindowTitle("Offline World Map")
         self.server_api = server_api
         self.map_id = map_id
+        self.region_data = region_data
         self.initUI(search_bar)
         self.load_country_data()
         self.search_country()
@@ -25,7 +26,7 @@ class MapWindow(QWidget):
         search_layout = QHBoxLayout()
         
         if search_bar is not None:
-            self.search_bar = search_bar()
+            self.search_bar = search_bar(self.region_data)
         else:
             self.search_bar = QLineEdit()
             self.search_bar.setPlaceholderText("Enter a country name...")

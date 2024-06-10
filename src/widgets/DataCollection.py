@@ -1,12 +1,13 @@
 import json
 import pandas as pd
+from argparse import ArgumentParser
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLineEdit, QListWidget,
                              QListWidgetItem, QLabel, QTabWidget, QSpacerItem,
                              QSizePolicy, QDateEdit, QCheckBox, QPushButton, QComboBox,
                              QCompleter, QHBoxLayout, QTextEdit, QDoubleSpinBox, QStackedWidget)
 
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
-from src.configs.TaxonData import SYN_DIRS
+from src.configs.DataCollection import *
 
 from src.widgets.MapWidget import MapWindow
 import logging
@@ -134,10 +135,10 @@ class SessionInfoWidget(ListWidget):
 
 
 class GeoDataField(ListWidget):
-    def __init__(self, label_text, items_file, mandatory=True):
+    def __init__(self, label_text, region_data, mandatory=True):
         super().__init__('Collection Info')
         self.label_text = label_text
-        self.items_file = items_file
+        self.region_data = region_data
         self.mandatory = mandatory
         self.init_ui()
         self.name = 'Geo Info'
@@ -150,11 +151,11 @@ class GeoDataField(ListWidget):
     def init_ui(self):
         layout = QVBoxLayout()
         self.label = QLabel(self.label_text)
-        self.region_field = RegionField()
+        self.region_field = RegionField(self.region_data)
         self.geo_coords = GeoCoordinatesField()
         self.map_button = QPushButton("Open Map")
         self.description_field = GeoDescriptionField()
-        self.map = MapWindow(search_bar=RegionField)
+        self.map = MapWindow(search_bar=RegionField, region_data=self.region_data)
         self.map.hide()
 
         layout.addWidget(self.label)
@@ -207,11 +208,11 @@ class GeoDescriptionField(QWidget):
 class RegionField(QWidget):
     region_changed = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self, region_data):
         super().__init__()
         # TODO: irgendwo anders angeben...
         self.regions = pd.read_csv(
-            'resources/countries/administrative-level-0.csv', delimiter=',')
+            region_data, delimiter=',')
         self.init_ui()
         self.set_region("Germany")
 
@@ -447,7 +448,7 @@ class TaxonomyField(QWidget):
             20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         self.label = QLabel(self.label_text)
         self.syn_search = SynonymSearch()
-        self.syn_search.load_synonym_data(SYN_DIRS[self.name])
+        self.syn_search.load_synonym_data(SYNONYMES[self.name])
         self.syn_search.populate_ui()
         self.syn_search_button = QPushButton("Synonyme Search")
         self.search_widget.addWidget(self.direct_search)
@@ -481,6 +482,8 @@ class TaxonomyField(QWidget):
      
     def on_syn_accepted(self, text):
         if text:
+            if text == self.direct_search.search_edit.text():
+                return
             self.filter_items(text)
             self.direct_search.search_edit.setText(text)
             parents = self.taxonomy.get_parents(text)
@@ -598,9 +601,10 @@ class LabeledTextField(QWidget):
 class DataCollection(QWidget):
     meta_signal = pyqtSignal(dict)
 
-    def __init__(self, taxonomy):
+    def __init__(self, taxonomy, geo_data_dir):
         super().__init__()
         self.taxonomy = taxonomy
+        self.geo_data_dir = geo_data_dir
         self.init_ui()
 
     def init_ui(self):
@@ -621,7 +625,7 @@ class DataCollection(QWidget):
         self.collection_date_widget = DateInputWidget("Collection Date*")
         collection_info_layout.addWidget(self.collection_date_widget)
         self.collection_location_widget = GeoDataField(
-            "Geo Information*", 'resources/meta_info_lists/regions.txt', mandatory=True)
+            "Geo Information*", self.geo_data_dir, mandatory=True)
         collection_info_layout.addWidget(self.collection_location_widget)
         collection_info_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         tab_widget.addTab(collection_info_form, "Collection Info")
@@ -698,9 +702,14 @@ def handle_data(dict):
 
 
 def main():
+    parser = ArgumentParser()
+    parser.add_argument('--taxonomy', type=str)
+    parser.add_argument('--geo-data', choices=['level-0', 'level-1'])
+    args = parser.parse_args()
     app = QApplication(sys.argv)
-    taxonomy = init_taxonomy("tests/data/taxonomy_test.json")
-    window = DataCollection(taxonomy)
+    taxonomy = init_taxonomy(TAXONOMY[args.taxonomy])
+    geo_data_dir = GEO[args.geo_data]
+    window = DataCollection(taxonomy, geo_data_dir)
     window.meta_signal.connect(handle_data)
     window.show()
     sys.exit(app.exec())
