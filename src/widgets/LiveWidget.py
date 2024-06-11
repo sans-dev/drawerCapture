@@ -3,13 +3,13 @@ from datetime import datetime
 import logging
 import logging.config
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QVBoxLayout, QLabel, QMessageBox
+from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QVBoxLayout, QLabel, QMessageBox, QStackedLayout, QHBoxLayout, QStackedWidget
 from PyQt6.QtCore import Qt, pyqtSignal
 
 from src.widgets.SelectCameraListWidget import SelectCameraListWidget
 from src.widgets.PreviewPanel import PreviewPanel
 from src.widgets.SpinnerWidget import LoadingSpinner 
-
+from src.widgets.ImageWidget import ImageWidget
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
@@ -29,11 +29,13 @@ class LiveWidget(QWidget):
 class LiveWidget(QWidget):
     changed = pyqtSignal(str)
 
-    def __init__(self, imageWidget, fs):
+    def __init__(self, db_adapter, taxonomomy, geo_data_dir, fs):
         logger.debug("initializing live widget")
         super().__init__()
-        self.imagePanel = imageWidget
+        self.db_apater = db_adapter
         self.fs = fs
+        self.imageWidget = ImageWidget(
+            db_adapter=db_adapter, taxonomy=taxonomomy, geo_data_dir=geo_data_dir)
         self.initUI()
         self.connectSignals()
 
@@ -42,6 +44,10 @@ class LiveWidget(QWidget):
 
         self.setWindowTitle("Live Mode")
 
+        layout = QStackedWidget()
+        live_layout = QGridLayout()
+        button_layout = QHBoxLayout()
+        
         # add select camera button
         self.selectCameraButton = QPushButton("Select Camera")
         self.selectCameraButton.clicked.connect(self.selectCamera)
@@ -66,12 +72,15 @@ class LiveWidget(QWidget):
         self.closeButton = QPushButton("Close")
         self.closeButton.clicked.connect(self.closeLiveMode)
 
+        button_layout.addWidget(self.selectCameraButton)
+        button_layout.addWidget(self.captureImageButton)
+        button_layout.addWidget(self.startLivePreviewButton)
+        button_layout.addWidget(self.stopLivePreviewButton)
+        button_layout.addWidget(self.closeButton)
+
         # add camera selection list widget
         self.selectCameraListWidget = SelectCameraListWidget()
         self.selectCameraListWidget.hide()
-
-        # add a loading spinner to the preview panel
-        self.loadingSpinner = LoadingSpinner()
 
         # add preview panel
         self.previewPanel = PreviewPanel(fs=self.fs)
@@ -80,30 +89,18 @@ class LiveWidget(QWidget):
         self.panelLayout = QVBoxLayout()
         self.panelLayout.addWidget(self.previewPanelLabel, alignment=Qt.AlignmentFlag.AlignCenter)
         self.panelLayout.addWidget(self.previewPanel)
-
-        # add start live preview button and capture image button to a horizontal layout
-        self.buttonLayout = QGridLayout()
-        self.buttonLayout.addWidget(self.selectCameraButton,0,0,1,2)
-        self.buttonLayout.addWidget(self.startLivePreviewButton,0,2,1,2)
-        self.buttonLayout.addWidget(self.stopLivePreviewButton,0,4,1,2)
-        self.buttonLayout.addWidget(self.captureImageButton,0,6,1,2)
-        self.buttonLayout.addWidget(self.closeButton,0,8,1,2)
         
         # arange widgets in grid layout
-        self.layout = QGridLayout()
-        self.layout.addWidget(self.selectCameraListWidget, 0, 0) 
-        self.layout.addLayout(self.panelLayout, 0, 0)
-        self.layout.addWidget(self.loadingSpinner, 0, 0, Qt.AlignmentFlag.AlignCenter)
-        self.layout.addLayout(self.buttonLayout, 1,0,1,1, alignment=Qt.AlignmentFlag.AlignHCenter)
-        self.setLayout(self.layout)
+        live_layout.addWidget(self.selectCameraListWidget, 0, 0) 
+        live_layout.addLayout(self.panelLayout, 0, 0)
+        live_layout.addLayout(button_layout, 1,0,1,1, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self.imageWidget)
+        layout.addWidget(self.selectCameraListWidget)
+        self.setLayout(layout)
 
     def connectSignals(self):
         logger.debug("connecting signals for live widget")
         # self.selectCameraListWidget.closed.connect(self._showPanelWidgets)
-        self.selectCameraListWidget.cameraFetcher.started.connect(self.loadingSpinner.start)
-        self.selectCameraListWidget.cameraFetcher.started.connect(self.loadingSpinner.show)
-        self.selectCameraListWidget.cameraFetcher.finished.connect(self.loadingSpinner.stop)
-        self.selectCameraListWidget.cameraFetcher.finished.connect(self.loadingSpinner.hide)
         self.selectCameraListWidget.confirmButton.clicked.connect(self._showPanelWidgets)
         self.selectCameraListWidget.confirmButton.clicked.connect(self._updatePreviewLabel)
 
@@ -112,22 +109,11 @@ class LiveWidget(QWidget):
 
         self.selectCameraButton.clicked.connect(self.selectCameraListWidget.show)
 
-        self.previewPanel.cameraStreamer.buildingStream.connect(self.loadingSpinner.start)
-        self.previewPanel.cameraStreamer.buildingStream.connect(self.loadingSpinner.show)
-        self.previewPanel.cameraStreamer.streamRunning.connect(self.loadingSpinner.stop)
-        self.previewPanel.cameraStreamer.streamRunning.connect(self.loadingSpinner.hide)
-
         self.selectCameraListWidget.selectedCameraChanged.connect(self.previewPanel.setCameraData)
         self.selectCameraListWidget.selectedCameraChanged.connect(self.enableCaptureImageButton)
 
         self.previewPanel.imageCapture.finished.connect(self._enableAllButtons)
         self.previewPanel.imageCapture.started.connect(self._disableAllButtons)
-        self.previewPanel.imageCapture.started.connect(self.loadingSpinner.start)
-        self.previewPanel.imageCapture.started.connect(self.loadingSpinner.show)
-        self.previewPanel.imageCapture.finished.connect(self.loadingSpinner.stop)
-        self.previewPanel.imageCapture.finished.connect(self.loadingSpinner.hide)
-        self.previewPanel.previewStopped.connect(self.loadingSpinner.stop)
-        self.previewPanel.previewStopped.connect(self.loadingSpinner.hide)
 
         self.previewPanel.imageCapture.imageCaptured.connect(self.imageCaptured)
         self.previewPanel.imageCapture.failed_signal.connect(self.show_error_dialog)
@@ -167,8 +153,7 @@ class LiveWidget(QWidget):
 
     def imageCaptured(self, imageName):
         logger.debug("image captured")
-        self.changed.emit("image")
-        self.imagePanel.setImage(imageName)
+        self.imageWidget.setImage(imageName)
 
     def startPreview(self):
         logger.debug("starting preview")
@@ -188,7 +173,7 @@ class LiveWidget(QWidget):
     def closeLiveMode(self):
         logger.debug("closing live mode")
         self.close()
-        self.imagePanel.close()
+        self.imageWidget.close()
         self.changed.emit("project")
 
     def _hidePanelWidgets(self):
@@ -248,8 +233,6 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     db_adapter = DBAdapter(DummyDB())
 
-    image_widget = ImageWidget(db_adapter, taxonomy, geo_data_dir=geo_data_dir)
-    window = LiveWidget(image_widget, fs=1)
-    window.changed.connect(lambda: image_widget.show())
+    window = LiveWidget(db_adapter, taxonomy, geo_data_dir, fs=1)
     window.show()
     sys.exit(app.exec())

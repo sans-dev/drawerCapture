@@ -7,7 +7,6 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 from src.utils.load_style_sheet import load_style_sheet
 from src.widgets.MainWidget import MainWidget
 from src.widgets.LiveWidget import LiveWidget 
-from src.widgets.ImageWidget import ImageWidget
 from src.db.DB import DBAdapter, FileAgnosticDB
 from src.widgets.Project import ProjectCreator, ProjectLoader, ProjectViewer
 from src.utils.searching import init_taxonomy
@@ -26,7 +25,7 @@ class MainWindow(QMainWindow):
         stackedWidget (QStackedWidget): A stacked widget containing all the widgets.
     """
 
-    def __init__(self, taxonomy, geo_data_dir):
+    def __init__(self, taxonomy, geo_data_dir, fs):
         """
         Initializes the main window.
         """
@@ -38,11 +37,11 @@ class MainWindow(QMainWindow):
         project_creator = ProjectCreator(self.db_adapter)
         project_loader = ProjectLoader(self.db_adapter)
         project_viewer = ProjectViewer(self.db_adapter)
-        imageWidget = ImageWidget(self.db_adapter, taxonomy, geo_data_dir=geo_data_dir)
+        liveWidget = LiveWidget(db_adapter = self.db_adapter, taxonomomy=taxonomy, geo_data_dir=geo_data_dir, fs=fs)
+
         self.widgets = {
             "main": MainWidget(),
-            "live": LiveWidget(imageWidget, fs=1),
-            "image": imageWidget,
+            "live": liveWidget,
             "create": project_creator,
             "load" : project_loader,
             'project': project_viewer
@@ -81,6 +80,8 @@ if __name__ == '__main__':
     parser.add_argument("--debug", action="store_true", help="enable debug mode")
     parser.add_argument("--style", type=str, choices=styles, help="set the style", default=styles[0])
     parser.add_argument('--geo-data', choices=['level-0', 'level-1'])
+    parser.add_argument('--fs', type=int, default=1)
+
     args = parser.parse_args()
     if args.debug:
         logger.setLevel(level=logging.DEBUG)
@@ -97,6 +98,6 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     if args.style != styles[0]:
         app.setStyleSheet(load_style_sheet(args.style))
-    mainWindow = MainWindow(taxonomy, geo_data_dir=geo_data_dir)
+    mainWindow = MainWindow(taxonomy, geo_data_dir=geo_data_dir, fs=args.fs)
     mainWindow.show()
     sys.exit(app.exec())

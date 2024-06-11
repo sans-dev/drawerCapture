@@ -33,6 +33,10 @@ class CameraFetcher(QThread):
         """
         Starts the camera fetching process and emits the 'finished' signal when the process is done.
         """
+        self.output = []
+        self.error = []
+        cameras = []
+        self.cameras_data = []
         if self.proc is None:
             logger.info("fetching cameras")
             self.proc = QProcess()
@@ -49,18 +53,11 @@ class CameraFetcher(QThread):
                 self.finished.emit(['No cameras found'])
                 logger.debug("Fetching cameras timed out")
                 return
-            
-            # output = self.proc.readAllStandardOutput()
-            # lines = output.data().decode('utf-8').split('\n')
-            cameras = []
-            self.cameras_data = []
-
             for line in self.output:
                 if 'usb:' in line:
                     data = line.split('\n')[2]
                     logger.debug("found camera: %s", data)
                     cameras.append(data.split('usb:')[0])
-                    print(data.split('usb:')[0])
                     self.cameras_data.append(data)
 
             if len(cameras) == 0:

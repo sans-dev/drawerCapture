@@ -1,14 +1,15 @@
 import logging
 import logging.config
 
-from PyQt6.QtWidgets import QLabel
+from PyQt6.QtWidgets import QLabel, QGridLayout
 from PyQt6.QtCore import QTimer, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap
 import cv2
-import time
+
 
 from src.threads.CameraStreamer import CameraStreamer
 from src.threads.ImageCapture import ImageCapture
+from src.widgets.SpinnerWidget import LoadingSpinner
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -46,6 +47,7 @@ class PreviewPanel(QLabel):
         self.setFixedSize(panel_size[0], panel_size[1])
         self.setFrameStyle(1)
         self.setLineWidth(1)
+        self.loadingSpinner = LoadingSpinner()
     
     def connectSignals(self):
         """
@@ -56,6 +58,17 @@ class PreviewPanel(QLabel):
         self.cameraStreamer.streamStopped.connect(self.timer.stop)
         self.cameraStreamer.videoCapture.deviceOpen.connect(self.startTimer)
 
+
+        self.cameraStreamer.buildingStream.connect(self.loadingSpinner.start)
+        self.cameraStreamer.buildingStream.connect(self.loadingSpinner.show)
+        self.cameraStreamer.streamRunning.connect(self.loadingSpinner.stop)
+        self.cameraStreamer.streamRunning.connect(self.loadingSpinner.hide)
+        self.imageCapture.started.connect(self.loadingSpinner.start)
+        self.imageCapture.started.connect(self.loadingSpinner.show)
+        self.imageCapture.finished.connect(self.loadingSpinner.stop)
+        self.imageCapture.finished.connect(self.loadingSpinner.hide)
+        self.previewStopped.connect(self.loadingSpinner.stop)
+        self.previewStopped.connect(self.loadingSpinner.hide)
     def updatePreview(self):
         """
         Updates the preview panel with the latest frame from the camera stream.
