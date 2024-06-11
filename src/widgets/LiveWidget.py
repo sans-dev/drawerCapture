@@ -8,7 +8,6 @@ from PyQt6.QtCore import Qt, pyqtSignal
 
 from src.widgets.SelectCameraListWidget import SelectCameraListWidget
 from src.widgets.PreviewPanel import PreviewPanel
-from src.widgets.SpinnerWidget import LoadingSpinner 
 from src.widgets.ImageWidget import ImageWidget
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -26,120 +25,88 @@ class LiveWidget(QWidget):
     connectSignals(self): connects signals to slots.
     enableStartLivePreviewButton(self): enables the start live preview button.
     """
-class LiveWidget(QWidget):
-    changed = pyqtSignal(str)
 
-    def __init__(self, db_adapter, taxonomomy, geo_data_dir, fs):
-        logger.debug("initializing live widget")
+class LivePanel(QWidget):
+    def __init__(self, fs, panel_res):
         super().__init__()
-        self.db_apater = db_adapter
-        self.fs = fs
-        self.imageWidget = ImageWidget(
-            db_adapter=db_adapter, taxonomy=taxonomomy, geo_data_dir=geo_data_dir)
-        self.initUI()
-        self.connectSignals()
+        self.panel = PreviewPanel(fs, panel_res)
 
-    def initUI(self):
-        logger.debug("initializing live widget UI")
+        self.init_ui()
 
-        self.setWindowTitle("Live Mode")
-
-        layout = QStackedWidget()
-        live_layout = QGridLayout()
+    def init_ui(self):
+        layout = QVBoxLayout()
         button_layout = QHBoxLayout()
         
         # add select camera button
         self.selectCameraButton = QPushButton("Select Camera")
-        self.selectCameraButton.clicked.connect(self.selectCamera)
-
         # add capture image button
         self.captureImageButton = QPushButton("Capture Image")
-        self.captureImageButton.clicked.connect(self.captureImage)
         self.captureImageButton.setEnabled(False)
-
         # add a disabled button to start live preview
         self.startLivePreviewButton = QPushButton("Start Live Preview")
         self.startLivePreviewButton.setEnabled(False)
-        self.startLivePreviewButton.clicked.connect(self.startPreview)
         self.startLivePreviewButton.show()
-
         # add a stop preview button at the bottom of the preview panel
         self.stopLivePreviewButton = QPushButton("Stop Live Preview")
-        self.stopLivePreviewButton.clicked.connect(self.stopPreview)
         self.stopLivePreviewButton.setEnabled(False)
-        
         # add an close button
         self.closeButton = QPushButton("Close")
-        self.closeButton.clicked.connect(self.closeLiveMode)
-
         button_layout.addWidget(self.selectCameraButton)
         button_layout.addWidget(self.captureImageButton)
         button_layout.addWidget(self.startLivePreviewButton)
         button_layout.addWidget(self.stopLivePreviewButton)
         button_layout.addWidget(self.closeButton)
-
-        # add camera selection list widget
-        self.selectCameraListWidget = SelectCameraListWidget()
-        self.selectCameraListWidget.hide()
-
-        # add preview panel
-        self.previewPanel = PreviewPanel(fs=self.fs)
-        self.previewPanelLabel = QLabel("Live Preview")
-        self.previewPanelLabel.setStyleSheet('font-size: 20px;')
-        self.panelLayout = QVBoxLayout()
-        self.panelLayout.addWidget(self.previewPanelLabel, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.panelLayout.addWidget(self.previewPanel)
         
-        # arange widgets in grid layout
-        live_layout.addWidget(self.selectCameraListWidget, 0, 0) 
-        live_layout.addLayout(self.panelLayout, 0, 0)
-        live_layout.addLayout(button_layout, 1,0,1,1, alignment=Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(self.imageWidget)
-        layout.addWidget(self.selectCameraListWidget)
+        layout.addWidget(self.panel)
+        layout.addLayout(button_layout)
+
         self.setLayout(layout)
 
-    def connectSignals(self):
+class LiveWidget(QWidget):
+    changed = pyqtSignal(str)
+
+    def __init__(self, db_adapter, taxonomomy, geo_data_dir, fs, panel_res):
+        logger.debug("initializing live widget")
+        super().__init__()
+        self.db_apater = db_adapter
+        self.image_widget = ImageWidget(
+            db_adapter=db_adapter, taxonomy=taxonomomy, geo_data_dir=geo_data_dir)
+        self.panel = LivePanel(fs, panel_res)
+        self.camera_fetcher = SelectCameraListWidget()
+
+        self.init_ui()
+        self.connect_signals()
+
+    def init_ui(self):
+        logger.debug("initializing live widget UI")
+
+        self.setWindowTitle("Live Mode")
+
+        self._layout = QStackedLayout()
+        self._layout.addWidget(self.panel)
+        self._layout.addWidget(self.camera_fetcher)
+        self._layout.addWidget(self.image_widget)
+        self.setLayout(self._layout)
+
+    def connect_signals(self):
         logger.debug("connecting signals for live widget")
-        # self.selectCameraListWidget.closed.connect(self._showPanelWidgets)
-        self.selectCameraListWidget.confirmButton.clicked.connect(self._showPanelWidgets)
-        self.selectCameraListWidget.confirmButton.clicked.connect(self._updatePreviewLabel)
+        self.panel.selectCameraButton.clicked.connect(self.show_camera_fetcher)
+        self.camera_fetcher.exitButton.clicked.connect(self.show_panel)
+        self.camera_fetcher.confirmButton.clicked.connect(self.show_panel)
+        self.camera_fetcher.selectedCameraChanged.connect(self.panel.panel.set_text)
 
-        self.selectCameraListWidget.confirmButton.clicked.connect(self.enableSelectCameraButton)
-        self.selectCameraListWidget.confirmButton.clicked.connect(self.enableStartLivePreviewButton)
+    def show_panel(self):
+        self._layout.setCurrentWidget(self.panel)
 
-        self.selectCameraButton.clicked.connect(self.selectCameraListWidget.show)
+    def show_camera_fetcher(self):
+        self._layout.setCurrentWidget(self.camera_fetcher)
 
-        self.selectCameraListWidget.selectedCameraChanged.connect(self.previewPanel.setCameraData)
-        self.selectCameraListWidget.selectedCameraChanged.connect(self.enableCaptureImageButton)
-
-        self.previewPanel.imageCapture.finished.connect(self._enableAllButtons)
-        self.previewPanel.imageCapture.started.connect(self._disableAllButtons)
-
-        self.previewPanel.imageCapture.imageCaptured.connect(self.imageCaptured)
-        self.previewPanel.imageCapture.failed_signal.connect(self.show_error_dialog)
+    def show_image_widger(self):
+        pass
 
     def show_error_dialog(self, msg):
         QMessageBox.critical(self, "Error", msg)
 
-    def enableStartLivePreviewButton(self):
-        logger.debug("enabling start live preview button")
-        self.startLivePreviewButton.setEnabled(True)
-
-    def enableSelectCameraButton(self):
-        logger.debug("enabling select camera button")
-        self.selectCameraButton.setEnabled(True)
-
-    def enableCaptureImageButton(self):
-        logger.debug("enabling capture image button")
-        self.captureImageButton.setEnabled(True)
-
-    def selectCamera(self):
-        logger.debug("selecting camera")
-        self._hidePanelWidgets()
-        if not self.selectCameraListWidget.isRefreshed:
-            logger.debug("refreshing camera list")
-            self.selectCameraListWidget.refreshButtonClicked()
-    
     def buildConfig(self, config={}): # TODO: move to config builder/own class/document holding the configuration
         logger.debug("building config")
         config['--image_name'] = datetime.now().isoformat().replace(':','_').replace('.','-')
@@ -149,72 +116,27 @@ class LiveWidget(QWidget):
     def captureImage(self):
         logger.debug("capturing image")
         config = self.buildConfig()
-        self.previewPanel.captureImage(config)
+        self.panel.captureImage(config)
 
     def imageCaptured(self, imageName):
         logger.debug("image captured")
-        self.imageWidget.setImage(imageName)
+        self.image_widget.setImage(imageName)
 
     def startPreview(self):
         logger.debug("starting preview")
-        self.selectCameraListWidget.setEnabled(False)
-        self.startLivePreviewButton.setEnabled(False)
-        self.stopLivePreviewButton.setEnabled(True)
-        self.previewPanel.startPreview()
+        self.panel.startPreview()
 
     def stopPreview(self):
         logger.debug("stopping preview")
-        self.selectCameraButton.setEnabled(True)
-        self.selectCameraListWidget.setEnabled(True)
-        self.startLivePreviewButton.setEnabled(True)
-        self.stopLivePreviewButton.setEnabled(False)
-        self.previewPanel.stopPreview()
+        self.panel.stopPreview()
 
     def closeLiveMode(self):
         logger.debug("closing live mode")
         self.close()
-        self.imageWidget.close()
+        self.image_widget.close()
         self.changed.emit("project")
 
-    def _hidePanelWidgets(self):
-        logger.debug("hiding panel widgets")
-        self.previewPanel.hide()
-        self.previewPanelLabel.hide()
-        self.selectCameraButton.hide()
-        self.startLivePreviewButton.hide()
-        self.stopLivePreviewButton.hide()
-        self.captureImageButton.hide()
-        self.closeButton.hide()
-    
-    def _showPanelWidgets(self):
-        logger.debug("showing panel widgets")
-        self.previewPanel.show()
-        self.previewPanelLabel.show()
-        self.selectCameraButton.show()
-        self.startLivePreviewButton.show()
-        self.captureImageButton.show()
-        self.closeButton.show()
 
-    def _updatePreviewLabel(self):
-        logger.debug("updating preview label")
-        self.previewPanelLabel.setText(f"Live Preview ({self.previewPanel.cameraStreamer.getCameraDataAsString()})")
-
-    def _disableAllButtons(self):
-        self.selectCameraButton.setEnabled(False)
-        self.startLivePreviewButton.setEnabled(False)
-        self.captureImageButton.setEnabled(False)
-        self.closeButton.setEnabled(False)
-        self.stopLivePreviewButton.setEnabled(False)
-
-    def _enableAllButtons(self):
-        self.selectCameraButton.setEnabled(True)
-        self.startLivePreviewButton.setEnabled(True)
-        self.captureImageButton.setEnabled(True)
-        self.closeButton.setEnabled(True)
-        self.stopLivePreviewButton.setEnabled(True)
-        
-        
-        
 if __name__ == "__main__":
     import sys
     from argparse import ArgumentParser
@@ -233,6 +155,6 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     db_adapter = DBAdapter(DummyDB())
 
-    window = LiveWidget(db_adapter, taxonomy, geo_data_dir, fs=1)
+    window = LiveWidget(db_adapter, taxonomy, geo_data_dir, fs=1, panel_res=(1024,780))
     window.show()
     sys.exit(app.exec())
