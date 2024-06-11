@@ -99,7 +99,7 @@ class LiveWidget(QWidget):
 
     def connectSignals(self):
         logger.debug("connecting signals for live widget")
-        self.selectCameraListWidget.closed.connect(self._showPanelWidgets)
+        # self.selectCameraListWidget.closed.connect(self._showPanelWidgets)
         self.selectCameraListWidget.cameraFetcher.started.connect(self.loadingSpinner.start)
         self.selectCameraListWidget.cameraFetcher.started.connect(self.loadingSpinner.show)
         self.selectCameraListWidget.cameraFetcher.finished.connect(self.loadingSpinner.stop)
@@ -187,10 +187,8 @@ class LiveWidget(QWidget):
 
     def closeLiveMode(self):
         logger.debug("closing live mode")
-        self.previewPanel.close()
-        self.selectCameraListWidget.close()
-        self.selectCameraListWidget = None
-        self.selectCameraListWidget = SelectCameraListWidget()
+        self.close()
+        self.imagePanel.close()
         self.changed.emit("project")
 
     def _hidePanelWidgets(self):

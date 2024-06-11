@@ -26,7 +26,7 @@ class MainWindow(QMainWindow):
         stackedWidget (QStackedWidget): A stacked widget containing all the widgets.
     """
 
-    def __init__(self, taxonomy):
+    def __init__(self, taxonomy, geo_data_dir):
         """
         Initializes the main window.
         """
@@ -38,7 +38,7 @@ class MainWindow(QMainWindow):
         project_creator = ProjectCreator(self.db_adapter)
         project_loader = ProjectLoader(self.db_adapter)
         project_viewer = ProjectViewer(self.db_adapter)
-        imageWidget = ImageWidget(self.db_adapter, taxonomy)
+        imageWidget = ImageWidget(self.db_adapter, taxonomy, geo_data_dir=geo_data_dir)
         self.widgets = {
             "main": MainWidget(),
             "live": LiveWidget(imageWidget, fs=1),
@@ -74,25 +74,29 @@ class MainWindow(QMainWindow):
         self.stackedWidget.setCurrentWidget(self.widgets[widget])
 
 if __name__ == '__main__':
+    from src.configs.DataCollection import *
+
     styles = ["Default", "Photoxo", "Combinear", "Diffnes", "SyNet"]
     parser = ArgumentParser()
     parser.add_argument("--debug", action="store_true", help="enable debug mode")
     parser.add_argument("--style", type=str, choices=styles, help="set the style", default=styles[0])
+    parser.add_argument('--geo-data', choices=['level-0', 'level-1'])
     args = parser.parse_args()
     if args.debug:
         logger.setLevel(level=logging.DEBUG)
         logger.debug("debug mode enabled")
         logger.info("loading taxonomy")
-        taxonomy = init_taxonomy("tests/data/taxonomy_test.json")
+        taxonomy = init_taxonomy(TAXONOMY['test'])
     else:
         logger.setLevel(level=logging.INFO)
         logger.debug("debug mode disabled")
         logger.info("loading taxonomy")
-        taxonomy = init_taxonomy("resources/taxonomy/taxonomy_prod.json")
+        taxonomy = init_taxonomy(TAXONOMY['prod'])
+    geo_data_dir = GEO[args.geo_data]
     
     app = QApplication(sys.argv)
     if args.style != styles[0]:
         app.setStyleSheet(load_style_sheet(args.style))
-    mainWindow = MainWindow(taxonomy)
+    mainWindow = MainWindow(taxonomy, geo_data_dir=geo_data_dir)
     mainWindow.show()
     sys.exit(app.exec())

@@ -110,8 +110,6 @@ class ImageWidget(QWidget):
             if QMessageBox.question(self, 'Title', 'Data where saved into database. Continue capturing?').name == 'Yes':    
                 self.close()
 
-
-
 if __name__ == "__main__":
     import sys
     from PyQt6.QtWidgets import QApplication
