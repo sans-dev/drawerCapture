@@ -29,10 +29,11 @@ class LiveWidget(QWidget):
 class LiveWidget(QWidget):
     changed = pyqtSignal(str)
 
-    def __init__(self, imageWidget):
+    def __init__(self, imageWidget, fs):
         logger.debug("initializing live widget")
         super().__init__()
         self.imagePanel = imageWidget
+        self.fs = fs
         self.initUI()
         self.connectSignals()
 
@@ -73,7 +74,7 @@ class LiveWidget(QWidget):
         self.loadingSpinner = LoadingSpinner()
 
         # add preview panel
-        self.previewPanel = PreviewPanel()
+        self.previewPanel = PreviewPanel(fs=self.fs)
         self.previewPanelLabel = QLabel("Live Preview")
         self.previewPanelLabel.setStyleSheet('font-size: 20px;')
         self.panelLayout = QVBoxLayout()
@@ -233,15 +234,24 @@ class LiveWidget(QWidget):
         
 if __name__ == "__main__":
     import sys
+    from argparse import ArgumentParser
     from PyQt6.QtWidgets import QApplication
     from src.db.DB import DBAdapter, DummyDB
     from src.utils.searching import init_taxonomy
     from src.widgets.ImageWidget import ImageWidget
+    from src.configs.DataCollection import *
+
+    parser = ArgumentParser()
+    parser.add_argument('--taxonomy', choices=['test', 'prod'])
+    parser.add_argument('--geo-data', choices=['level-0', 'level-1'])
+    args = parser.parse_args()
+    taxonomy = init_taxonomy(TAXONOMY[args.taxonomy])
+    geo_data_dir = GEO[args.geo_data]
     app = QApplication(sys.argv)
     db_adapter = DBAdapter(DummyDB())
-    taxonomy_dir = "tests/data/taxonomy_test.json"
-    image_widget = ImageWidget(db_adapter, init_taxonomy(taxonomy_dir))
-    window = LiveWidget(image_widget)
+
+    image_widget = ImageWidget(db_adapter, taxonomy, geo_data_dir=geo_data_dir)
+    window = LiveWidget(image_widget, fs=1)
     window.changed.connect(lambda: image_widget.show())
     window.show()
     sys.exit(app.exec())

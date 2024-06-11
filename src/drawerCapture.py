@@ -41,7 +41,7 @@ class MainWindow(QMainWindow):
         imageWidget = ImageWidget(self.db_adapter, taxonomy)
         self.widgets = {
             "main": MainWidget(),
-            "live": LiveWidget(imageWidget),
+            "live": LiveWidget(imageWidget, fs=1),
             "image": imageWidget,
             "create": project_creator,
             "load" : project_loader,

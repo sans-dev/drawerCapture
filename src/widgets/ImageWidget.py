@@ -34,7 +34,7 @@ class ImageWidget(QWidget):
         """
         Initializes the user interface of the widget.
         """
-        self.data_collector = DataCollection(self.taxonomy, geo_data_dir=geo_data_dir)
+        self.data_collector = DataCollection(self.taxonomy, geo_data_dir=self.geo_data_dir)
         # create a horizontal layout for the buttons (crop, enahnce, save, close)
         # create a vertical layout for the panel and buttons
         # add the collectionField right to the layout

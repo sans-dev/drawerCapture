@@ -20,17 +20,19 @@ class PreviewPanel(QLabel):
     previewStopped = pyqtSignal()
     capturedImage = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self, fs):
         """
         Initializes the PreviewPanel widget.
         """
         logger.debug("initializing preview panel")
         super().__init__()
-        self.cameraStreamer = CameraStreamer()
+        self.fs = fs
+        self.cameraStreamer = CameraStreamer(fs=fs)
         self.imageCapture = ImageCapture()
         self.cameraData = None
         self.timer = QTimer()        
         self.frame = None
+        
         self.initUI()
         self.connectSignals()
     
@@ -86,7 +88,7 @@ class PreviewPanel(QLabel):
         Starts the timer for updating the preview panel.
         """
         logger.debug("starting timer")
-        self.timer.start(100)
+        self.timer.start(1000//self.fs)
 
     def stopPreview(self):
         """

@@ -27,7 +27,7 @@ class CameraStreamer(CameraThread):
     buildingStream = pyqtSignal()
     streamStopped = pyqtSignal()
 
-    def __init__(self, cameraData=None):
+    def __init__(self, fs, cameraData=None):
         """
         Initializes the CameraStreamer object.
 
@@ -37,9 +37,11 @@ class CameraStreamer(CameraThread):
         """
         logger.debug("initializing camera streamer")
         super().__init__(cameraData=cameraData)
+        self.fs = fs # sampling fqequency in milliseconds
         self.videoCapture = VideoCaptureDevice()
         self.config['--script'] = 'src/cmds/open_video_stream.bash'
         self.config['--dir'] = self._getVideoStreamDir().as_posix()
+        self.config['--fs'] = str(fs)
         self.videoCapture.deviceOpen.connect(self.streamRunning.emit)
         self.wasRunning = False
 

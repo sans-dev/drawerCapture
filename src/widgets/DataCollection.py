@@ -692,7 +692,7 @@ class DataCollection(QWidget):
         self.species_widget = TaxonomyField(
             "Species", self.taxonomy, level=int(4), mandatory=False)
         specimen_info_layout.addWidget(self.species_widget)
-        self.tab_widget.addTab(specimen_info_form, "Specimen Info")
+        self.tab_widget.addTab(specimen_info_form, "Specimen Info",)
 
         self.widgets = [
             self.session_widget,
@@ -732,7 +732,7 @@ class DataCollection(QWidget):
                     collection_info[widget.name] = widget.get_data()
                 widget.hide_error()
             except ValueError as e:
-                tab = self.find_widget_tab(widget)
+                tab_idx = self.find_widget_tab(widget)
                 widget.show_error(str(e))
                 data[widget.name] = e
             except Exception as e:
