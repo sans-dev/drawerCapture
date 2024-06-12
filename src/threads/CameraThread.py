@@ -52,21 +52,21 @@ class CameraThread(QThread):
 
         self.proc = None
 
-    def setCameraData(self, cameraData):
+    def setCameraData(self, model, port):
         """
         Sets the camera model and port based on the given cameraData string.
 
         Parameters:
         -----------
-        cameraData : str
-            A string containing the camera model and port in the format "MODEL usb:PORT".
+        model : str
+        port : str
 
         Returns:
         --------
         None
         """
-        self.model = cameraData.split('usb')[0].strip()
-        self.port = f"usb{cameraData.split('usb')[-1].strip()}"
+        self.model = model
+        self.port = port
         self.config['--model'] = self.model
         self.config['--port'] = self.port
 

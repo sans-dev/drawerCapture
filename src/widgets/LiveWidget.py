@@ -3,7 +3,7 @@ from datetime import datetime
 import logging
 import logging.config
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QVBoxLayout, QLabel, QMessageBox, QStackedLayout, QHBoxLayout, QStackedWidget
+from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QVBoxLayout, QLabel, QMessageBox, QStackedLayout, QHBoxLayout, QStackedWidget, QButtonGroup, QSpacerItem, QSizePolicy
 from PyQt6.QtCore import Qt, pyqtSignal
 
 from src.widgets.SelectCameraListWidget import SelectCameraListWidget
@@ -12,55 +12,67 @@ from src.widgets.ImageWidget import ImageWidget
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
-class LiveWidget(QWidget):
-    """
-    A widget for live camera preview and image capture.
 
-    Signals:
-    changed(str): emitted when the selected camera is changed.
+class PanelButton(QPushButton):
+    def __init__(self, name, height, width_range, isEnable=False):
+        super().__init__(name)
+        self.setMaximumWidth(width_range[1])
+        self.setMinimumWidth(width_range[0])
+        self.setFixedHeight(height)
+        self.setEnabled(isEnable)
 
-    Methods:
-    __init__(self, imagePanel): initializes the widget.
-    initUI(self): initializes the user interface.
-    connectSignals(self): connects signals to slots.
-    enableStartLivePreviewButton(self): enables the start live preview button.
-    """
 
 class LivePanel(QWidget):
     def __init__(self, fs, panel_res):
         super().__init__()
         self.panel = PreviewPanel(fs, panel_res)
-
+        self.model = None
+        self.port = None
         self.init_ui()
+        self.connect_signals()
 
     def init_ui(self):
         layout = QVBoxLayout()
-        button_layout = QHBoxLayout()
-        
+        button_width_range = (300, 600)
+        button_height = 32
         # add select camera button
-        self.selectCameraButton = QPushButton("Select Camera")
+        self.selectCameraButton = PanelButton("Select Camera", button_height, button_width_range, True)
         # add capture image button
-        self.captureImageButton = QPushButton("Capture Image")
-        self.captureImageButton.setEnabled(False)
+        self.captureImageButton = PanelButton("Capture Image", button_height, button_width_range)
         # add a disabled button to start live preview
-        self.startLivePreviewButton = QPushButton("Start Live Preview")
-        self.startLivePreviewButton.setEnabled(False)
-        self.startLivePreviewButton.show()
+        self.startLivePreviewButton = PanelButton("Start Live Preview", button_height, button_width_range)
         # add a stop preview button at the bottom of the preview panel
-        self.stopLivePreviewButton = QPushButton("Stop Live Preview")
-        self.stopLivePreviewButton.setEnabled(False)
+        self.stopLivePreviewButton = PanelButton("Stop Live Preview", button_height, button_width_range)
         # add an close button
-        self.closeButton = QPushButton("Close")
-        button_layout.addWidget(self.selectCameraButton)
-        button_layout.addWidget(self.captureImageButton)
-        button_layout.addWidget(self.startLivePreviewButton)
-        button_layout.addWidget(self.stopLivePreviewButton)
-        button_layout.addWidget(self.closeButton)
-        
+        self.closeButton = PanelButton("Close", button_height, button_width_range, True)
+
+        # Arrange buttons in a vertical layout
+        button_layout = QVBoxLayout()
+        button_layout.addWidget(self.selectCameraButton, alignment=Qt.AlignmentFlag.AlignHCenter)
+        button_layout.addWidget(self.captureImageButton, alignment=Qt.AlignmentFlag.AlignHCenter)
+        button_layout.addWidget(self.startLivePreviewButton, alignment=Qt.AlignmentFlag.AlignHCenter)
+        button_layout.addWidget(self.stopLivePreviewButton, alignment=Qt.AlignmentFlag.AlignHCenter)
+        button_layout.addWidget(self.closeButton, alignment=Qt.AlignmentFlag.AlignHCenter)
+        button_layout.setSpacing(6)
+        spacer = QSpacerItem(20, 50, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+
         layout.addWidget(self.panel)
         layout.addLayout(button_layout)
-
+        layout.addItem(spacer)
         self.setLayout(layout)
+
+    def connect_signals(self):
+        self.startLivePreviewButton.clicked.connect(self.panel.startPreview)
+
+    def enable_capture_buttons(self):
+        self.captureImageButton.setEnabled(True)
+        self.startLivePreviewButton.setEnabled(True)
+        self.stopLivePreviewButton.setEnabled(True)
+
+    def set_camera_data(self, camera_data):
+        self.model = camera_data.split('usb')[0].strip()
+        self.port = f"usb{camera_data.split('usb')[-1].strip()}"
+        self.panel.setCameraData(self.model, self.port)
 
 class LiveWidget(QWidget):
     changed = pyqtSignal(str)
@@ -80,7 +92,7 @@ class LiveWidget(QWidget):
     def init_ui(self):
         logger.debug("initializing live widget UI")
 
-        self.setWindowTitle("Live Mode")
+        self.setWindowTitle("Capture Mode")
 
         self._layout = QStackedLayout()
         self._layout.addWidget(self.panel)
@@ -93,15 +105,17 @@ class LiveWidget(QWidget):
         self.panel.selectCameraButton.clicked.connect(self.show_camera_fetcher)
         self.camera_fetcher.exitButton.clicked.connect(self.show_panel)
         self.camera_fetcher.confirmButton.clicked.connect(self.show_panel)
+        self.camera_fetcher.confirmButton.clicked.connect(self.panel.enable_capture_buttons)
+        self.camera_fetcher.selectedCameraChanged.connect(self.panel.set_camera_data)
         self.camera_fetcher.selectedCameraChanged.connect(self.panel.panel.set_text)
-
+ 
     def show_panel(self):
         self._layout.setCurrentWidget(self.panel)
 
     def show_camera_fetcher(self):
         self._layout.setCurrentWidget(self.camera_fetcher)
 
-    def show_image_widger(self):
+    def show_image_widget(self):
         pass
 
     def show_error_dialog(self, msg):

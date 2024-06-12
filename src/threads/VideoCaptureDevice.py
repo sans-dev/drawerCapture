@@ -4,7 +4,7 @@ logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False
 
 import cv2
 
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal, QProcess
 
 logger = logging.getLogger(__name__)
 

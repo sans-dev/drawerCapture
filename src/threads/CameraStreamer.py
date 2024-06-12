@@ -1,5 +1,6 @@
 import logging
 import logging.config
+import time
 
 from PyQt6.QtCore import pyqtSignal, QProcess
 from pathlib import Path
@@ -63,6 +64,7 @@ class CameraStreamer(CameraThread):
             self.proc.readyReadStandardError.connect(self.printStdErr)
 
             logger.debug("starting video stream process")
+            print(" ".join(self._buildKwargs()))
             self.proc.start('bash', self._buildKwargs())
 
             started = self.proc.waitForStarted()
@@ -71,8 +73,12 @@ class CameraStreamer(CameraThread):
                 self.quit()
             self.proc.waitForReadyRead(-1)
             logger.info("Output stream ready")
+            time.sleep(5)
+            if 'error' in "".join(self.error_log).lower():
+                print("baaaad")
             self.videoCapture.setVideoStreamDir(self.config['--dir'])
             self.videoCapture.start()
+            print("bla")
 
     def quit(self):
         """

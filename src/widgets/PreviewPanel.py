@@ -79,6 +79,8 @@ class PreviewPanel(QLabel):
         self.cameraData = None
         self.timer = QTimer()        
         self.frame = None
+        self.panel_res = panel_res
+        self.fs = fs
         
         self.initUI()
         self.connectSignals()
@@ -93,11 +95,12 @@ class PreviewPanel(QLabel):
         layout = QVBoxLayout()
         self.label.setMaximumHeight(20)
         spinner_layout = QGridLayout()
-        spinner_layout.addWidget(self.panel, 0, 0)
+        spinner_layout.addWidget(self.panel, 0, 0, alignment=Qt.AlignmentFlag.AlignTop)
         spinner_layout.addWidget(self.loadingSpinner, 0, 0)
-        layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom)
+        layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addLayout(spinner_layout)
         self.setLayout(layout)
+        self.setMaximumHeight(self.panel_res[0])
     
     def connectSignals(self):
         """
@@ -167,14 +170,15 @@ class PreviewPanel(QLabel):
         self.panel.freeze()
         self.previewStopped.emit()
         
-    def setCameraData(self, cameraData):
+    def setCameraData(self, model, port):
         """
         Sets the camera data for the camera stream.
         """
-        logger.info("setting camera data: %s", cameraData)
-        self.cameraData = cameraData
-        self.cameraStreamer.setCameraData(self.cameraData)
-        self.imageCapture.setCameraData(self.cameraData)
+        logger.info(f"setting camera data: {model=}, {port=}")
+        self.model = model
+        self.port = port
+        self.cameraStreamer.setCameraData(model, port)
+        self.imageCapture.setCameraData(model, port)
 
     def captureImage(self, config):
         """
@@ -208,6 +212,7 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
     import time
     app = QApplication(sys.argv)
-    window = PreviewPanel(fs=1)
+    window = PreviewPanel(fs=1, panel_res= (1024, 780))
+    window.startPreview()
     window.show()
     sys.exit(app.exec())
