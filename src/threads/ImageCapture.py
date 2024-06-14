@@ -4,8 +4,6 @@ import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 
 from PyQt6.QtCore import pyqtSignal, QProcess
-
-from PyQt6.QtGui import QPixmap
 from src.threads.CameraThread import CameraThread
 
 logger = logging.getLogger(__name__)
@@ -38,10 +36,7 @@ class ImageCapture(CameraThread):
         self.proc = QProcess()
         self.proc.readyReadStandardError.connect(self.printStdErr)
         self.proc.readyReadStandardOutput.connect(self.printStdOut)
-        self.proc.finished.connect(self.finished)
-        self.proc.moveToThread(self)
-        # self.finished.connect(self.proc.deleteLater)
-        self.finished.connect(self.quit)
+        self.proc.finished.connect(self.quit)
 
     def run(self):
         """
@@ -99,3 +94,20 @@ class ImageCapture(CameraThread):
                 self.config[key] = value
             except KeyError:
                 logger.error("key %s not found in config", key)
+
+
+
+if __name__ == "__main__":
+    import sys
+    from PyQt6.QtWidgets import QApplication
+    from PyQt6.QtCore import QThread
+    app = QApplication(sys.argv)
+
+    capture = ImageCapture()
+    capture.setCameraData('Sony Alpha-A5100 (Control)', 'usb:001,004')
+    thread = QThread()
+    capture.moveToThread(thread)
+    thread.started.connect(capture.run)
+    thread.finished.connect(capture.quit)
+    thread.start()
+    sys.exit(app.exec())
