@@ -58,10 +58,9 @@ class CameraStreamer(CameraThread):
             logger.debug("emitting building stream signal and  configuring process")
             self.buildingStream.emit()
             self.proc = QProcess()
-            self.proc.finished.connect(self.quit)
             self.proc.readyReadStandardOutput.connect(self.printStdOut)
             self.proc.setCurrentReadChannel(1)
-            # self.proc.readyReadStandardError.connect(self.printStdErr)
+            self.proc.readyReadStandardError.connect(self.printStdErr)
 
             logger.debug("starting video stream process")
             print("================ RUN CMD IN SUBPROC =================")
@@ -74,7 +73,6 @@ class CameraStreamer(CameraThread):
                 self.quit()
             self.proc.waitForReadyRead(-1)
             logger.info("Output stream ready")
-            time.sleep(5)
             if 'error' in "".join(self.error_log).lower():
                 print("baaaad")
             self.videoCapture.setVideoStreamDir(self.config['--dir'])
@@ -144,15 +142,16 @@ if __name__ == "__main__":
 
     fs = 1
     stream = CameraStreamer(fs=fs)
-    stream.setCameraData('Sony Alpha-A5100 (Control)', 'usb:001,011')
+    stream.setCameraData('Sony Alpha-A5100 (Control)', 'usb:001,028')
     thread = QThread()
     stream.moveToThread(thread)
     thread.started.connect(stream.run)
     thread.finished.connect(stream.quit)
+    thread.finished.connect(stream.deleteLater)
     thread.start()
     while thread.isRunning():
         ret, frame = stream.getFrame()
-        time.sleep(1)
+        time.sleep(1/fs)
         print(type(frame))
     stream.reset_camera()
     sys.exit(app.exec())

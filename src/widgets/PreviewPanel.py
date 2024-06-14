@@ -2,7 +2,7 @@ import logging
 import logging.config
 
 from PyQt6.QtWidgets import QLabel, QGridLayout, QVBoxLayout
-from PyQt6.QtCore import QTimer, pyqtSignal, Qt
+from PyQt6.QtCore import QTimer, pyqtSignal, Qt, QThread
 from PyQt6.QtGui import QImage, QPixmap
 import cv2
 
@@ -64,7 +64,6 @@ class PreviewPanel(QLabel):
     A widget that displays a live preview of the camera stream and allows capturing images.
     """
     previewStopped = pyqtSignal()
-    capturedImage = pyqtSignal(str)
 
     def __init__(self, fs, panel_res):
         """
@@ -81,7 +80,15 @@ class PreviewPanel(QLabel):
         self.frame = None
         self.panel_res = panel_res
         self.fs = fs
-        
+        self.capture_thread = QThread() 
+        self.stream_thread = QThread()
+        self.imageCapture.moveToThread(self.capture_thread)
+        self.capture_thread.started.connect(self.imageCapture.run)
+        self.capture_thread.finished.connect(self.imageCapture.quit)
+        self.cameraStreamer.moveToThread(self.stream_thread)
+        self.stream_thread.started.connect(self.cameraStreamer.run)
+        self.stream_thread.finished.connect(self.cameraStreamer.quit)
+        self.stream_thread.finished.connect(self.cameraStreamer.deleteLater)
         self.initUI()
         self.connectSignals()
 
@@ -116,10 +123,10 @@ class PreviewPanel(QLabel):
         self.cameraStreamer.streamRunning.connect(self.loadingSpinner.stop)
         self.cameraStreamer.streamRunning.connect(self.loadingSpinner.hide)
 
-        self.imageCapture.started.connect(self.loadingSpinner.start)
-        self.imageCapture.started.connect(self.loadingSpinner.show)
-        self.imageCapture.finished.connect(self.loadingSpinner.stop)
-        self.imageCapture.finished.connect(self.loadingSpinner.hide)
+        self.capture_thread.started.connect(self.loadingSpinner.start)
+        self.capture_thread.started.connect(self.loadingSpinner.show)
+        self.capture_thread.finished.connect(self.loadingSpinner.stop)
+        self.capture_thread.finished.connect(self.loadingSpinner.hide)
 
         self.previewStopped.connect(self.loadingSpinner.stop)
         self.previewStopped.connect(self.loadingSpinner.hide)
@@ -149,10 +156,7 @@ class PreviewPanel(QLabel):
         Starts the camera stream preview.
         """
         logger.debug("starting preview")
-        if self.cameraStreamer.wasRunning:
-            self.startTimer()
-        else:
-            self.cameraStreamer.start()
+        self.stream_thread.start()
 
     def startTimer(self):
         """
@@ -180,19 +184,19 @@ class PreviewPanel(QLabel):
         self.cameraStreamer.setCameraData(model, port)
         self.imageCapture.setCameraData(model, port)
 
-    def captureImage(self, config):
+    def captureImage(self):
         """
         Captures an image from the camera stream.
         """
         logger.debug("capturing image")
-        if self.cameraStreamer.wasRunning:
-            logger.debug("camera streamer was running, stopping it")
-            self.imageCapture.finished.connect(self.startPreview)
-            self.cameraStreamer.quit()
-            self.panel.freeze()
-        self.imageCapture.setUpConfig(config)
-        self.imageCapture.start()
-        self.capturedImage.emit(config['--image_name']) #TODO check, if this is neccessary
+        if self.stream_thread.isRunning:
+            self.stopPreview()
+            stream_waits = self.stream_thread.wait()
+
+        self.capture_thread.start()
+        
+        if stream_waits:
+            self.stream_thread.start()
 
     def close(self):
         """
@@ -217,7 +221,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = PreviewPanel(fs=1, panel_res= (1024, 780))
     if args.preview:
-        window.setCameraData('Fuji Fujifilm GFX100', 'usb:002,014')
+        window.setCameraData('Sony Alpha-A5100 (Control)', 'usb:001,018')
         window.startPreview()
     window.show()
     sys.exit(app.exec())

@@ -107,17 +107,6 @@ class CameraThread(QObject):
                 ]
                 subprocess.run(cmd)
 
-    def _procFinished(self):
-        """
-        Callback function to be called when the gphoto2 process finishes.
-
-        Returns:
-        --------
-        None
-        """
-        print("In Camera Thread proc_finished")
-        self.proc = None
-
     def _buildKwargs(self):
         """
         Builds a list of command line arguments for gphoto2 based on the config dictionary.
