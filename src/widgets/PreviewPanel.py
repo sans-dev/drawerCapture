@@ -210,9 +210,14 @@ if __name__ == "__main__":
     import sys
     from PyQt6.QtWidgets import QApplication
     from argparse import ArgumentParser
-    import time
+
+    parser = ArgumentParser()
+    parser.add_argument('--preview', action='store_true')
+    args = parser.parse_args()
     app = QApplication(sys.argv)
     window = PreviewPanel(fs=1, panel_res= (1024, 780))
-    window.startPreview()
+    if args.preview:
+        window.setCameraData('Fuji Fujifilm GFX100', 'usb:002,014')
+        window.startPreview()
     window.show()
     sys.exit(app.exec())

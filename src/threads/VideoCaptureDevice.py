@@ -4,7 +4,7 @@ logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False
 
 import cv2
 
-from PyQt6.QtCore import QThread, pyqtSignal, QProcess
+from PyQt6.QtCore import QThread, pyqtSignal
 
 logger = logging.getLogger(__name__)
 
@@ -49,22 +49,21 @@ class VideoCaptureDevice(QThread):
             logger.info("video stream device already open")
 
     def setVideoStreamDir(self, videoStreamDir):
-            """
-            Sets the directory for the video stream.
+        """
+        Sets the directory for the video stream.
 
-            Args:
-                videoStreamDir (str): The directory for the video stream.
-            """
-            logger.debug("setting video stream dir to %s", videoStreamDir)
-            self.videoStreamDir = videoStreamDir
+        Args:
+            videoStreamDir (str): The directory for the video stream.
+        """
+        logger.debug("setting video stream dir to %s", videoStreamDir)
+        self.videoStreamDir = videoStreamDir
 
     def quit(self):
-            """
-            Quits the video capture device thread and releases the video stream device if it is open.
-            """
-            logger.info("quitting video capture device thread")
-            if self.device.isOpened():
-                logger.info("closing video stream device")
-                self.device.release()            
-            super().quit()
-
+        """
+        Quits the video capture device thread and releases the video stream device if it is open.
+        """
+        logger.info("quitting video capture device thread")
+        if self.device.isOpened():
+            logger.info("closing video stream device")
+            self.device.release()
+        super().quit()

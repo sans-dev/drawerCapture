@@ -2,7 +2,7 @@ import logging
 import logging.config
 import time
 
-from PyQt6.QtCore import pyqtSignal, QProcess
+from PyQt6.QtCore import pyqtSignal, QProcess, QThread
 from pathlib import Path
 
 from src.threads.CameraThread import CameraThread
@@ -54,16 +54,17 @@ class CameraStreamer(CameraThread):
         logger.info("running camera streamer thread")
         self.wasRunning = True
         super()._stopGphoto2Slaves()
-        if self.proc is None:
+        if not self.proc:
             logger.debug("emitting building stream signal and  configuring process")
             self.buildingStream.emit()
             self.proc = QProcess()
-            self.proc.finished.connect(self._procFinished)
+            self.proc.finished.connect(self.quit)
             self.proc.readyReadStandardOutput.connect(self.printStdOut)
             self.proc.setCurrentReadChannel(1)
-            self.proc.readyReadStandardError.connect(self.printStdErr)
+            # self.proc.readyReadStandardError.connect(self.printStdErr)
 
             logger.debug("starting video stream process")
+            print("================ RUN CMD IN SUBPROC =================")
             print(" ".join(self._buildKwargs()))
             self.proc.start('bash', self._buildKwargs())
 
@@ -78,7 +79,6 @@ class CameraStreamer(CameraThread):
                 print("baaaad")
             self.videoCapture.setVideoStreamDir(self.config['--dir'])
             self.videoCapture.start()
-            print("bla")
 
     def quit(self):
         """
@@ -93,6 +93,7 @@ class CameraStreamer(CameraThread):
             self.proc.waitForFinished()
             self.videoCapture.quit()
         self.streamStopped.emit()
+        self.proc = None
         super().quit()
 
     def getFrame(self):
@@ -128,3 +129,30 @@ class CameraStreamer(CameraThread):
                     logger.info("found dummy device at %s", lines[idx + 1].strip())
                     return Path(lines[idx + 1].strip())
         return None
+    
+    def reset_camera(self):
+        proc = QProcess()
+        proc.start('gphoto2', ['--set-config','movie=0'])
+        logger.info("resetting camera movie mode")
+        if proc.waitForFinished():
+            proc.terminate()
+
+if __name__ == "__main__":
+    import sys
+    from PyQt6.QtWidgets import QApplication
+    app = QApplication(sys.argv)
+
+    fs = 1
+    stream = CameraStreamer(fs=fs)
+    stream.setCameraData('Sony Alpha-A5100 (Control)', 'usb:001,011')
+    thread = QThread()
+    stream.moveToThread(thread)
+    thread.started.connect(stream.run)
+    thread.finished.connect(stream.quit)
+    thread.start()
+    while thread.isRunning():
+        ret, frame = stream.getFrame()
+        time.sleep(1)
+        print(type(frame))
+    stream.reset_camera()
+    sys.exit(app.exec())

@@ -1,12 +1,12 @@
 import subprocess
 import logging
 import logging.config
-from PyQt6.QtCore import QThread, QProcess
+from PyQt6.QtCore import QObject
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
-class CameraThread(QThread):
+class CameraThread(QObject):
     """
     A QThread subclass for capturing images from a camera using gphoto2.
 
@@ -173,4 +173,3 @@ class CameraThread(QThread):
         None
         """
         self._stopGphoto2Slaves()
-        super().quit()
