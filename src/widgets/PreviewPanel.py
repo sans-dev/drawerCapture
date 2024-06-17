@@ -76,7 +76,6 @@ class PreviewPanel(QLabel):
         self.cameraStreamer = CameraStreamer(fs=fs)
         self.imageCapture = ImageCapture()
         self.cameraData = None
-        self.timer = QTimer()        
         self.frame = None
         self.panel_res = panel_res
         self.fs = fs
@@ -114,10 +113,7 @@ class PreviewPanel(QLabel):
         Connects the signals of the PreviewPanel widget.
         """
         logger.debug("connecting signals for preview panel")
-        self.timer.timeout.connect(self.updatePreview)
-        
-        self.cameraStreamer.streamStopped.connect(self.timer.stop)
-        self.cameraStreamer.videoCapture.deviceOpen.connect(self.startTimer)
+        self.cameraStreamer.frame_ready.connect(self.updatePreview)
         self.cameraStreamer.buildingStream.connect(self.loadingSpinner.start)
         self.cameraStreamer.buildingStream.connect(self.loadingSpinner.show)
         self.cameraStreamer.streamRunning.connect(self.loadingSpinner.stop)
@@ -134,15 +130,11 @@ class PreviewPanel(QLabel):
     def set_text(self, text):
         self.label.setText(text)
 
-    def updatePreview(self):
+    def updatePreview(self, data):
         """
         Updates the preview panel with the latest frame from the camera stream.
         """
-        try:
-            ret, self.frame = self.cameraStreamer.getFrame()
-        except Exception as e:
-            logger.exception("failed to get frame from camera streamer: %s", e)
-            self.cameraStreamer.quit()
+        ret, self.frame = data
         if ret:
             try:
                 self.panel.set_image(self.frame)
@@ -158,19 +150,11 @@ class PreviewPanel(QLabel):
         logger.debug("starting preview")
         self.stream_thread.start()
 
-    def startTimer(self):
-        """
-        Starts the timer for updating the preview panel.
-        """
-        logger.debug("starting timer")
-        self.timer.start(1000//self.fs)
-
-    def stopPreview(self):
+    def pause_preview(self):
         """
         Stops the camera stream preview.
         """
         logger.debug("stopping preview")
-        self.timer.stop()
         self.panel.freeze()
         self.previewStopped.emit()
         
@@ -190,7 +174,7 @@ class PreviewPanel(QLabel):
         """
         logger.debug("capturing image")
         if self.stream_thread.isRunning:
-            self.stopPreview()
+            self.pause_preview()
             stream_waits = self.stream_thread.wait()
 
         self.capture_thread.start()
@@ -223,5 +207,6 @@ if __name__ == "__main__":
     if args.preview:
         window.setCameraData('Sony Alpha-A5100 (Control)', 'usb:001,018')
         window.startPreview()
+    app.processEvents()
     window.show()
     sys.exit(app.exec())

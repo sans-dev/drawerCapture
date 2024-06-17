@@ -2,7 +2,7 @@ import logging
 import logging.config
 import time
 
-from PyQt6.QtCore import pyqtSignal, QProcess, QThread
+from PyQt6.QtCore import pyqtSignal, QProcess, QThread, QTimer
 from pathlib import Path
 
 from src.threads.CameraThread import CameraThread
@@ -27,6 +27,7 @@ class CameraStreamer(CameraThread):
     streamRunning = pyqtSignal()
     buildingStream = pyqtSignal()
     streamStopped = pyqtSignal()
+    frame_ready = pyqtSignal(tuple)
 
     def __init__(self, fs, cameraData=None):
         """
@@ -51,6 +52,8 @@ class CameraStreamer(CameraThread):
         Starts the video stream.
 
         """
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.send_frame)
         logger.info("running camera streamer thread")
         self.wasRunning = True
         super()._stopGphoto2Slaves()
@@ -76,8 +79,10 @@ class CameraStreamer(CameraThread):
             if 'error' in "".join(self.error_log).lower():
                 print("baaaad")
             self.videoCapture.setVideoStreamDir(self.config['--dir'])
+            logger.debug("Starting Timer")
+            self.timer.start(1000//self.fs)
             self.videoCapture.start()
-
+    
     def quit(self):
         """
         Stops the video stream.
@@ -94,7 +99,7 @@ class CameraStreamer(CameraThread):
         self.proc = None
         super().quit()
 
-    def getFrame(self):
+    def send_frame(self):
         """
         Gets a frame from the video stream.
 
@@ -103,7 +108,7 @@ class CameraStreamer(CameraThread):
 
         """
         logger.debug("getting frame from videoCapture device")
-        return self.videoCapture.device.read()
+        return self.frame_ready.emit(self.videoCapture.device.read())
 
     def _getVideoStreamDir(self):
         """
