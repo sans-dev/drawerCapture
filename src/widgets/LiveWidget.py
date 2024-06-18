@@ -63,16 +63,21 @@ class LivePanel(QWidget):
 
     def connect_signals(self):
         self.startLivePreviewButton.clicked.connect(self.panel.startPreview)
+        self.stopLivePreviewButton.clicked.connect(self.panel.stop_preview)
+        self.captureImageButton.clicked.connect(self.panel.captureImage)
 
     def enable_capture_buttons(self):
         self.captureImageButton.setEnabled(True)
         self.startLivePreviewButton.setEnabled(True)
         self.stopLivePreviewButton.setEnabled(True)
 
-    def set_camera_data(self, camera_data):
+    def set_camera_data(self, camera_data): 
         self.model = camera_data.split('usb')[0].strip()
         self.port = f"usb{camera_data.split('usb')[-1].strip()}"
         self.panel.setCameraData(self.model, self.port)
+
+    def pause_preview(self):
+        self.panel.pause_preview()
 
 class LiveWidget(QWidget):
     changed = pyqtSignal(str)
@@ -142,7 +147,10 @@ class LiveWidget(QWidget):
 
     def stopPreview(self):
         logger.debug("stopping preview")
-        self.panel.stopPreview()
+        self.panel.stop_peview()
+
+    def pause_preview(self):
+        pass
 
     def closeLiveMode(self):
         logger.debug("closing live mode")

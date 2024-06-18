@@ -86,8 +86,8 @@ class PreviewPanel(QLabel):
         self.capture_thread.finished.connect(self.imageCapture.quit)
         self.cameraStreamer.moveToThread(self.stream_thread)
         self.stream_thread.started.connect(self.cameraStreamer.run)
+        # self.stream_thread.finished.connect(self.cameraStreamer.deleteLater)
         self.stream_thread.finished.connect(self.cameraStreamer.quit)
-        self.stream_thread.finished.connect(self.cameraStreamer.deleteLater)
         self.initUI()
         self.connectSignals()
 
@@ -113,7 +113,7 @@ class PreviewPanel(QLabel):
         Connects the signals of the PreviewPanel widget.
         """
         logger.debug("connecting signals for preview panel")
-        self.cameraStreamer.frame_ready.connect(self.updatePreview)
+        
         self.cameraStreamer.buildingStream.connect(self.loadingSpinner.start)
         self.cameraStreamer.buildingStream.connect(self.loadingSpinner.show)
         self.cameraStreamer.streamRunning.connect(self.loadingSpinner.stop)
@@ -147,14 +147,22 @@ class PreviewPanel(QLabel):
         """
         Starts the camera stream preview.
         """
+        self.cameraStreamer.frame_ready.connect(self.updatePreview)
         logger.debug("starting preview")
         self.stream_thread.start()
 
+    def stop_preview(self):   
+        if self.stream_thread.isRunning():
+            self.cameraStreamer.frame_ready.disconnect(self.updatePreview)
+            self.stream_thread.quit()
+        self.panel.clear_image()
+    
     def pause_preview(self):
         """
         Stops the camera stream preview.
         """
         logger.debug("stopping preview")
+        self.cameraStreamer.frame_ready.disconnect(self.updatePreview)
         self.panel.freeze()
         self.previewStopped.emit()
         
@@ -173,22 +181,17 @@ class PreviewPanel(QLabel):
         Captures an image from the camera stream.
         """
         logger.debug("capturing image")
-        if self.stream_thread.isRunning:
-            self.pause_preview()
-            stream_waits = self.stream_thread.wait()
-
         self.capture_thread.start()
-        
-        if stream_waits:
-            self.stream_thread.start()
+        if self.stream_thread.isRunning():
+            self.pause_preview()
 
     def close(self):
         """
         Closes the PreviewPanel widget.
         """
         logger.debug("quitting preview panel")
-        self.cameraStreamer.quit()
-        self.timer.stop()
+        self.stream_thread.quit()
+        self.capture_thread.quit()
         self.panel.clear_image()
         super().close()
 
@@ -203,7 +206,7 @@ if __name__ == "__main__":
     parser.add_argument('--preview', action='store_true')
     args = parser.parse_args()
     app = QApplication(sys.argv)
-    window = PreviewPanel(fs=1, panel_res= (1024, 780))
+    window = PreviewPanel(fs=10, panel_res= (1024, 780))
     if args.preview:
         window.setCameraData('Sony Alpha-A5100 (Control)', 'usb:001,018')
         window.startPreview()

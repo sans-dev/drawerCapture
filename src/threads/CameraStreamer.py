@@ -90,10 +90,11 @@ class CameraStreamer(CameraThread):
         """
         logger.info("quitting camera streamer thread")
         self.wasRunning = False
+        self.timer.stop()
         if self.proc:
             logger.info("stopping video stream process")
             self.proc.terminate()
-            self.proc.waitForFinished()
+            self.proc.waitForFinished(1000)
             self.videoCapture.quit()
         self.streamStopped.emit()
         self.proc = None
