@@ -23,6 +23,8 @@ class ImageCapture(CameraThread):
     imageCaptured = pyqtSignal(str)
     failed_signal = pyqtSignal(str)
     finished = pyqtSignal()
+    started = pyqtSignal()
+    isReady = pyqtSignal(bool)
 
     def __init__(self, cameraData=None):
         super().__init__(cameraData=cameraData)
@@ -37,13 +39,15 @@ class ImageCapture(CameraThread):
         Runs the image capture thread.
         """
         logger.info("running image capture thread")
+        self.started.emit()
         self._captureImage()
+        self.finished.emit()
+        self.isReady.emit(True)
 
     def _captureImage(self):
         self.proc = QProcess()
         self.proc.readyReadStandardError.connect(self.printStdErr)
         self.proc.readyReadStandardOutput.connect(self.printStdOut)
-        self.proc.finished.connect(self.quit)
 
         if self.proc.state() is not QProcess.ProcessState.NotRunning:
             logger.warning("image capture process already running")
@@ -51,6 +55,7 @@ class ImageCapture(CameraThread):
             return
 
         logger.debug("starting image capture process")
+        self.set_image_name()
         self.proc.start(self.cmd, self._buildKwargs())
 
         if not self.proc.waitForStarted():
@@ -72,10 +77,10 @@ class ImageCapture(CameraThread):
         logger.warning(message)
         self.failed_signal.emit(message)
         
-    def set_image_name(self, name):
-        self.config['--image_name'] = name
+    def set_image_name(self):
+        self.config['--image_name'] = datetime.now().isoformat().replace(':','_').replace('.','-')
 
-    def set_img_dir(self, dir):
+    def set_image_dir(self, dir):
         self.config['--image_dir'] = dir
 
     def quit(self):
@@ -84,7 +89,6 @@ class ImageCapture(CameraThread):
         """
         logger.info("quitting image capture worker")
         self.proc.terminate()
-        self.finished.emit()
 
 def handle_capture(response):
     print(response)
@@ -97,8 +101,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     capture = ImageCapture()
     capture.setCameraData('Sony Alpha-A5100 (Control)', 'usb:001,015')
-    capture.set_image_name(datetime.now().isoformat().replace(':','_').replace('.','-'))
-    capture.set_img_dir('data/captures')
+    capture.set_image_dir('data/captures')
     thread = QThread()
     capture.moveToThread(thread)
     thread.finished.connect(capture.deleteLater)

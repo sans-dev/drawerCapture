@@ -134,7 +134,7 @@ class CameraThread(QObject):
         None
         """
         self.error_log.append(self.proc.readAllStandardOutput().data().decode('utf-8'))
-        print(self.error_log[-1])
+        print(self.error_log.pop(-1))
 
     def printStdErr(self):
         """
@@ -145,7 +145,7 @@ class CameraThread(QObject):
         None
         """
         self.error_log.append(self.proc.readAllStandardError().data().decode('utf-8'))
-        print(self.error_log[-1])
+        print(self.error_log.pop(-1))
 
     def get_std_err(self):
         """

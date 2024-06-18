@@ -131,26 +131,6 @@ class LiveWidget(QWidget):
         config['--image_name'] = datetime.now().isoformat().replace(':','_').replace('.','-')
         config['--image_dir'] = 'data/captures/' 
         return config
-    
-    def captureImage(self):
-        logger.debug("capturing image")
-        config = self.buildConfig()
-        self.panel.captureImage(config)
-
-    def imageCaptured(self, imageName):
-        logger.debug("image captured")
-        self.image_widget.setImage(imageName)
-
-    def startPreview(self):
-        logger.debug("starting preview")
-        self.panel.startPreview()
-
-    def stopPreview(self):
-        logger.debug("stopping preview")
-        self.panel.stop_peview()
-
-    def pause_preview(self):
-        pass
 
     def closeLiveMode(self):
         logger.debug("closing live mode")

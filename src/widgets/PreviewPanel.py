@@ -75,10 +75,12 @@ class PreviewPanel(QLabel):
         self.panel = Panel(panel_res)
         self.cameraStreamer = CameraStreamer(fs=fs)
         self.imageCapture = ImageCapture()
+        self.imageCapture.set_image_dir('data/captures')
         self.cameraData = None
         self.frame = None
         self.panel_res = panel_res
         self.fs = fs
+        self.is_capture_ready = False
         self.capture_thread = QThread() 
         self.stream_thread = QThread()
         self.imageCapture.moveToThread(self.capture_thread)
@@ -119,13 +121,13 @@ class PreviewPanel(QLabel):
         self.cameraStreamer.streamRunning.connect(self.loadingSpinner.stop)
         self.cameraStreamer.streamRunning.connect(self.loadingSpinner.hide)
 
-        self.capture_thread.started.connect(self.loadingSpinner.start)
-        self.capture_thread.started.connect(self.loadingSpinner.show)
-        self.capture_thread.finished.connect(self.loadingSpinner.stop)
-        self.capture_thread.finished.connect(self.loadingSpinner.hide)
-
-        self.previewStopped.connect(self.loadingSpinner.stop)
-        self.previewStopped.connect(self.loadingSpinner.hide)
+        self.imageCapture.isReady.connect(self.set_is_capture_ready)
+        self.imageCapture.started.connect(self.loadingSpinner.start)
+        self.imageCapture.started.connect(self.loadingSpinner.show)
+        self.imageCapture.finished.connect(self.loadingSpinner.stop)
+        self.imageCapture.finished.connect(self.loadingSpinner.hide)
+        self.imageCapture.finished.connect(self.capture_thread.quit)
+        self.imageCapture.finished.connect(self.restart_stream)
 
     def set_text(self, text):
         self.label.setText(text)
@@ -155,17 +157,26 @@ class PreviewPanel(QLabel):
         if self.stream_thread.isRunning():
             self.cameraStreamer.frame_ready.disconnect(self.updatePreview)
             self.stream_thread.quit()
-        self.panel.clear_image()
-    
-    def pause_preview(self):
-        """
-        Stops the camera stream preview.
-        """
-        logger.debug("stopping preview")
-        self.cameraStreamer.frame_ready.disconnect(self.updatePreview)
+            self.stream_thread.wait()
         self.panel.freeze()
-        self.previewStopped.emit()
-        
+
+    def captureImage(self):
+        """
+        Captures an image from the camera stream.
+        """
+        logger.debug("capturing image")
+        self.is_streaming = self.stream_thread.isRunning()
+        if self.is_streaming:
+            self.stop_preview()  
+        self.capture_thread.start()
+
+    def restart_stream(self):
+        if self.is_streaming:
+            while not self.is_capture_ready:
+                continue
+            self.startPreview()
+        self.is_capture_ready = False
+
     def setCameraData(self, model, port):
         """
         Sets the camera data for the camera stream.
@@ -176,14 +187,8 @@ class PreviewPanel(QLabel):
         self.cameraStreamer.setCameraData(model, port)
         self.imageCapture.setCameraData(model, port)
 
-    def captureImage(self):
-        """
-        Captures an image from the camera stream.
-        """
-        logger.debug("capturing image")
-        self.capture_thread.start()
-        if self.stream_thread.isRunning():
-            self.pause_preview()
+    def set_is_capture_ready(self, is_ready):
+        self.is_capture_ready = is_ready
 
     def close(self):
         """
