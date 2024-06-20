@@ -38,21 +38,21 @@ class LivePanel(QWidget):
         # add select camera button
         self.selectCameraButton = PanelButton("Select Camera", button_height, button_width_range, True)
         # add capture image button
-        self.captureImageButton = PanelButton("Capture Image", button_height, button_width_range)
+        self.capture_image_button = PanelButton("Capture Image", button_height, button_width_range)
         # add a disabled button to start live preview
-        self.startLivePreviewButton = PanelButton("Start Live Preview", button_height, button_width_range)
+        self.start_stream_button = PanelButton("Start Live Preview", button_height, button_width_range)
         # add a stop preview button at the bottom of the preview panel
-        self.stopLivePreviewButton = PanelButton("Stop Live Preview", button_height, button_width_range)
+        self.stop_stream_button = PanelButton("Stop Live Preview", button_height, button_width_range)
         # add an close button
-        self.closeButton = PanelButton("Close", button_height, button_width_range, True)
+        self.close_button = PanelButton("Close", button_height, button_width_range, True)
 
         # Arrange buttons in a vertical layout
         button_layout = QVBoxLayout()
         button_layout.addWidget(self.selectCameraButton, alignment=Qt.AlignmentFlag.AlignHCenter)
-        button_layout.addWidget(self.captureImageButton, alignment=Qt.AlignmentFlag.AlignHCenter)
-        button_layout.addWidget(self.startLivePreviewButton, alignment=Qt.AlignmentFlag.AlignHCenter)
-        button_layout.addWidget(self.stopLivePreviewButton, alignment=Qt.AlignmentFlag.AlignHCenter)
-        button_layout.addWidget(self.closeButton, alignment=Qt.AlignmentFlag.AlignHCenter)
+        button_layout.addWidget(self.capture_image_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        button_layout.addWidget(self.start_stream_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        button_layout.addWidget(self.stop_stream_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        button_layout.addWidget(self.close_button, alignment=Qt.AlignmentFlag.AlignHCenter)
         button_layout.setSpacing(6)
         spacer = QSpacerItem(20, 50, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
 
@@ -62,19 +62,19 @@ class LivePanel(QWidget):
         self.setLayout(layout)
 
     def connect_signals(self):
-        self.startLivePreviewButton.clicked.connect(self.panel.startPreview)
-        self.stopLivePreviewButton.clicked.connect(self.panel.stop_preview)
-        self.captureImageButton.clicked.connect(self.panel.captureImage)
+        self.start_stream_button.clicked.connect(self.panel.start_stream)
+        self.stop_stream_button.clicked.connect(self.panel.stop_stream)
+        self.capture_image_button.clicked.connect(self.panel.capture_image)
 
     def enable_capture_buttons(self):
-        self.captureImageButton.setEnabled(True)
-        self.startLivePreviewButton.setEnabled(True)
-        self.stopLivePreviewButton.setEnabled(True)
+        self.capture_image_button.setEnabled(True)
+        self.start_stream_button.setEnabled(True)
+        self.stop_stream_button.setEnabled(True)
 
     def set_camera_data(self, camera_data): 
         self.model = camera_data.split('usb')[0].strip()
         self.port = f"usb{camera_data.split('usb')[-1].strip()}"
-        self.panel.setCameraData(self.model, self.port)
+        self.panel.set_camera_data(self.model, self.port)
 
     def pause_preview(self):
         self.panel.pause_preview()

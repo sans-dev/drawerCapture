@@ -5,13 +5,13 @@ import time
 from PyQt6.QtCore import pyqtSignal, QProcess, QThread, QTimer
 from pathlib import Path
 
-from src.threads.CameraThread import CameraThread
+from src.threads.CameraThread import CameraWorker
 from src.threads.VideoCaptureDevice import VideoCaptureDevice
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
-class CameraStreamer(CameraThread):
+class CameraStreamer(CameraWorker):
     """
     A thread that streams video from a camera device.
 
@@ -44,8 +44,11 @@ class CameraStreamer(CameraThread):
         self.config['--script'] = 'src/cmds/open_video_stream.bash'
         self.config['--dir'] = self._getVideoStreamDir().as_posix()
         self.config['--fs'] = str(fs)
-        self.videoCapture.deviceOpen.connect(self.streamRunning.emit)
         self.wasRunning = False
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.videoCapture.deviceOpen.connect(self.streamRunning.emit)
 
     def run(self):
         """

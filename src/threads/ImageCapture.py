@@ -4,11 +4,11 @@ logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False
 
 from datetime import datetime
 from PyQt6.QtCore import pyqtSignal, QProcess
-from src.threads.CameraThread import CameraThread
+from src.threads.CameraThread import CameraWorker
 
 logger = logging.getLogger(__name__)
 
-class ImageCapture(CameraThread):
+class ImageCapture(CameraWorker):
     """
     A thread for capturing images from a camera.
 
@@ -24,7 +24,7 @@ class ImageCapture(CameraThread):
     failed_signal = pyqtSignal(str)
     finished = pyqtSignal()
     started = pyqtSignal()
-    isReady = pyqtSignal(bool)
+    is_ready = pyqtSignal(bool)
 
     def __init__(self, cameraData=None):
         super().__init__(cameraData=cameraData)
@@ -42,7 +42,7 @@ class ImageCapture(CameraThread):
         self.started.emit()
         self._captureImage()
         self.finished.emit()
-        self.isReady.emit(True)
+        self.is_ready.emit(True)
 
     def _captureImage(self):
         self.proc = QProcess()

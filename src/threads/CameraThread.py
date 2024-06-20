@@ -6,7 +6,7 @@ from PyQt6.QtCore import QObject
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
-class CameraThread(QObject):
+class CameraWorker(QObject):
     """
     A QThread subclass for capturing images from a camera using gphoto2.
 
