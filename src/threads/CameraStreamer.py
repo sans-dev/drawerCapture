@@ -2,14 +2,18 @@ import logging
 import logging.config
 import time
 
-from PyQt6.QtCore import pyqtSignal, QProcess, QThread, QTimer
+from PyQt6.QtCore import pyqtSignal, QProcess, QThread, QObject
 from pathlib import Path
 
 from src.threads.CameraThread import CameraWorker
-from src.threads.VideoCaptureDevice import VideoCaptureDevice
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
+
+
+class CameraStreamerSignals(QObject):
+    building_stream = pyqtSignal()
+    stream_enabled = pyqtSignal(str)
 
 class CameraStreamer(CameraWorker):
     """
@@ -24,10 +28,7 @@ class CameraStreamer(CameraWorker):
         cameraData (dict): A dictionary containing information about the camera device.
 
     """
-    streamRunning = pyqtSignal()
-    buildingStream = pyqtSignal()
-    streamStopped = pyqtSignal()
-    frame_ready = pyqtSignal(tuple)
+    signals = CameraStreamerSignals()
 
     def __init__(self, fs, cameraData=None):
         """
@@ -40,52 +41,51 @@ class CameraStreamer(CameraWorker):
         logger.debug("initializing camera streamer")
         super().__init__(cameraData=cameraData)
         self.fs = fs # sampling fqequency in milliseconds
-        self.videoCapture = VideoCaptureDevice()
         self.config['--script'] = 'src/cmds/open_video_stream.bash'
-        self.config['--dir'] = self._getVideoStreamDir().as_posix()
+        self.config['--dir'] = self._get_device_dir().as_posix()
         self.config['--fs'] = str(fs)
-        self.wasRunning = False
-        self.connect_signals()
-
-    def connect_signals(self):
-        self.videoCapture.deviceOpen.connect(self.streamRunning.emit)
+        self.running = False
 
     def run(self):
         """
-        Starts the video stream.
+        Enable connection to camera
 
         """
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.send_frame)
         logger.info("running camera streamer thread")
-        self.wasRunning = True
-        super()._stopGphoto2Slaves()
         if not self.proc:
-            logger.debug("emitting building stream signal and  configuring process")
-            self.buildingStream.emit()
+            logger.debug("emitting building stream signal and configuring process")
+            self.signals.building_stream.emit()
             self.proc = QProcess()
             self.proc.readyReadStandardOutput.connect(self.printStdOut)
             self.proc.setCurrentReadChannel(1)
             self.proc.readyReadStandardError.connect(self.printStdErr)
 
             logger.debug("starting video stream process")
-            print("================ RUN CMD IN SUBPROC =================")
-            print(" ".join(self._buildKwargs()))
+            logger.info("================ RUN CMD IN SUBPROC =================")
+            logger.info(" ".join(self._buildKwargs()))
             self.proc.start('bash', self._buildKwargs())
 
             started = self.proc.waitForStarted()
             if not started:
                 logger.error("failed to start video stream process")
                 self.quit()
+
             self.proc.waitForReadyRead(-1)
-            logger.info("Output stream ready")
+            time.sleep(6)
             if 'error' in "".join(self.error_log).lower():
-                print("baaaad")
-            self.videoCapture.setVideoStreamDir(self.config['--dir'])
-            logger.debug("Starting Timer")
-            self.timer.start(1000//self.fs)
-            self.videoCapture.start()
-    
+                logger.warning(f"Error trying to connect to camera. {self.error_log}")
+                self.quit()
+
+            logger.info("Camera connected")
+            self.signals.stream_enabled.emit(self.config['--dir'])
+            self.running = True
+            while self.running:
+                continue
+            self.quit()
+
+    def stop_running(self):
+        self.running = False
+
     def quit(self):
         """
         Stops the video stream.
@@ -93,28 +93,22 @@ class CameraStreamer(CameraWorker):
         """
         logger.info("quitting camera streamer thread")
         self.wasRunning = False
-        self.timer.stop()
         if self.proc:
             logger.info("stopping video stream process")
             self.proc.terminate()
             self.proc.waitForFinished(1000)
-            self.videoCapture.quit()
-        self.streamStopped.emit()
         self.proc = None
+        self.reset_camera()
         super().quit()
 
-    def send_frame(self):
-        """
-        Gets a frame from the video stream.
+    def reset_camera(self):
+        proc = QProcess()
+        proc.start('gphoto2', ['--set-config','movie=0'])
+        logger.info("resetting camera movie mode")
+        if proc.waitForFinished():
+            proc.terminate()
 
-        Returns:
-            numpy.ndarray: A frame from the video stream.
-
-        """
-        logger.debug("getting frame from videoCapture device")
-        return self.frame_ready.emit(self.videoCapture.device.read())
-
-    def _getVideoStreamDir(self):
+    def _get_device_dir(self):
         """
         Gets the directory of the video stream.
 
@@ -137,12 +131,7 @@ class CameraStreamer(CameraWorker):
                     return Path(lines[idx + 1].strip())
         return None
     
-    def reset_camera(self):
-        proc = QProcess()
-        proc.start('gphoto2', ['--set-config','movie=0'])
-        logger.info("resetting camera movie mode")
-        if proc.waitForFinished():
-            proc.terminate()
+
 
 if __name__ == "__main__":
     import sys
@@ -158,6 +147,8 @@ if __name__ == "__main__":
     thread.finished.connect(stream.quit)
     thread.finished.connect(stream.deleteLater)
     thread.start()
+
+
     while thread.isRunning():
         ret, frame = stream.getFrame()
         time.sleep(1/fs)

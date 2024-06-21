@@ -3,12 +3,15 @@ import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 
 import cv2
-
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import QRunnable, pyqtSignal, QObject, QTimer
 
 logger = logging.getLogger(__name__)
 
-class VideoCaptureDevice(QThread):
+
+class VideoDeviceSignals(QObject):
+    device_open = pyqtSignal()
+
+class VideoCaptureDevice(QRunnable):
     """
     A class representing a video capture device.
 
@@ -22,12 +25,14 @@ class VideoCaptureDevice(QThread):
     - setVideoStreamDir(videoStreamDir): Sets the directory of the video stream.
     - quit(): Quits the video capture device thread and releases the video stream device.
     """
-    deviceOpen = pyqtSignal()
+    signals = VideoDeviceSignals()
 
-    def __init__(self):
+    def __init__(self, fs):
         super().__init__()
         self.device = cv2.VideoCapture()
-        self.videoStreamDir = None
+        self.device_dir = None
+        self.fs = fs
+        self.running = False
 
     def run(self):
         """
@@ -38,26 +43,45 @@ class VideoCaptureDevice(QThread):
         If the device is already open, it logs a message and returns.
         """
         
-        if self.videoStreamDir is None:
+        if self.device_dir is None:
             logger.debug("video stream dir not set")
             return
         if not self.device.isOpened():
-            logger.info("opening video stream device at %s", self.videoStreamDir)
-            self.device.open(self.videoStreamDir)
-            self.deviceOpen.emit()
+            logger.info("opening video stream device at %s", self.device_dir)
+            self.signals.device_open.emit()
+            self.device.open(self.device_dir)
+            logger.info("Connected to device")
+            self.running = True
+            while self.running:
+                continue
+            self.quit()
         else:
             logger.info("video stream device already open")
 
-    def setVideoStreamDir(self, videoStreamDir):
+    def stop_device(self):
+        self.running = False
+
+    def set_device_dir(self, device_dir):
         """
         Sets the directory for the video stream.
 
         Args:
             videoStreamDir (str): The directory for the video stream.
         """
-        logger.debug("setting video stream dir to %s", videoStreamDir)
-        self.videoStreamDir = videoStreamDir
+        logger.debug("setting video stream dir to %s", device_dir)
+        self.device_dir = device_dir
 
+    def get_frame(self):
+        """
+        Gets a frame from the video stream.
+
+        Returns:
+            numpy.ndarray: A frame from the video stream.
+
+        """
+        logger.debug("getting frame from videoCapture device")
+        return self.device.read()
+    
     def quit(self):
         """
         Quits the video capture device thread and releases the video stream device if it is open.
@@ -66,4 +90,3 @@ class VideoCaptureDevice(QThread):
         if self.device.isOpened():
             logger.info("closing video stream device")
             self.device.release()
-        super().quit()

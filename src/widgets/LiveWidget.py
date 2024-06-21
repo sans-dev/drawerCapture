@@ -4,7 +4,7 @@ import logging
 import logging.config
 
 from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QVBoxLayout, QLabel, QMessageBox, QStackedLayout, QHBoxLayout, QStackedWidget, QButtonGroup, QSpacerItem, QSizePolicy
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QRect
 
 from src.widgets.SelectCameraListWidget import SelectCameraListWidget
 from src.widgets.PreviewPanel import PreviewPanel
@@ -98,7 +98,6 @@ class LiveWidget(QWidget):
         logger.debug("initializing live widget UI")
 
         self.setWindowTitle("Capture Mode")
-
         self._layout = QStackedLayout()
         self._layout.addWidget(self.panel)
         self._layout.addWidget(self.camera_fetcher)
@@ -157,6 +156,6 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     db_adapter = DBAdapter(DummyDB())
 
-    window = LiveWidget(db_adapter, taxonomy, geo_data_dir, fs=1, panel_res=(1024,780))
-    window.show()
+    window = LiveWidget(db_adapter, taxonomy, geo_data_dir, fs=5, panel_res=(1024,780))
+    window.showFullScreen()
     sys.exit(app.exec())

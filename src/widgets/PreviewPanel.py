@@ -8,6 +8,7 @@ import cv2
 
 
 from src.threads.CameraStreamer import CameraStreamer
+from src.threads.VideoCaptureDevice import VideoCaptureDevice
 from src.threads.ImageCapture import ImageCapture
 from src.widgets.SpinnerWidget import LoadingSpinner
 
@@ -75,14 +76,16 @@ class PreviewPanel(QLabel):
         self.panel = Panel(panel_res)
         self.camera_streamer = CameraStreamer(fs=fs)
         self.image_capture = ImageCapture()
+        self.video_device = VideoCaptureDevice(fs=fs)
         self.image_capture.set_image_dir('data/captures')
         self.camera_data = None
         self.frame = None
         self.panel_res = panel_res
         self.fs = fs
         self.is_streaming = False
+        self.timer = QTimer()
         self.thread_pool = QThreadPool()
-        self.thread_pool.setMaxThreadCount(1)
+        self.thread_pool.setMaxThreadCount(2)
         self.init_ui()
         self.connect_signals()
 
@@ -107,23 +110,33 @@ class PreviewPanel(QLabel):
         Connects the signals of the PreviewPanel widget.
         """
         logger.debug("connecting signals for preview panel")
+        self.timer.timeout.connect(self.update_panel)
+        self.video_device.signals.device_open.connect(self.update_panel)
+        self.camera_streamer.signals.building_stream.connect(self.loadingSpinner.start)
+        self.camera_streamer.signals.building_stream.connect(self.loadingSpinner.show)
+        self.camera_streamer.signals.stream_enabled.connect(self.connect_video_device)
+        self.video_device.signals.device_open.connect(self.start_timer)
+        self.video_device.signals.device_open.connect(self.loadingSpinner.stop)
+        self.video_device.signals.device_open.connect(self.loadingSpinner.hide)
+        # self.image_capture.started.connect(self.loadingSpinner.start)
+        # self.image_capture.started.connect(self.loadingSpinner.show)
+        # self.image_capture.finished.connect(self.loadingSpinner.stop)
+        # self.image_capture.finished.connect(self.loadingSpinner.hide)
+        # self.image_capture.is_ready.connect(self.restart_stream)
 
-        self.camera_streamer.frame_ready.connect(self.update_panel)
-        self.camera_streamer.buildingStream.connect(self.loadingSpinner.start)
-        self.camera_streamer.buildingStream.connect(self.loadingSpinner.show)
-        self.camera_streamer.streamRunning.connect(self.loadingSpinner.stop)
-        self.camera_streamer.streamRunning.connect(self.loadingSpinner.hide)
+        self.stop_stream_signal.connect(self.camera_streamer.stop_running)
+        self.stop_stream_signal.connect(self.video_device.stop_device)
 
-        self.image_capture.started.connect(self.loadingSpinner.start)
-        self.image_capture.started.connect(self.loadingSpinner.show)
-        self.image_capture.finished.connect(self.loadingSpinner.stop)
-        self.image_capture.finished.connect(self.loadingSpinner.hide)
-        self.image_capture.is_ready.connect(self.restart_stream)
+    def start_timer(self):
+        logger.info(f"starting timer with {1000 // self.fs} msec interval")
+        self.timer.start(1000 // self.fs)
 
-        self.stop_stream_signal.connect(self.camera_streamer.quit)
-        
     def set_text(self, text):
         self.label.setText(text)
+
+    def connect_video_device(self, device_dir):
+        self.video_device.set_device_dir(device_dir=device_dir)
+        self.thread_pool.start(self.video_device)
 
     def start_stream(self):
         """
@@ -131,11 +144,11 @@ class PreviewPanel(QLabel):
         """
         
         logger.debug("starting preview")
-        self.thread_pool.start(self.camera_streamer.run)
+        self.thread_pool.start(self.camera_streamer)
 
     def restart_stream(self, is_ready):
         if is_ready and self.is_streaming:
-            self.thread_pool.start(self.camera_streamer.run)
+            self.thread_pool.start(self.camera_streamer)
 
     def stop_stream(self):   
         self.stop_stream_signal.emit()
@@ -161,11 +174,11 @@ class PreviewPanel(QLabel):
     def set_is_capture_ready(self, is_ready):
         self.is_capture_ready = is_ready
 
-    def update_panel(self, data):
+    def update_panel(self):
         """
         Updates the preview panel with the latest frame from the camera stream.
         """
-        ret, self.frame = data
+        ret, self.frame = self.video_device.get_frame()
         if ret:
             try:
                 self.panel.set_image(self.frame)
