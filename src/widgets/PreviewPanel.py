@@ -2,7 +2,7 @@ import logging
 import logging.config
 
 from PyQt6.QtWidgets import QLabel, QGridLayout, QVBoxLayout
-from PyQt6.QtCore import QTimer, pyqtSignal, Qt, QThreadPool
+from PyQt6.QtCore import QTimer, pyqtSignal, Qt, QThreadPool, pyqtSlot
 from PyQt6.QtGui import QImage, QPixmap
 import cv2
 
@@ -74,18 +74,14 @@ class PreviewPanel(QLabel):
         super().__init__()
         self.label = QLabel("No camera selected")
         self.panel = Panel(panel_res)
-        self.camera_streamer = CameraStreamer(fs=fs)
-        self.image_capture = ImageCapture()
-        self.video_device = VideoCaptureDevice(fs=fs)
-        self.image_capture.set_image_dir('data/captures')
         self.camera_data = None
         self.frame = None
         self.panel_res = panel_res
         self.fs = fs
         self.is_streaming = False
-        self.timer = QTimer()
+        self.img_dir = 'data/captures'
         self.thread_pool = QThreadPool()
-        self.thread_pool.setMaxThreadCount(2)
+        
         self.init_ui()
         self.connect_signals()
 
@@ -110,75 +106,82 @@ class PreviewPanel(QLabel):
         Connects the signals of the PreviewPanel widget.
         """
         logger.debug("connecting signals for preview panel")
-        self.timer.timeout.connect(self.update_panel)
-        self.video_device.signals.device_open.connect(self.update_panel)
-        self.camera_streamer.signals.building_stream.connect(self.loadingSpinner.start)
-        self.camera_streamer.signals.building_stream.connect(self.loadingSpinner.show)
-        self.camera_streamer.signals.stream_enabled.connect(self.connect_video_device)
-        self.video_device.signals.device_open.connect(self.start_timer)
-        self.video_device.signals.device_open.connect(self.loadingSpinner.stop)
-        self.video_device.signals.device_open.connect(self.loadingSpinner.hide)
-        # self.image_capture.started.connect(self.loadingSpinner.start)
-        # self.image_capture.started.connect(self.loadingSpinner.show)
-        # self.image_capture.finished.connect(self.loadingSpinner.stop)
-        # self.image_capture.finished.connect(self.loadingSpinner.hide)
-        # self.image_capture.is_ready.connect(self.restart_stream)
-
-        self.stop_stream_signal.connect(self.camera_streamer.stop_running)
-        self.stop_stream_signal.connect(self.video_device.stop_device)
-
-    def start_timer(self):
-        logger.info(f"starting timer with {1000 // self.fs} msec interval")
-        self.timer.start(1000 // self.fs)
+        # self.timer.timeout.connect(self.update_panel)
 
     def set_text(self, text):
         self.label.setText(text)
 
     def connect_video_device(self, device_dir):
-        self.video_device.set_device_dir(device_dir=device_dir)
+        logger.info("connecting to video device dir")
+        self.video_device = VideoCaptureDevice(self.fs, device_dir)
+        self.video_device.signals.send_frame.connect(self.update_panel)
+        self.video_device.signals.device_open.connect(self.loadingSpinner.stop)
+        self.video_device.signals.device_open.connect(self.loadingSpinner.hide)
+        self.stop_stream_signal.connect(self.video_device.quit)
         self.thread_pool.start(self.video_device)
 
     def start_stream(self):
         """
         Starts the camera stream preview.
         """
-        
         logger.debug("starting preview")
+        self.camera_streamer = CameraStreamer(self.fs)
+        self.camera_streamer.set_camera_data(self.model, self.port)
+        self.camera_streamer.signals.building_stream.connect(self.loadingSpinner.start)
+        self.camera_streamer.signals.building_stream.connect(self.loadingSpinner.show)
+        self.camera_streamer.signals.stream_enabled.connect(self.connect_video_device)
+        self.stop_stream_signal.connect(self.camera_streamer.stop_running)
         self.thread_pool.start(self.camera_streamer)
 
-    def restart_stream(self, is_ready):
-        if is_ready and self.is_streaming:
-            self.thread_pool.start(self.camera_streamer)
-
-    def stop_stream(self):   
+    def restart_stream(self):
+        if self.is_streaming:
+            self.start_stream()
+        
+    def stop_stream(self):
         self.stop_stream_signal.emit()
         self.is_streaming = False
+        self.panel.freeze()
 
     def capture_image(self):
         """
         Captures an image from the camera stream.
         """
-        self.camera_streamer.quit()
+        self.image_capture = ImageCapture()
+        self.image_capture.set_camera_data(self.model, self.port)
+        self.image_capture.set_image_dir(self.img_dir)
+        self.image_capture.signals.started.connect(self.loadingSpinner.start)
+        self.image_capture.signals.started.connect(self.loadingSpinner.show)
+        self.image_capture.signals.finished.connect(self.loadingSpinner.stop)
+        self.image_capture.signals.finished.connect(self.loadingSpinner.hide)
+        self.image_capture.signals.finished.connect(self.restart_stream)
+        self.panel.freeze()
+        print(self.thread_pool.activeThreadCount())
+        while self.thread_pool.activeThreadCount() > 0:
+            self.stop_stream_signal.emit()
+        print(self.thread_pool.activeThreadCount())
+        self.thread_pool.setMaxThreadCount(1)
         self.thread_pool.start(self.image_capture)
 
-    def set_camera_data(self, model, port):
+    def set_camera_data(self, model=None, port=None):
         """
         Sets the camera data for the camera stream.
         """
+        # Log the setting of camera data
         logger.info(f"setting camera data: {model=}, {port=}")
+
+        # Set instance attributes
         self.model = model
         self.port = port
-        self.camera_streamer.setCameraData(model, port)
-        self.image_capture.setCameraData(model, port)
 
     def set_is_capture_ready(self, is_ready):
         self.is_capture_ready = is_ready
 
-    def update_panel(self):
+    @pyqtSlot(tuple)
+    def update_panel(self, data):
         """
         Updates the preview panel with the latest frame from the camera stream.
         """
-        ret, self.frame = self.video_device.get_frame()
+        ret, self.frame = data
         if ret:
             try:
                 self.panel.set_image(self.frame)

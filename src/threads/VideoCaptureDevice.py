@@ -3,13 +3,14 @@ import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 
 import cv2
-from PyQt6.QtCore import QRunnable, pyqtSignal, QObject, QTimer
-
+from PyQt6.QtCore import QRunnable, pyqtSignal, QObject
+import time
 logger = logging.getLogger(__name__)
 
 
 class VideoDeviceSignals(QObject):
     device_open = pyqtSignal()
+    send_frame = pyqtSignal(tuple)
 
 class VideoCaptureDevice(QRunnable):
     """
@@ -27,12 +28,12 @@ class VideoCaptureDevice(QRunnable):
     """
     signals = VideoDeviceSignals()
 
-    def __init__(self, fs):
+    def __init__(self, fs, device_dir=None):
         super().__init__()
-        self.device = cv2.VideoCapture()
         self.device_dir = None
         self.fs = fs
         self.running = False
+        self.device_dir = device_dir
 
     def run(self):
         """
@@ -42,51 +43,24 @@ class VideoCaptureDevice(QRunnable):
         If the device is not opened, it opens the video stream device at the specified directory and emits a signal.
         If the device is already open, it logs a message and returns.
         """
-        
+        time.sleep(2)
+        self.signals.device_open.emit()
         if self.device_dir is None:
-            logger.debug("video stream dir not set")
-            return
-        if not self.device.isOpened():
-            logger.info("opening video stream device at %s", self.device_dir)
-            self.signals.device_open.emit()
-            self.device.open(self.device_dir)
-            logger.info("Connected to device")
-            self.running = True
-            while self.running:
-                continue
-            self.quit()
+            logger.debug(f"video stream dir not set. Setting default device {0}")
+            cap = cv2.VideoCapture(0, cv2.CAP_V4L)
         else:
-            logger.info("video stream device already open")
+            logger.debug(f"Opening device at {self.device_dir}")
+            cap = cv2.VideoCapture(self.device_dir)
+        if cap.isOpened():
+            self.device_open = cap.isOpened()
+            
+            while self.device_open:
+                out = cap.read()
+                self.signals.send_frame.emit(out)
+            logger.debug(f"releasing video device...")
+            cap.release()
+        else:
+            logger.debug("Cannot open device...")
 
-    def stop_device(self):
-        self.running = False
-
-    def set_device_dir(self, device_dir):
-        """
-        Sets the directory for the video stream.
-
-        Args:
-            videoStreamDir (str): The directory for the video stream.
-        """
-        logger.debug("setting video stream dir to %s", device_dir)
-        self.device_dir = device_dir
-
-    def get_frame(self):
-        """
-        Gets a frame from the video stream.
-
-        Returns:
-            numpy.ndarray: A frame from the video stream.
-
-        """
-        logger.debug("getting frame from videoCapture device")
-        return self.device.read()
-    
     def quit(self):
-        """
-        Quits the video capture device thread and releases the video stream device if it is open.
-        """
-        logger.info("quitting video capture device thread")
-        if self.device.isOpened():
-            logger.info("closing video stream device")
-            self.device.release()
+        self.device_open = False

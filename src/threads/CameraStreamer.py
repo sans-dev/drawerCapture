@@ -93,10 +93,9 @@ class CameraStreamer(CameraWorker):
         """
         logger.info("quitting camera streamer thread")
         self.wasRunning = False
-        if self.proc:
-            logger.info("stopping video stream process")
-            self.proc.terminate()
-            self.proc.waitForFinished(1000)
+        logger.info("stopping video stream process")
+        self.proc.terminate()
+        self.proc.waitForFinished(1000)
         self.proc = None
         self.reset_camera()
         super().quit()
@@ -140,7 +139,7 @@ if __name__ == "__main__":
 
     fs = 1
     stream = CameraStreamer(fs=fs)
-    stream.setCameraData('Sony Alpha-A5100 (Control)', 'usb:001,028')
+    stream.set_camera_data('Sony Alpha-A5100 (Control)', 'usb:001,028')
     thread = QThread()
     stream.moveToThread(thread)
     thread.started.connect(stream.run)

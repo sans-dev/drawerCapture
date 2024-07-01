@@ -3,10 +3,17 @@ import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 
 from datetime import datetime
-from PyQt6.QtCore import pyqtSignal, QProcess
+from PyQt6.QtCore import pyqtSignal, QProcess, QObject
 from src.threads.CameraThread import CameraWorker
 
 logger = logging.getLogger(__name__)
+
+
+class CaptureSignals(QObject):
+    img_captured = pyqtSignal(str)
+    failed_signal = pyqtSignal(str)
+    finished = pyqtSignal()
+    started = pyqtSignal()
 
 class ImageCapture(CameraWorker):
     """
@@ -19,12 +26,7 @@ class ImageCapture(CameraWorker):
     """
 
     WAIT_TIME_MS = 30_000
-
-    imageCaptured = pyqtSignal(str)
-    failed_signal = pyqtSignal(str)
-    finished = pyqtSignal()
-    started = pyqtSignal()
-    is_ready = pyqtSignal(bool)
+    signals = CaptureSignals()
 
     def __init__(self, cameraData=None):
         super().__init__(cameraData=cameraData)
@@ -39,10 +41,10 @@ class ImageCapture(CameraWorker):
         Runs the image capture thread.
         """
         logger.info("running image capture thread")
-        self.started.emit()
+        self.signals.started.emit()
         self._captureImage()
-        self.finished.emit()
-        self.is_ready.emit(True)
+        self.signals.finished.emit()
+        self.quit()
 
     def _captureImage(self):
         self.proc = QProcess()
@@ -71,11 +73,11 @@ class ImageCapture(CameraWorker):
             return
 
         logger.info("image capture process finished")
-        self.imageCaptured.emit(f"{self.config['--image_dir']}/{self.config['--image_name']}{self.config['--image_format']}")
+        self.signals.img_captured.emit(f"{self.config['--image_dir']}/{self.config['--image_name']}{self.config['--image_format']}")
 
     def _handle_failure(self, message):
         logger.warning(message)
-        self.failed_signal.emit(message)
+        self.signals.failed_signal.emit(message)
         
     def set_image_name(self):
         self.config['--image_name'] = datetime.now().isoformat().replace(':','_').replace('.','-')
@@ -100,7 +102,7 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     capture = ImageCapture()
-    capture.setCameraData('Sony Alpha-A5100 (Control)', 'usb:001,015')
+    capture.set_camera_data('Sony Alpha-A5100 (Control)', 'usb:001,015')
     capture.set_image_dir('data/captures')
     thread = QThread()
     capture.moveToThread(thread)

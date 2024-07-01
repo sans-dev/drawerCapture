@@ -44,7 +44,7 @@ class CameraWorker(QRunnable):
     def __init__(self, cameraData=None):
         super().__init__()
         if cameraData:
-            self.setCameraData(cameraData)
+            self.set_camera_data(cameraData)
         self.model = None
         self.port = None
         self.config = dict()
@@ -52,7 +52,7 @@ class CameraWorker(QRunnable):
 
         self.proc = None
 
-    def setCameraData(self, model, port):
+    def set_camera_data(self, model, port):
         """
         Sets the camera model and port based on the given cameraData string.
 

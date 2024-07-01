@@ -112,6 +112,7 @@ class LiveWidget(QWidget):
         self.camera_fetcher.confirmButton.clicked.connect(self.panel.enable_capture_buttons)
         self.camera_fetcher.selectedCameraChanged.connect(self.panel.set_camera_data)
         self.camera_fetcher.selectedCameraChanged.connect(self.panel.panel.set_text)
+        self.panel.close_button.clicked.connect(self.close)
  
     def show_panel(self):
         self._layout.setCurrentWidget(self.panel)
@@ -125,17 +126,10 @@ class LiveWidget(QWidget):
     def show_error_dialog(self, msg):
         QMessageBox.critical(self, "Error", msg)
 
-    def buildConfig(self, config={}): # TODO: move to config builder/own class/document holding the configuration
-        logger.debug("building config")
-        config['--image_name'] = datetime.now().isoformat().replace(':','_').replace('.','-')
-        config['--image_dir'] = 'data/captures/' 
-        return config
-
-    def closeLiveMode(self):
+    def close(self):
         logger.debug("closing live mode")
-        self.close()
-        self.image_widget.close()
         self.changed.emit("project")
+        super().close()
 
 
 if __name__ == "__main__":
@@ -157,5 +151,5 @@ if __name__ == "__main__":
     db_adapter = DBAdapter(DummyDB())
 
     window = LiveWidget(db_adapter, taxonomy, geo_data_dir, fs=5, panel_res=(1024,780))
-    window.showFullScreen()
+    window.show()
     sys.exit(app.exec())
