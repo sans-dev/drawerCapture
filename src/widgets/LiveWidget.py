@@ -3,8 +3,8 @@ from datetime import datetime
 import logging
 import logging.config
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QGridLayout, QVBoxLayout, QLabel, QMessageBox, QStackedLayout, QHBoxLayout, QStackedWidget, QButtonGroup, QSpacerItem, QSizePolicy
-from PyQt6.QtCore import Qt, pyqtSignal, QRect
+from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QLabel, QMessageBox, QStackedLayout, QHBoxLayout, QStackedWidget, QButtonGroup, QSpacerItem, QSizePolicy, QGridLayout
+from PyQt6.QtCore import Qt, pyqtSignal
 
 from src.widgets.SelectCameraListWidget import SelectCameraListWidget
 from src.widgets.PreviewPanel import PreviewPanel
@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 class PanelButton(QPushButton):
     def __init__(self, name, height, width_range, isEnable=False):
         super().__init__(name)
-        self.setMaximumWidth(width_range[1])
-        self.setMinimumWidth(width_range[0])
+        # self.setMaximumWidth(width_range[1])
+        # self.setMinimumWidth(width_range[0])
         self.setFixedHeight(height)
         self.setEnabled(isEnable)
 
@@ -43,22 +43,22 @@ class LivePanel(QWidget):
         self.start_stream_button = PanelButton("Start Live Preview", button_height, button_width_range)
         # add a stop preview button at the bottom of the preview panel
         self.stop_stream_button = PanelButton("Stop Live Preview", button_height, button_width_range)
+        self.stop_stream_button.hide()
         # add an close button
         self.close_button = PanelButton("Close", button_height, button_width_range, True)
-
+        spacer = QSpacerItem(20, 50, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         # Arrange buttons in a vertical layout
         button_layout = QVBoxLayout()
         button_layout.addWidget(self.selectCameraButton, alignment=Qt.AlignmentFlag.AlignHCenter)
         button_layout.addWidget(self.capture_image_button, alignment=Qt.AlignmentFlag.AlignHCenter)
-        button_layout.addWidget(self.start_stream_button, alignment=Qt.AlignmentFlag.AlignHCenter)
-        button_layout.addWidget(self.stop_stream_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        # button_layout.addWidget(self.start_stream_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        # button_layout.addWidget(self.stop_stream_button, alignment=Qt.AlignmentFlag.AlignHCenter)
         button_layout.addWidget(self.close_button, alignment=Qt.AlignmentFlag.AlignHCenter)
         button_layout.setSpacing(6)
-        spacer = QSpacerItem(20, 50, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
 
         layout.addWidget(self.panel)
         layout.addLayout(button_layout)
-        layout.addItem(spacer)
+        # layout.addItem(spacer)
         self.setLayout(layout)
 
     def connect_signals(self):
@@ -98,10 +98,9 @@ class LiveWidget(QWidget):
         logger.debug("initializing live widget UI")
 
         self.setWindowTitle("Capture Mode")
-        self._layout = QStackedLayout()
-        self._layout.addWidget(self.panel)
-        self._layout.addWidget(self.camera_fetcher)
-        self._layout.addWidget(self.image_widget)
+        self._layout = QHBoxLayout()
+        self._layout.addWidget(self.panel, alignment=Qt.AlignmentFlag.AlignLeft)
+        self._layout.addWidget(self.camera_fetcher, alignment=Qt.AlignmentFlag.AlignRight)
         self.setLayout(self._layout)
 
     def connect_signals(self):

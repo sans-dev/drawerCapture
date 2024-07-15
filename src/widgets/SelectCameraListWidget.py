@@ -34,9 +34,9 @@ class SelectCameraListWidget(QWidget):
         self.isRefreshed = False
         self.cameraFetcher = CameraFetcher()
         self.loadingSpinner = LoadingSpinner()
-        self.initUI()
+        self.init_ui()
 
-    def initUI(self):
+    def init_ui(self):
         """
         Initializes the user interface of the widget.
         """
