@@ -1,8 +1,8 @@
 from pathlib import Path
 from datetime import datetime
 from PyQt6.QtWidgets import (QApplication, QDialog, QWidget, QVBoxLayout, QLineEdit, QPushButton, QFileDialog, QLabel, 
-                             QListWidget, QHBoxLayout,QTableView, QAbstractItemView, QHeaderView, QCheckBox, QSpacerItem, QSizePolicy)
-from PyQt6.QtGui import QRegularExpressionValidator
+                             QListWidget, QHBoxLayout,QTableView, QAbstractItemView, QHeaderView, QCheckBox, QSpacerItem, QSizePolicy, QGridLayout)
+from PyQt6.QtGui import QRegularExpressionValidator, QIcon
 from PyQt6.QtCore import QRegularExpression
 from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
@@ -189,6 +189,10 @@ class SessionViewer(QWidget):
         layout.addWidget(self.table_view)
         self.setLayout(layout)
 
+        self.table_model = QStandardItemModel(1, 5)
+        self.table_model.setHorizontalHeaderLabels(["Session ID", "Date", "Capturer", "Museum", "# Captures"])
+        self.table_view.setModel(self.table_model)
+
     def set_data(self, data):
         # Create and set the table model with the provided data
         self.table_model = QStandardItemModel(len(data), 5)
@@ -322,32 +326,24 @@ class ProjectViewer(QWidget):
         super().__init__()
         self.session_view = SessionViewer()
         self.db_adapter = db_adapter
-        main_layout = QVBoxLayout()
-        top_layout = QHBoxLayout()
-        button_layout = QVBoxLayout()
+        main_layout = QGridLayout()
+        top_layout = QVBoxLayout()
+        button_layout = QHBoxLayout()
         self.project_info_list = QListWidget()
         project_info_layout = QVBoxLayout()
         session_layout = QVBoxLayout()
-        session_label = QLabel("Capture Sessions")
-        session_layout.addWidget(session_label)
         session_layout.addWidget(self.session_view)
-        project_info_label = QLabel("Project Info")
-        project_info_layout.addWidget(project_info_label)
         project_info_layout.addWidget(self.project_info_list)
-        top_layout.addLayout(project_info_layout)
-        self.new_session_button = QPushButton("New Capture Session")
-        self.close_project_button = QPushButton("Close Project")
-        button_layout.addWidget(self.new_session_button)
-        button_layout.addWidget(self.close_project_button)
+        self.project_info_list.addItem("No Project open")
         top_layout.addLayout(button_layout)
-        
-        main_layout.addLayout(top_layout)
-        main_layout.addLayout(session_layout)
+        top_layout.addLayout(project_info_layout)
+
+        main_layout.addLayout(top_layout, 0, 0)
+        main_layout.addLayout(session_layout, 1, 0)
         self.setLayout(main_layout)
+
         self.db_adapter.project_changed_signal.connect(self.update_project_list)
         self.db_adapter.project_changed_signal.connect(self.update_session_view)
-        self.close_project_button.clicked.connect(self.close_project)
-        self.new_session_button.clicked.connect(self.create_new_session)
 
     def create_new_session(self):
         self.new_session_window = SessionCreator(self.db_adapter, self.sessions, parent=self)

@@ -3,7 +3,7 @@ import logging.config
 
 from PyQt6.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QPushButton, QMessageBox
 from PyQt6.QtCore import pyqtSignal
-
+from PyQt6.QtGui import QIcon
 from src.widgets.DataCollection import DataCollection
 from src.widgets.ImagePanel import ImagePanel
 from src.signals.ProcessEmitter import ProcessEmitter
@@ -44,17 +44,26 @@ class ImageWidget(QWidget):
 
         button_layout = QHBoxLayout()
         self.close_button = QPushButton("Close")
-        self.close_button.clicked.connect(self.close)
-        button_layout.addWidget(self.close_button)
-
         self.save_button = QPushButton("Save")
-        self.save_button.clicked.connect(self.save_data)
-        button_layout.addWidget(self.save_button)
+        self.capture_image_button = QPushButton(QIcon('resources/assets/capture_mode.png'), "Capture")
+        self.histogram_button = QPushButton(QIcon('resources/assets/histogram.png'), "Show Histogram")
+        self.add_box_button = QPushButton(QIcon('resources/assets/rectangle.png'), "Add Bounding Box")
 
+
+        image_button_layout = QHBoxLayout()
+        image_button_layout.addWidget(self.capture_image_button)
+        image_button_layout.addWidget(self.add_box_button)
+        image_button_layout.addWidget(self.histogram_button)
+
+        button_layout.addWidget(self.save_button)
+        button_layout.addWidget(self.close_button)
+        layout.addLayout(image_button_layout, 1,0)
         layout.addLayout(button_layout,1,1)
 
         self.setLayout(layout)
 
+        self.close_button.clicked.connect(self.close)
+        self.save_button.clicked.connect(self.save_data)
     def connectSignals(self):
         """
         Connects the signals of the buttons to their respective functions.
@@ -117,6 +126,7 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
     from src.utils.searching import init_taxonomy
     from src.configs.DataCollection import *
+    from src.utils.load_style_sheet import load_style_sheet
 
     parser = ArgumentParser()
     parser.add_argument('--taxonomy', choices=['test', 'prod'])
@@ -128,6 +138,7 @@ if __name__ == "__main__":
     geo_data_dir = GEO[args.geo_data]
     
     app = QApplication(sys.argv)
+    app.setStyleSheet(load_style_sheet('PicPax'))
     window = ImageWidget(db_adapter, taxonomy, geo_data_dir)
     window.setImage("tests/data/test_img.jpg")
     window.show()

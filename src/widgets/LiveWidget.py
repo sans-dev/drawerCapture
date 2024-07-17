@@ -134,6 +134,7 @@ if __name__ == "__main__":
     from src.utils.searching import init_taxonomy
     from src.widgets.ImageWidget import ImageWidget
     from src.configs.DataCollection import *
+    from src.utils.load_style_sheet import load_style_sheet
 
     parser = ArgumentParser()
     parser.add_argument('--taxonomy', choices=['test', 'prod'])
@@ -142,6 +143,8 @@ if __name__ == "__main__":
     taxonomy = init_taxonomy(TAXONOMY[args.taxonomy])
     geo_data_dir = GEO[args.geo_data]
     app = QApplication(sys.argv)
+
+    app.setStyleSheet(load_style_sheet('PicPax'))
     db_adapter = DBAdapter(DummyDB())
 
     window = LiveWidget(db_adapter, taxonomy, geo_data_dir, fs=5, panel_res=(1024,780))

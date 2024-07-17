@@ -2,7 +2,9 @@ import sys
 from argparse import ArgumentParser
 import logging
 import logging.config
-from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QToolBar
+from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtCore import QSize, Qt
 
 from src.utils.load_style_sheet import load_style_sheet
 from src.widgets.MainWidget import MainWidget
@@ -51,6 +53,42 @@ class MainWindow(QMainWindow):
             self.stackedWidget.addWidget(widget)
             widget.changed.connect(self.switchWidget)
 
+        self.setWindowIcon(QIcon('resources/assets/logo.png')) 
+        
+        menu_bar = self.menuBar()
+        file_menu = menu_bar.addMenu("File")
+        edit_menu = menu_bar.addMenu("Edit")
+        view_menu = menu_bar.addMenu("View")
+        help_menu = menu_bar.addMenu("Help")
+
+        # Create actions
+        new_project_action = QAction(QIcon('resources/assets/add.png'), "New Project", self)
+        new_project_action.setStatusTip("Create a new capture project")
+        file_menu.addAction(new_project_action)
+        open_project_action = QAction(QIcon('resources/assets/open.png'), "Open Project", self)
+        file_menu.addAction(open_project_action)
+        file_menu.addSeparator()
+        admin_login_action = QAction(QIcon('resources/assets/admin.png'), "Admin Login", self)
+        file_menu.addAction(admin_login_action)
+        file_menu.addSeparator()
+        exit_action = QAction(QIcon('resources/assets/close.png'), "Exit", self)
+        file_menu.addAction(exit_action)
+        file_menu.addSeparator()
+        file_menu.addSection("Session Actions")
+        new_session_action = QAction(QIcon('resources/assets/capture_mode.png'), "New Capture Session", self)
+        file_menu.addAction(new_session_action)
+
+        toolbar = QToolBar("My main toolbar")
+        toolbar.setIconSize(QSize(16,16))
+        self.addToolBar(toolbar)
+        toolbar.addAction(new_project_action)
+        toolbar.addAction(open_project_action)
+        toolbar.addSeparator()
+        toolbar.addAction(admin_login_action)
+        toolbar.addSeparator()
+        toolbar.addAction(new_session_action)
+
+        toolbar.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
         self.initUI()
 
     def initUI(self):
@@ -59,7 +97,8 @@ class MainWindow(QMainWindow):
         """
         # self.setFixedSize(QSize(1700, 1100))
         # Set the window title and size
-        self.setWindowTitle("DrawerCapture")
+        self.setWindowTitle("Drawer Capture")
+        
         self.setCentralWidget(self.stackedWidget)
         self.stackedWidget.setCurrentWidget(self.widgets['project'])
         
@@ -76,7 +115,7 @@ class MainWindow(QMainWindow):
 if __name__ == '__main__':
     from src.configs.DataCollection import *
 
-    styles = ["Default", "Photoxo", "Combinear", "Diffnes", "SyNet"]
+    styles = ["Default", "Photoxo", "Combinear", "Diffnes", "SyNet", "PicPax"]
     parser = ArgumentParser()
     parser.add_argument("--debug", action="store_true", help="enable debug mode")
     parser.add_argument("--style", type=str, choices=styles, help="set the style", default=styles[0])
@@ -97,6 +136,7 @@ if __name__ == '__main__':
     geo_data_dir = GEO[args.geo_data]
     
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon('resources/assets/logo.png'))
     if args.style != styles[0]:
         app.setStyleSheet(load_style_sheet(args.style))
     mainWindow = MainWindow(taxonomy, geo_data_dir=geo_data_dir, fs=args.fs)
