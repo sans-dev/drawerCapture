@@ -37,10 +37,10 @@ class MainWindow(QMainWindow):
         project_creator = ProjectCreator(self.db_adapter)
         project_loader = ProjectLoader(self.db_adapter)
         project_viewer = ProjectViewer(self.db_adapter)
-        liveWidget = LiveWidget(db_adapter = self.db_adapter, taxonomomy=taxonomy, geo_data_dir=geo_data_dir, fs=fs)
+        liveWidget = LiveWidget(db_adapter = self.db_adapter, taxonomomy=taxonomy, geo_data_dir=geo_data_dir, fs=fs, panel_res=(1024,780))
 
         self.widgets = {
-            "main": MainWidget(),
+            "main": project_viewer,
             "live": liveWidget,
             "create": project_creator,
             "load" : project_loader,
@@ -61,7 +61,8 @@ class MainWindow(QMainWindow):
         # Set the window title and size
         self.setWindowTitle("DrawerCapture")
         self.setCentralWidget(self.stackedWidget)
-
+        self.stackedWidget.setCurrentWidget(self.widgets['project'])
+        
     def switchWidget(self, widget):
         """
         Switches to the specified widget.

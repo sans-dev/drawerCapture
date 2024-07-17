@@ -1,11 +1,12 @@
 import logging
 import logging.config
 
+from PyQt6.QtWidgets import QSizePolicy, QFrame
 from PyQt6.QtWidgets import QLabel, QGridLayout, QVBoxLayout
 from PyQt6.QtCore import QTimer, pyqtSignal, Qt, QThreadPool, pyqtSlot
 from PyQt6.QtGui import QImage, QPixmap
 import cv2
-
+import numpy as np
 
 from src.threads.CameraStreamer import CameraStreamer
 from src.threads.VideoCaptureDevice import VideoCaptureDevice
@@ -20,9 +21,14 @@ class Panel(QLabel):
         super().__init__()
         self.resolution = resolution
         self.frame = None
-        self.setFixedSize(self.resolution[0], self.resolution[1])
-        self.setFrameStyle(1)
-        self.setLineWidth(1)
+        self.setMaximumSize(self.resolution[0], self.resolution[1])
+        self.setFrameShadow(QFrame.Shadow.Sunken)
+        self.setFrameShape(QFrame.Shape.WinPanel)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        # initilize with black image
+        frame = np.zeros((resolution[1], resolution[0], 3)).astype(np.uint8)
+        self.set_image(frame)
 
     def set_image(self, frame):
         """
@@ -84,6 +90,7 @@ class PreviewPanel(QLabel):
         
         self.init_ui()
         self.connect_signals()
+        
 
     def init_ui(self):
         """
@@ -94,12 +101,11 @@ class PreviewPanel(QLabel):
         layout = QVBoxLayout()
         self.label.setMaximumHeight(20)
         spinner_layout = QGridLayout()
-        spinner_layout.addWidget(self.panel, 0, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        spinner_layout.addWidget(self.panel, 0, 0)
         spinner_layout.addWidget(self.loadingSpinner, 0, 0)
         layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addLayout(spinner_layout)
         self.setLayout(layout)
-        self.setMaximumHeight(self.panel_res[0])
     
     def connect_signals(self):
         """

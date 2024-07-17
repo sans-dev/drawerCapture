@@ -2,7 +2,7 @@ import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QListWidget, QLabel, QStackedWidget
+from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QListWidget, QLabel, QStackedWidget, QSpacerItem, QSizePolicy
 from PyQt6.QtCore import pyqtSignal, Qt
 
 from src.threads.CameraFetcher import CameraFetcher
@@ -41,8 +41,9 @@ class SelectCameraListWidget(QWidget):
         Initializes the user interface of the widget.
         """
         # apply style sheet
+        self.setMaximumWidth(300)
         self.cameraListWidget = QListWidget()
-
+        self.cameraListWidget.setMaximumHeight(150)
         self.confirmButton = QPushButton('Confirm')
         self.confirmButton.clicked.connect(self.confirmSelection)
         self.confirmButton.setEnabled(False)
@@ -55,8 +56,7 @@ class SelectCameraListWidget(QWidget):
         self.refreshButton.clicked.connect(self.refreshButtonClicked)
 
         # add a label to the widget with bigger text
-        self.widgetLabel = QLabel('Select a camera')
-        self.widgetLabel.setStyleSheet('font-size: 20px;')
+        self.widgetLabel = QLabel('Select camera')
 
         self.list_spinner_stack = QStackedWidget()
         self.list_spinner_stack.addWidget(self.cameraListWidget)
@@ -64,10 +64,12 @@ class SelectCameraListWidget(QWidget):
 
         layout = QVBoxLayout()
         layout.addWidget(self.widgetLabel, alignment=Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.list_spinner_stack)
-        layout.addWidget(self.refreshButton)
-        layout.addWidget(self.confirmButton)
-        layout.addWidget(self.exitButton)
+        layout.addWidget(self.list_spinner_stack, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(self.refreshButton, 0)
+        layout.addWidget(self.confirmButton, 0)
+        layout.addWidget(self.exitButton, 0)
+        spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        layout.addItem(spacer)
         self.setLayout(layout)
 
         self.cameraListWidget.itemSelectionChanged.connect(self.enableConfirmButton)
