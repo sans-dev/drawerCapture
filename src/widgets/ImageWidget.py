@@ -57,6 +57,7 @@ class ImageWidget(QWidget):
 
         button_layout.addWidget(self.save_button)
         button_layout.addWidget(self.close_button)
+
         layout.addLayout(image_button_layout, 1,0)
         layout.addLayout(button_layout,1,1)
 

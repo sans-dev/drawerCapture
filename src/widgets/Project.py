@@ -12,22 +12,77 @@ import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
+
+class ValidationRule:
+    def __init__(self, condition, error_message, error_label):
+        self.condition = condition
+        self.error_message = error_message
+        self.error_label = error_label
+
+    def validate(self):
+        if self.condition():
+            self.error_label.setText(self.error_message)
+            self.error_label.show()
+            return False
+        else:
+            self.error_label.hide()
+            return True
+
+    def has_passed(self):
+        return self.passed
+    
+class InputValidator:
+    def __init__(self):
+        self.rules = []
+
+    def add_rule(self, rule):
+        self.rules.append(rule)
+
+    def validate(self):
+        all_valid = True
+        for rule in self.rules:
+            is_valid = rule.validate()
+            all_valid = all_valid and is_valid
+        return all_valid
+
 class ProjectCreator(QWidget):
     changed = pyqtSignal(str)
+    close_signal = pyqtSignal(bool)
 
-    def __init__(self, db_adapter):
-        super().__init__()
+    def __init__(self, db_adapter, parent=None):
+        super().__init__(parent)
         self.db_adapter = db_adapter
-
         layout = QVBoxLayout()
+        self.setWindowTitle('Create Project')
 
+        admin_layout = QVBoxLayout()
+        self.admin = QLineEdit()
+        self.admin_error_label = QLabel()
+        self.admin_error_label.setStyleSheet("color: red")
+        admin_layout.addWidget(self.admin_error_label)
+        admin_layout.addWidget(QLabel("Administrator"))
+        admin_layout.addWidget(self.admin)
+        admin_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(admin_layout)
+
+        password_layout = QVBoxLayout()
+        self.password = QLineEdit()
+        self.password.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password_error_label = QLabel()
+        self.password_error_label.setStyleSheet("color: red")
+        password_layout.addWidget(self.password_error_label)
+        password_layout.addWidget(QLabel("Password"))
+        password_layout.addWidget(self.password)
+        password_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(password_layout) 
+        
         project_name_layout = QVBoxLayout()
         self.project_name = QLineEdit()
         self.project_error_label = QLabel()
         self.project_error_label.setStyleSheet("color: red")
+        project_name_layout.addWidget(self.project_error_label)
         project_name_layout.addWidget(QLabel("Project Name"))
         project_name_layout.addWidget(self.project_name)
-        project_name_layout.addWidget(self.project_error_label)
         project_name_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.addLayout(project_name_layout)
 
@@ -38,9 +93,9 @@ class ProjectCreator(QWidget):
         self.authors.setValidator(validator)
         self.author_error_label = QLabel()
         self.author_error_label.setStyleSheet("color: red")
-        author_layout.addWidget(QLabel("Author"))
-        author_layout.addWidget(self.authors)
         author_layout.addWidget(self.author_error_label)
+        author_layout.addWidget(QLabel("Authors"))
+        author_layout.addWidget(self.authors)
         author_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.addLayout(author_layout)
 
@@ -48,27 +103,31 @@ class ProjectCreator(QWidget):
         self.description = QLineEdit()
         self.description_errror_label = QLabel()
         self.description_errror_label.setStyleSheet("color: red")
+        description_layout.addWidget(self.description_errror_label)
         description_layout.addWidget(QLabel("Description"))
         description_layout.addWidget(self.description)
-        description_layout.addWidget(self.description_errror_label)
         description_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.addLayout(description_layout)
 
-        dir_layout = QVBoxLayout()
+        dir_main_layout = QVBoxLayout()
+        dir_layout = QHBoxLayout()
         self.dir = QLineEdit()
 
-        self.dir_dialog = QPushButton("Choose Directory")
+        self.dir_dialog = QPushButton(QIcon("resources/assets/folder.png"), "Choose")
         self.dir_dialog.clicked.connect(self.choose_dir)
         self.dir_error_label = QLabel()
         self.dir_error_label.setStyleSheet("color: red")
-        dir_layout.addWidget(QLabel("Project Directory"))
+        
         dir_layout.addWidget(self.dir)
-        dir_layout.addWidget(self.dir_error_label)
         dir_layout.addWidget(self.dir_dialog)
-        dir_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        layout.addLayout(dir_layout)
 
-        self.create_button = QPushButton("Create Project")
+        dir_layout.setAlignment(Qt.AlignmentFlag.AlignTop) 
+        dir_main_layout.addWidget(self.dir_error_label)
+        dir_main_layout.addWidget(QLabel("Directory"))
+        dir_main_layout.addLayout(dir_layout)
+        layout.addLayout(dir_main_layout)
+
+        self.create_button = QPushButton("Create")
         self.create_button.clicked.connect(self.create_project)
         layout.addWidget(self.create_button)
         layout.setAlignment(Qt.AlignmentFlag.AlignJustify)
@@ -83,52 +142,82 @@ class ProjectCreator(QWidget):
         return self.dir.text()
 
     def handle_errors(self):
-        self.author_error_label.hide()
-        self.project_error_label.hide()
-        self.dir_error_label.hide()
-        self.description_errror_label.hide()
+        # Hide all error labels
+        for label in [self.author_error_label, self.project_error_label, 
+                    self.dir_error_label, self.description_errror_label]:
+            label.hide()
 
+        # Get input values
+        admin = self.admin.text().strip()
+        pw = self.password.text().strip()
         authors = self.authors.text().strip().split(",")
         description = self.description.text().strip()
         project_name = self.project_name.text().strip()
         project_dir = self.dir.text()
 
-        is_valid = True 
-        if not project_name:
-            self.project_error_label.setText("Project name cannot be empty")
-            self.project_error_label.show()
-            is_valid = False
-        if not project_dir or not Path(project_dir).exists():
-            self.dir_error_label.setText("Directory does not exist")
-            self.dir_error_label.show()
-            is_valid = False
-        if (Path(project_dir) / project_name / 'project.ini').exists():
-            self.dir_error_label.setText("Project already exists")
-            self.dir_error_label.show()
-            is_valid = False
-        if not authors:
-            self.author_error_label.setText("Author name cannot be empty")
-            self.author_error_label.show()
-            is_valid = False
-        if not description:
-            self.description_errror_label.setText("Description cannot be empty")
-            self.description_errror_label.show()
-            is_valid = False
-        return is_valid
+        # Create validator and add rules
+        validator = InputValidator()
+        validator.add_rule(ValidationRule(
+            lambda: not project_name,
+            "Project name cannot be empty",
+            self.project_error_label
+        ))
+        validator.add_rule(ValidationRule(
+            lambda: not project_dir or not Path(project_dir).exists(),
+            "Directory does not exist",
+            self.dir_error_label
+        ))
+        validator.add_rule(ValidationRule(
+            lambda: (Path(project_dir) / project_name / 'project.ini').exists(),
+            "Project already exists",
+            self.dir_error_label
+        ))
+        validator.add_rule(ValidationRule(
+            lambda: not len(authors) > 1 and not authors[0],
+            "Author name cannot be empty",
+            self.author_error_label
+        ))
+        validator.add_rule(ValidationRule(
+            lambda: not description,
+            "Description cannot be empty",
+            self.description_errror_label
+        ))
+        validator.add_rule(ValidationRule(
+            lambda: not admin,
+            "Provide a valid name for admin login",
+            self.admin_error_label
+        ))
+        validator.add_rule(ValidationRule(
+            lambda: not pw or len(set(pw)) < 4 or any(char in pw for char in [';',',','.',':']),
+            "Provide a password that has at least 4 unique characters",
+            self.password_error_label
+        ))
+        # Run validation
+        return validator.validate()
 
     def create_project(self):
         if self.handle_errors():
             project_info = dict()
+            project_dir = (Path(self.dir.text().strip()) / self.project_name.text().strip()).as_posix()
             project_info['Project Info'] = {
-                'project_dir' : (Path(self.dir.text().strip()) / self.project_name.text().strip()).as_posix(),
+                'project_dir' : project_dir,
                 'creation_date': datetime.now().strftime("%Y-%m-%d"),
                 'name': self.project_name.text().strip(),
                 'authors': self.authors.text().strip().split(","),
                 'description': self.description.text().strip(),
                 'num_captures' : 0}
-            self.db_adapter.create_project(project_info)
-            self.changed.emit("project")
+            
+            admin_name = self.admin.text().strip()
+            admin_password = self.password.text()
 
+            self.db_adapter.create_project(project_info)
+            self.db_adapter.save_encrypted_credentials(project_dir, admin_name, admin_password)
+
+            self.close()
+
+    def closeEvent(self, event):
+        self.close_signal.emit(True)
+        super().closeEvent(event)
 
 class ProjectLoader(QWidget):
     changed = pyqtSignal(str)
@@ -367,6 +456,7 @@ class ProjectViewer(QWidget):
     def _create_project_info_item_str_list(self, project_info):
         item_strings = []
         for key, value in project_info.items():
+            key = key.replace("_", " ").capitalize()
             item_strings.append(f"{key}: {value}")
         return item_strings
     

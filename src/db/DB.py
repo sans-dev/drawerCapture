@@ -3,6 +3,8 @@ import yaml
 from pathlib import Path
 import cv2
 import copy
+from cryptography.fernet import Fernet
+import json
 import configparser
 from pymongo import MongoClient
 from bson import ObjectId
@@ -160,7 +162,10 @@ class DBAdapter(QObject):
         except Exception as e:
             logger.info(f"{e}")
             raise e
-        
+
+    def save_encrypted_credentials(self, project_dir, admin_name, password):
+        self.db_manager.save_encrypted_credentials(project_dir, admin_name, password)
+
     def load_project(self, project_dir):
         self.project_changed_signal.emit(self.db_manager.load_project(project_dir))
 
@@ -311,7 +316,37 @@ class FileAgnosticDB:
             return self.create_dict_from_config()
         else:
             raise ValueError('No project info available')
-        
+
+    def delete_project(self):
+        pass
+
+    def save_encrypted_credentials(self, project_dir, admin_name, password):
+        # Generate a key and create a Fernet instance
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
+
+        # Encrypt the password
+        encrypted_password = fernet.encrypt(password.encode())
+
+        # Create a dictionary with admin name and encrypted password
+        credentials = {
+            "admin_name": admin_name,
+            "encrypted_password": encrypted_password.decode()  # Convert bytes to string for JSON serialization
+        }
+
+        # Convert the dictionary to a JSON string and encrypt it
+        encrypted_data = fernet.encrypt(json.dumps(credentials).encode())
+
+        # Save the encrypted data to a file
+        credentials_path = Path(project_dir) / ".credentials"
+        with open(credentials_path, "wb") as f:
+            f.write(encrypted_data)
+
+        # Save the key to a separate file
+        key_path = Path(project_dir) / ".key"
+        with open(key_path, "wb") as f:
+            f.write(key)
+
 class DummyDB:
    def create_session(self, payload):
        pass

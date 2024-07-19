@@ -27,14 +27,14 @@ class MainWindow(QMainWindow):
         stackedWidget (QStackedWidget): A stacked widget containing all the widgets.
     """
 
-    def __init__(self, taxonomy, geo_data_dir, fs):
+    def __init__(self, taxonomy, geo_data_dir, fs, db):
         """
         Initializes the main window.
         """
         logger.debug("initializing main window")
         super().__init__()
         logger.info("initlializing taxonomy")
-        self.db = FileAgnosticDB()
+        self.db = db
         self.db_adapter = DBAdapter(db_manager=self.db)
         project_creator = ProjectCreator(self.db_adapter)
         project_loader = ProjectLoader(self.db_adapter)
@@ -89,6 +89,9 @@ class MainWindow(QMainWindow):
         toolbar.addAction(new_session_action)
 
         toolbar.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
+
+
+        new_project_action.triggered.connect(self.create_project)
         self.initUI()
 
     def initUI(self):
@@ -111,6 +114,13 @@ class MainWindow(QMainWindow):
         """
         logger.debug("switching to widget: %s", widget)
         self.stackedWidget.setCurrentWidget(self.widgets[widget])
+
+    def create_project(self):
+        self.setEnabled(False)
+        self.project_creator = ProjectCreator(self.db_adapter)
+        self.project_creator.close_signal.connect(self.setEnabled)
+        self.project_creator.show()
+
 
 if __name__ == '__main__':
     from src.configs.DataCollection import *
@@ -139,6 +149,7 @@ if __name__ == '__main__':
     app.setWindowIcon(QIcon('resources/assets/logo.png'))
     if args.style != styles[0]:
         app.setStyleSheet(load_style_sheet(args.style))
-    mainWindow = MainWindow(taxonomy, geo_data_dir=geo_data_dir, fs=args.fs)
+    db = FileAgnosticDB()
+    mainWindow = MainWindow(taxonomy, geo_data_dir=geo_data_dir, fs=args.fs, db=db)
     mainWindow.show()
     sys.exit(app.exec())
