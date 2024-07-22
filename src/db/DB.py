@@ -16,8 +16,9 @@ logger = logging.getLogger(__name__)
 class DataValidator:
 
     @staticmethod
-    def validate_project_config(data):
-        pass
+    def validate_project_config(config):
+        #TODO implement validation
+        return True
 
     @staticmethod
     def validate_data_from_db(data):
@@ -88,7 +89,11 @@ class DBAdapter(QObject):
         return self.db_manager.verify_credentials(username, password)
 
     def load_project(self, project_dir):
-        self.project_changed_signal.emit(self.db_manager.load_project(project_dir))
+        project_info = self.db_manager.load_project(project_dir)
+        if project_info:
+            self.project_changed_signal.emit(self.db_manager.load_project(project_dir))
+            return True
+        else: return False
 
     def send_data_to_db(self, image_data, meta_info):
         logger.info(f"Validating data...")
@@ -119,11 +124,12 @@ class FileAgnosticDB:
         self.current_session = None
 
     def load_project(self, project_dir):
-        #TODO validate content of project config 
         self.project_info = configparser.ConfigParser()
         self.project_info.read((Path(project_dir) / 'project.ini'))
-        self.project_root_dir = Path(project_dir)
-        return self.create_dict_from_config()
+        if DataValidator.validate_project_config(self.project_info):
+            self.project_root_dir = Path(project_dir)
+            return self.create_dict_from_config()
+        else: return False
 
     def post_new_image(self, payload):
         image_data = payload.get('image')

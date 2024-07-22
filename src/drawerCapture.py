@@ -69,7 +69,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction(open_project_action)
         file_menu.addSeparator()
         self.admin_login_action = QAction(QIcon('resources/assets/admin.png'), "Admin Login", self)
-        file_menu.addAction(admin_login_action)
+        file_menu.addAction(self.admin_login_action)
         file_menu.addSeparator()
         exit_action = QAction(QIcon('resources/assets/close.png'), "Exit", self)
         file_menu.addAction(exit_action)

@@ -222,7 +222,7 @@ class ProjectLoader(QWidget):
     changed = pyqtSignal(str)
     close_signal = pyqtSignal(bool)
     load_successful = pyqtSignal()
-    
+
     def __init__(self, db_adapter):
         super().__init__()
         self.db_adapter = db_adapter
@@ -253,8 +253,12 @@ class ProjectLoader(QWidget):
 
     def load_project(self):
         project_dir = self.dir.text()
-        self.db_adapter.load_project(project_dir)
-        self.close()
+        if self.db_adapter.load_project(project_dir):
+            self.load_successful.emit()
+            self.close()
+        else:
+            QMessageBox.warning(self, "Failed to load project.", "INI file is invalid.")
+        
 
     def closeEvent(self, event):
         self.close_signal.emit(True)
