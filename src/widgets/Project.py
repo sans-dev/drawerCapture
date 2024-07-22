@@ -5,7 +5,7 @@ from PyQt6.QtCore import pyqtSignal, Qt, QDir, QRegularExpression
 from PyQt6.QtGui import QIcon, QRegularExpressionValidator, QStandardItemModel, QStandardItem
 from PyQt6.QtWidgets import (QApplication, QDialog, QWidget, QVBoxLayout, QLineEdit, QPushButton, QFileDialog, QLabel, 
                              QListWidget, QHBoxLayout, QTableView, QAbstractItemView, QHeaderView, QCheckBox, 
-                             QSpacerItem, QSizePolicy, QGridLayout, QMessageBox)
+                             QSpacerItem, QSizePolicy, QGridLayout, QMessageBox, QInputDialog, QComboBox)
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
@@ -133,7 +133,9 @@ class ProjectCreator(QWidget):
         self.setLayout(layout)
 
     def choose_dir(self):
-        directory = QFileDialog.getExistingDirectory(self, "Choose Directory")
+        file_dialog = QFileDialog()
+        file_dialog.setDirectory(QDir.homePath())
+        directory = file_dialog.getExistingDirectory(self, "Choose Directory")
         if directory:
             self.dir.setText(directory)
 
@@ -208,10 +210,11 @@ class ProjectCreator(QWidget):
             
             admin_name = self.admin.text().strip()
             admin_password = self.password.text()
-
+            users = [
+                {"username": admin_name, "password": admin_password, "role": "admin"},
+            ]
             self.db_adapter.create_project(project_info)
-            self.db_adapter.save_encrypted_credentials(project_dir, admin_name, admin_password)
-
+            self.db_adapter.save_encrypted_users(project_dir, users)
             self.close()
 
     def closeEvent(self, event):
@@ -265,7 +268,7 @@ class ProjectLoader(QWidget):
         super().closeEvent(event)
 
 class LoginWidget(QWidget):
-    login_successful = pyqtSignal()
+    login_successful = pyqtSignal(dict)
     close_signal = pyqtSignal(bool)
 
     def __init__(self, db_adapter):
@@ -304,8 +307,9 @@ class LoginWidget(QWidget):
         username = self.username_input.text()
         password = self.password_input.text()
 
-        if self.db_adapter.verify_credentials(username, password):
-            self.login_successful.emit()
+        user = self.db_adapter.verify_credentials(username, password)
+        if user:
+            self.login_successful.emit(user)
             self.close()
         else:
             QMessageBox.warning(self, "Login Failed", "Invalid username or password.")
@@ -534,6 +538,152 @@ class ProjectViewer(QWidget):
             continue
         self.session_view.set_data(self.sessions)
 
+class AddUserDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Add New User")
+        layout = QVBoxLayout()
+        
+        self.username_input = QLineEdit()
+        self.password_input = QLineEdit()
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.role_combo = QComboBox()
+        self.role_combo.addItems(["user", "admin"])
+        
+        layout.addWidget(QLabel("Username:"))
+        layout.addWidget(self.username_input)
+        layout.addWidget(QLabel("Password:"))
+        layout.addWidget(self.password_input)
+        layout.addWidget(QLabel("Role:"))
+        layout.addWidget(self.role_combo)
+        
+        buttons = QHBoxLayout()
+        ok_button = QPushButton("OK")
+        cancel_button = QPushButton("Cancel")
+        ok_button.clicked.connect(self.accept)
+        cancel_button.clicked.connect(self.reject)
+        buttons.addWidget(ok_button)
+        buttons.addWidget(cancel_button)
+        
+        layout.addLayout(buttons)
+        self.setLayout(layout)
+
+class UserManager(QWidget):
+    user_updated = pyqtSignal()  # Signal to notify of user changes
+    close_signal = pyqtSignal(bool)
+
+    def __init__(self, db_adapter, current_user, parent=None):
+        super().__init__(parent)
+        self.db_adapter = db_adapter
+        self.current_user = current_user
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+        
+        self.user_list = QListWidget()
+        layout.addWidget(self.user_list)
+        
+        button_layout = QHBoxLayout()
+        add_button = QPushButton("Add User")
+        remove_button = QPushButton("Remove User")
+        change_role_button = QPushButton("Change Role")
+        
+        add_button.clicked.connect(self.add_user)
+        remove_button.clicked.connect(self.remove_user)
+        change_role_button.clicked.connect(self.change_role)
+        
+        button_layout.addWidget(add_button)
+        button_layout.addWidget(remove_button)
+        button_layout.addWidget(change_role_button)
+        
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+        
+        self.refresh_user_list()
+
+    def refresh_user_list(self):
+        self.user_list.clear()
+        users = self.db_adapter.get_users()  # Implement this method in your db_adapter
+        for user in users:
+            self.user_list.addItem(f"{user['username']} ({user['role']})")
+
+    def add_user(self):
+        dialog = AddUserDialog(self)
+        if dialog.exec():
+            username = dialog.username_input.text()
+            password = dialog.password_input.text()
+            role = dialog.role_combo.currentText()
+            
+            if not username or not password:
+                QMessageBox.warning(self, "Input Error", "Username and password cannot be empty.")
+                return
+            
+            try:
+                self.db_adapter.add_user(username, password, role)
+                self.refresh_user_list()
+                self.user_updated.emit()
+                QMessageBox.information(self, "Success", f"User {username} added successfully.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to add user: {str(e)}")
+
+    def remove_user(self):
+        selected_items = self.user_list.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(self, "Selection Error", "Please select a user to remove.")
+            return
+        
+        user_to_remove = selected_items[0].text().split(' ')[0]  # Extract username
+        
+        confirm = QMessageBox.question(self, "Confirm Removal", f"Are you sure you want to remove {user_to_remove}?")
+        if confirm == QMessageBox.StandardButton.Yes:
+            admin_password, ok = QInputDialog.getText(self, "Admin Confirmation", 
+                                                      "Enter admin password:", QLineEdit.EchoMode.Password)
+            if ok:
+                try:
+                    if self.db_adapter.validate_admin(self.current_user['username'], admin_password):
+                        self.db_adapter.remove_user(user_to_remove)
+                        self.refresh_user_list()
+                        self.user_updated.emit()
+                        QMessageBox.information(self, "Success", f"User {user_to_remove} removed successfully.")
+                    else:
+                        QMessageBox.warning(self, "Authentication Failed", "Invalid admin password.")
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"Failed to remove user: {str(e)}")
+
+    def change_role(self):
+        selected_items = self.user_list.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(self, "Selection Error", "Please select a user to change role.")
+            return
+        
+        user_to_change = selected_items[0].text().split(' ')[0]  # Extract username
+        current_role = selected_items[0].text().split('(')[1].strip(')')  # Extract current role
+        new_role = "admin" if current_role == "user" else "user"
+        
+        confirm = QMessageBox.question(self, "Confirm Role Change", 
+                                       f"Change {user_to_change}'s role to {new_role}?")
+        if confirm == QMessageBox.StandardButton.Yes:
+            admin_password, ok = QInputDialog.getText(self, "Admin Confirmation", 
+                                                      "Enter admin password:", QLineEdit.EchoMode.Password)
+            if ok:
+                try:
+                    if self.db_adapter.validate_admin(admin_password):
+                        if new_role == "user" and self.db_adapter.count_admins() <= 1:
+                            QMessageBox.warning(self, "Error", "Cannot change the last admin to a user.")
+                        else:
+                            self.db_adapter.change_user_role(user_to_change, new_role)
+                            self.refresh_user_list()
+                            self.user_updated.emit()
+                            QMessageBox.information(self, "Success", f"{user_to_change}'s role changed to {new_role}.")
+                    else:
+                        QMessageBox.warning(self, "Authentication Failed", "Invalid admin password.")
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"Failed to change user role: {str(e)}")
+    
+    def closeEvent(self, event):
+        self.close_signal.emit(True)
+        super().closeEvent(event)
 
 def init_project_viewer(db_adapter):
     db_adapter.load_project()

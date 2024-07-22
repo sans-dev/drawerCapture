@@ -10,7 +10,7 @@ from src.utils.load_style_sheet import load_style_sheet
 from src.widgets.MainWidget import MainWidget
 from src.widgets.LiveWidget import LiveWidget 
 from src.db.DB import DBAdapter, FileAgnosticDB
-from src.widgets.Project import ProjectCreator, ProjectLoader, ProjectViewer, LoginWidget
+from src.widgets.Project import ProjectCreator, ProjectLoader, ProjectViewer, LoginWidget, UserManager
 from src.utils.searching import init_taxonomy
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
@@ -58,7 +58,8 @@ class MainWindow(QMainWindow):
         menu_bar = self.menuBar()
         file_menu = menu_bar.addMenu("File")
         edit_menu = menu_bar.addMenu("Edit")
-        view_menu = menu_bar.addMenu("View")
+        self.project_menu = edit_menu.addMenu('Project')
+        self.project_menu.setEnabled(False)
         help_menu = menu_bar.addMenu("Help")
 
         # Create actions
@@ -68,31 +69,36 @@ class MainWindow(QMainWindow):
         open_project_action = QAction(QIcon('resources/assets/open.png'), "Open Project", self)
         file_menu.addAction(open_project_action)
         file_menu.addSeparator()
-        self.admin_login_action = QAction(QIcon('resources/assets/admin.png'), "Admin Login", self)
-        file_menu.addAction(self.admin_login_action)
-        file_menu.addSeparator()
+        self.login_action = QAction("Admin Login", self)
+        self.manage_user_action = QAction(QIcon('resources/assets/user.png'), "Manage Capturers", self)
+        self.manage_museums_action = QAction(QIcon('resources/assets/museum.png'), "Manage Museums", self)
         exit_action = QAction(QIcon('resources/assets/close.png'), "Exit", self)
-        file_menu.addAction(exit_action)
         file_menu.addSeparator()
         file_menu.addSection("Session Actions")
         new_session_action = QAction(QIcon('resources/assets/capture_mode.png'), "New Capture Session", self)
         file_menu.addAction(new_session_action)
+        file_menu.addSeparator()
+        file_menu.addAction(exit_action)
 
+        self.project_menu.addAction(self.manage_user_action)
+        self.project_menu.addAction(self.manage_museums_action)
         toolbar = QToolBar("My main toolbar")
         toolbar.setIconSize(QSize(16,16))
         self.addToolBar(toolbar)
         toolbar.addAction(new_project_action)
         toolbar.addAction(open_project_action)
         toolbar.addSeparator()
-        toolbar.addAction(self.admin_login_action)
+        toolbar.addAction(self.manage_user_action)
         toolbar.addSeparator()
         toolbar.addAction(new_session_action)
 
         toolbar.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
 
-
+        self.login_action.triggered.connect(self.login)
         new_project_action.triggered.connect(self.create_project)
         open_project_action.triggered.connect(self.load_project)
+        self.manage_user_action.triggered.connect(self.open_user_manager)
+        self.disable_admin_features()
         self.initUI()
 
     def initUI(self):
@@ -125,7 +131,6 @@ class MainWindow(QMainWindow):
     def load_project(self):
         self.setEnabled(False)
         self.loader = ProjectLoader(self.db_adapter)
-        self.loader.close_signal.connect(self.setEnabled)
         self.loader.load_successful.connect(self.on_load_successful)
         self.loader.show()
         
@@ -136,12 +141,35 @@ class MainWindow(QMainWindow):
         self.login_widget.close_signal.connect(self.setEnabled)
         self.login_widget.show()
 
-    def on_login_successful(self):
+    def open_user_manager(self):
+        self.user_manager = UserManager(self.db_adapter, self.current_user)
+        self.user_manager.close_signal.connect(self.setEnabled)
+        self.user_manager.show()
+
+    def on_login_successful(self, user):
         # enable project edit options
-        pass
+        self.current_user = user
+        print(f"Login successful! Welcome, {user['username']} ({user['role']})")
+        self.update_ui_based_on_role()
+
+    def update_ui_based_on_role(self):
+        if self.current_user['role'] == 'admin':
+            self.enable_admin_features()
+        else:
+            self.disable_admin_features()
+
+    def enable_admin_features(self):
+        # Show admin-only buttons, menus, etc.
+        self.manage_museums_action.setEnabled(True)
+        self.manage_user_action.setEnabled(True)
+        
+    def disable_admin_features(self):
+        # Hide admin-only buttons, menus, etc.
+        self.manage_museums_action.setEnabled(False)
+        self.manage_user_action.setEnabled(False)
 
     def on_load_successful(self):
-        self.admin_login_action.triggered.connect(self.login)
+        self.login_action.trigger()
 
 if __name__ == '__main__':
     from src.configs.DataCollection import *

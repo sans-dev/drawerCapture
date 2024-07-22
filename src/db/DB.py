@@ -82,8 +82,8 @@ class DBAdapter(QObject):
             logger.info(f"{e}")
             raise e
 
-    def save_encrypted_credentials(self, project_dir, admin_name, password):
-        self.db_manager.save_encrypted_credentials(project_dir, admin_name, password)
+    def save_encrypted_users(self, project_dir, users):
+        self.db_manager.save_encrypted_users(project_dir, users)
 
     def verify_credentials(self, username, password):
         return self.db_manager.verify_credentials(username, password)
@@ -116,6 +116,14 @@ class DBAdapter(QObject):
             return
         self.get_signal.emit(data)
 
+    def validate_admin(self, username, password):
+        pass
+
+    def add_user(username, password):
+        pass
+
+    def remove_user(username, password):
+        pass
     
 class FileAgnosticDB:
     def __init__(self):
@@ -248,33 +256,6 @@ class FileAgnosticDB:
     def delete_project(self):
         pass
 
-    def save_encrypted_credentials(self, project_dir, admin_name, password):
-        # Generate a key and create a Fernet instance
-        key = Fernet.generate_key()
-        fernet = Fernet(key)
-
-        # Encrypt the password
-        encrypted_password = fernet.encrypt(password.encode())
-
-        # Create a dictionary with admin name and encrypted password
-        credentials = {
-            "admin_name": admin_name,
-            "encrypted_password": encrypted_password.decode()  # Convert bytes to string for JSON serialization
-        }
-
-        # Convert the dictionary to a JSON string and encrypt it
-        encrypted_data = fernet.encrypt(json.dumps(credentials).encode())
-
-        # Save the encrypted data to a file
-        credentials_path = Path(project_dir) / ".credentials"
-        with open(credentials_path, "wb") as f:
-            f.write(encrypted_data)
-
-        # Save the key to a separate file
-        key_path = Path(project_dir) / ".key"
-        with open(key_path, "wb") as f:
-            f.write(key)
-
     def verify_credentials(self, username, password):
         try:
             # Read the key
@@ -290,18 +271,53 @@ class FileAgnosticDB:
                 encrypted_data = f.read()
 
             decrypted_data = fernet.decrypt(encrypted_data)
-            credentials = json.loads(decrypted_data.decode())
+            users = json.loads(decrypted_data.decode())
 
             # Verify the credentials
-            stored_username = credentials["admin_name"]
-            stored_password = fernet.decrypt(credentials["encrypted_password"].encode()).decode()
+            for user in users:
+                if user['username'] == username:
+                    decrypted_password = fernet.decrypt(user['password'].encode()).decode()
+                    if password == decrypted_password:
+                        return {"username": user['username'], "role": user['role']}
 
-            return username == stored_username and password == stored_password
-        
+            return None
+
         except Exception as e:
             print(f"Error verifying credentials: {e}")
-            return False
+            return None
         
+    def validate_admin(self, username, password):
+        user = self.verify_credentials(username, password)
+        if user:
+            if user['role'] == 'admin':
+                return True
+        return False
+
+    def save_encrypted_users(self, project_dir, users):
+        # Generate a key and create a Fernet instance
+        key = Fernet.generate_key()
+        fernet = Fernet(key)
+
+        # Encrypt each user's password
+        encrypted_users = []
+        for user in users:
+            encrypted_user = user.copy()
+            encrypted_user['password'] = fernet.encrypt(user['password'].encode()).decode()
+            encrypted_users.append(encrypted_user)
+
+        # Convert the list to a JSON string and encrypt it
+        encrypted_data = fernet.encrypt(json.dumps(encrypted_users).encode())
+
+        # Save the encrypted data to a file
+        credentials_path = Path(project_dir) /  ".credentials"
+        with open(credentials_path, "wb") as f:
+            f.write(encrypted_data)
+
+        # Save the key to a separate file
+        key_path = Path(project_dir) /  ".key"
+        with open(key_path, "wb") as f:
+            f.write(key)
+
 class DummyDB:
    def create_session(self, payload):
        pass
