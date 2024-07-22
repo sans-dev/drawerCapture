@@ -6,8 +6,6 @@ import copy
 from cryptography.fernet import Fernet
 import json
 import configparser
-from pymongo import MongoClient
-from bson import ObjectId
 from PyQt6.QtCore import QObject, pyqtSignal
 
 import logging
@@ -16,6 +14,11 @@ logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False
 logger = logging.getLogger(__name__)
 
 class DataValidator:
+
+    @staticmethod
+    def validate_project_config(data):
+        pass
+
     @staticmethod
     def validate_data_from_db(data):
         # Perform validation checks on data received from DB
@@ -51,91 +54,6 @@ class DataValidator:
             return False, "Mandatory fields left open"
         else: return True, None 
 
-from abc import ABC, abstractmethod
-
-class RESTfulDBAdapter(ABC):
-
-    @abstractmethod
-    def post(self, data, parent_id=None, collection="projects"):
-        """Create a new entry in the database, optionally within a subcollection."""
-        pass
-
-    @abstractmethod
-    def get(self, identifier=None, parent_id=None, collection="projects"):
-        """Retrieve an entry or entries from the database or subcollection."""
-        pass
-
-    @abstractmethod
-    def put(self, identifier, data, parent_id=None, collection="projects"):
-        """Replace an existing entry in the database or subcollection."""
-        pass
-
-    @abstractmethod
-    def patch(self, identifier, data, parent_id=None, collection="projects"):
-        """Update an existing entry in the database or subcollection."""
-        pass
-
-    @abstractmethod
-    def delete(self, identifier, parent_id=None, collection="projects"):
-        """Delete an entry from the database or subcollection."""
-        pass
-
-class MongoDBRESTAdapter(RESTfulDBAdapter):
-    def __init__(self, uri="mongodb://localhost:27017/", db_name="mydatabase"):
-        self.client = MongoClient(uri)
-        self.db = self.client[db_name]
-
-    def post(self, data, parent_id=None, collection="projects"):
-        if parent_id:
-            # Assuming data for subcollections like sessions or images
-            return self.db[collection].update_one(
-                {"_id": ObjectId(parent_id)},
-                {"$push": {"sessions": data}}  # Modify according to your data structure
-            )
-        else:
-            return self.db[collection].insert_one(data).inserted_id
-
-    def get(self, identifier=None, parent_id=None, collection="projects"):
-        if identifier:
-            return self.db[collection].find_one({"_id": ObjectId(identifier)})
-        elif parent_id:
-            # Fetch subcollection data
-            project = self.db[collection].find_one({"_id": ObjectId(parent_id)})
-            return project.get('sessions', [])  # Adjust according to your data structure
-        else:
-            return list(self.db[collection].find({}))
-
-    def put(self, identifier, data, parent_id=None, collection="projects"):
-        if parent_id:
-            # Replace specific subcollection item
-            return self.db[collection].update_one(
-                {"_id": ObjectId(parent_id), "sessions._id": ObjectId(identifier)},
-                {"$set": {"sessions.$": data}}
-            )
-        else:
-            return self.db[collection].replace_one({"_id": ObjectId(identifier)}, data)
-
-    def patch(self, identifier, data, parent_id=None, collection="projects"):
-        if parent_id:
-            # Update specific subcollection item
-            return self.db[collection].update_one(
-                {"_id": ObjectId(parent_id), "sessions._id": ObjectId(identifier)},
-                {"$set": {f"sessions.$.{key}": value for key, value in data.items()}}
-            )
-        else:
-            return self.db[collection].update_one({"_id": ObjectId(identifier)}, {"$set": data})
-
-    def delete(self, identifier, parent_id=None, collection="projects"):
-        if parent_id:
-            # Remove specific subcollection item
-            return self.db[collection].update_one(
-                {"_id": ObjectId(parent_id)},
-                {"$pull": {"sessions": {"_id": ObjectId(identifier)}}}
-            )
-        else:
-            return self.db[collection].delete_one({"_id": ObjectId(identifier)})
-
-
 class DBAdapter(QObject):
     put_signal = pyqtSignal(dict)
     get_signal = pyqtSignal(dict)
@@ -165,6 +83,9 @@ class DBAdapter(QObject):
 
     def save_encrypted_credentials(self, project_dir, admin_name, password):
         self.db_manager.save_encrypted_credentials(project_dir, admin_name, password)
+
+    def verify_credentials(self, username, password):
+        return self.db_manager.verify_credentials(username, password)
 
     def load_project(self, project_dir):
         self.project_changed_signal.emit(self.db_manager.load_project(project_dir))
@@ -198,6 +119,7 @@ class FileAgnosticDB:
         self.current_session = None
 
     def load_project(self, project_dir):
+        #TODO validate content of project config 
         self.project_info = configparser.ConfigParser()
         self.project_info.read((Path(project_dir) / 'project.ini'))
         self.project_root_dir = Path(project_dir)
@@ -347,6 +269,33 @@ class FileAgnosticDB:
         with open(key_path, "wb") as f:
             f.write(key)
 
+    def verify_credentials(self, username, password):
+        try:
+            # Read the key
+            key_path = Path(self.project_root_dir) / ".key"
+            with open(key_path, "rb") as f:
+                key = f.read()
+
+            fernet = Fernet(key)
+
+            # Read and decrypt the credentials
+            credentials_path = Path(self.project_root_dir) / ".credentials"
+            with open(credentials_path, "rb") as f:
+                encrypted_data = f.read()
+
+            decrypted_data = fernet.decrypt(encrypted_data)
+            credentials = json.loads(decrypted_data.decode())
+
+            # Verify the credentials
+            stored_username = credentials["admin_name"]
+            stored_password = fernet.decrypt(credentials["encrypted_password"].encode()).decode()
+
+            return username == stored_username and password == stored_password
+        
+        except Exception as e:
+            print(f"Error verifying credentials: {e}")
+            return False
+        
 class DummyDB:
    def create_session(self, payload):
        pass

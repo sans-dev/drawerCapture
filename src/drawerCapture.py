@@ -10,7 +10,7 @@ from src.utils.load_style_sheet import load_style_sheet
 from src.widgets.MainWidget import MainWidget
 from src.widgets.LiveWidget import LiveWidget 
 from src.db.DB import DBAdapter, FileAgnosticDB
-from src.widgets.Project import ProjectCreator, ProjectLoader, ProjectViewer
+from src.widgets.Project import ProjectCreator, ProjectLoader, ProjectViewer, LoginWidget
 from src.utils.searching import init_taxonomy
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
@@ -68,7 +68,7 @@ class MainWindow(QMainWindow):
         open_project_action = QAction(QIcon('resources/assets/open.png'), "Open Project", self)
         file_menu.addAction(open_project_action)
         file_menu.addSeparator()
-        admin_login_action = QAction(QIcon('resources/assets/admin.png'), "Admin Login", self)
+        self.admin_login_action = QAction(QIcon('resources/assets/admin.png'), "Admin Login", self)
         file_menu.addAction(admin_login_action)
         file_menu.addSeparator()
         exit_action = QAction(QIcon('resources/assets/close.png'), "Exit", self)
@@ -84,7 +84,7 @@ class MainWindow(QMainWindow):
         toolbar.addAction(new_project_action)
         toolbar.addAction(open_project_action)
         toolbar.addSeparator()
-        toolbar.addAction(admin_login_action)
+        toolbar.addAction(self.admin_login_action)
         toolbar.addSeparator()
         toolbar.addAction(new_session_action)
 
@@ -92,6 +92,7 @@ class MainWindow(QMainWindow):
 
 
         new_project_action.triggered.connect(self.create_project)
+        open_project_action.triggered.connect(self.load_project)
         self.initUI()
 
     def initUI(self):
@@ -121,6 +122,26 @@ class MainWindow(QMainWindow):
         self.project_creator.close_signal.connect(self.setEnabled)
         self.project_creator.show()
 
+    def load_project(self):
+        self.setEnabled(False)
+        self.loader = ProjectLoader(self.db_adapter)
+        self.loader.close_signal.connect(self.setEnabled)
+        self.loader.load_successful.connect(self.on_load_successful)
+        self.loader.show()
+        
+    def login(self):
+        self.setEnabled(False)
+        self.login_widget = LoginWidget(self.db_adapter)
+        self.login_widget.login_successful.connect(self.on_login_successful)
+        self.login_widget.close_signal.connect(self.setEnabled)
+        self.login_widget.show()
+
+    def on_login_successful(self):
+        # enable project edit options
+        pass
+
+    def on_load_successful(self):
+        self.admin_login_action.triggered.connect(self.login)
 
 if __name__ == '__main__':
     from src.configs.DataCollection import *

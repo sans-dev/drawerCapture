@@ -1,12 +1,11 @@
-from pathlib import Path
 from datetime import datetime
-from PyQt6.QtWidgets import (QApplication, QDialog, QWidget, QVBoxLayout, QLineEdit, QPushButton, QFileDialog, QLabel, 
-                             QListWidget, QHBoxLayout,QTableView, QAbstractItemView, QHeaderView, QCheckBox, QSpacerItem, QSizePolicy, QGridLayout)
-from PyQt6.QtGui import QRegularExpressionValidator, QIcon
-from PyQt6.QtCore import QRegularExpression
-from PyQt6.QtCore import pyqtSignal, Qt
-from PyQt6.QtGui import QStandardItemModel, QStandardItem
+from pathlib import Path
 
+from PyQt6.QtCore import pyqtSignal, Qt, QDir, QRegularExpression
+from PyQt6.QtGui import QIcon, QRegularExpressionValidator, QStandardItemModel, QStandardItem
+from PyQt6.QtWidgets import (QApplication, QDialog, QWidget, QVBoxLayout, QLineEdit, QPushButton, QFileDialog, QLabel, 
+                             QListWidget, QHBoxLayout, QTableView, QAbstractItemView, QHeaderView, QCheckBox, 
+                             QSpacerItem, QSizePolicy, QGridLayout, QMessageBox)
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
@@ -221,7 +220,9 @@ class ProjectCreator(QWidget):
 
 class ProjectLoader(QWidget):
     changed = pyqtSignal(str)
-
+    close_signal = pyqtSignal(bool)
+    load_successful = pyqtSignal()
+    
     def __init__(self, db_adapter):
         super().__init__()
         self.db_adapter = db_adapter
@@ -232,18 +233,20 @@ class ProjectLoader(QWidget):
         layout.addWidget(QLabel("Project Directory"))
         layout.addWidget(self.dir)
 
-        self.dir_dialog = QPushButton("Choose Project Directory")
+        self.dir_dialog = QPushButton(QIcon("resources/assets/open.png"), "Choose Dir")
         self.dir_dialog.clicked.connect(self.choose_dir)
         layout.addWidget(self.dir_dialog)
 
-        self.load_button = QPushButton("Load Project")
+        self.load_button = QPushButton("Load")
         self.load_button.clicked.connect(self.load_project)
         layout.addWidget(self.load_button)
 
         self.setLayout(layout)
 
     def choose_dir(self):
-        directory = QFileDialog.getExistingDirectory(
+        file_dialog = QFileDialog()
+        file_dialog.setDirectory(QDir.homePath())
+        directory = file_dialog.getExistingDirectory(
             self, "Choose Project Directory")
         if directory:
             self.dir.setText(directory)
@@ -251,9 +254,62 @@ class ProjectLoader(QWidget):
     def load_project(self):
         project_dir = self.dir.text()
         self.db_adapter.load_project(project_dir)
-        self.changed.emit("project")
+        self.close()
 
+    def closeEvent(self, event):
+        self.close_signal.emit(True)
+        super().closeEvent(event)
 
+class LoginWidget(QWidget):
+    login_successful = pyqtSignal()
+    close_signal = pyqtSignal(bool)
+
+    def __init__(self, db_adapter):
+        super().__init__()
+        self.db_adapter = db_adapter
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+
+        # Username
+        username_layout = QHBoxLayout()
+        username_label = QLabel("Username:")
+        self.username_input = QLineEdit()
+        username_layout.addWidget(username_label)
+        username_layout.addWidget(self.username_input)
+        layout.addLayout(username_layout)
+
+        # Password
+        password_layout = QHBoxLayout()
+        password_label = QLabel("Password:")
+        self.password_input = QLineEdit()
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        password_layout.addWidget(password_label)
+        password_layout.addWidget(self.password_input)
+        layout.addLayout(password_layout)
+
+        # Login button
+        login_button = QPushButton("Login")
+        login_button.clicked.connect(self.attempt_login)
+        layout.addWidget(login_button)
+
+        self.setLayout(layout)
+
+    def attempt_login(self):
+        username = self.username_input.text()
+        password = self.password_input.text()
+
+        if self.db_adapter.verify_credentials(username, password):
+            self.login_successful.emit()
+            self.close()
+        else:
+            QMessageBox.warning(self, "Login Failed", "Invalid username or password.")
+
+    def closeEvent(self, event):
+        self.close_signal.emit(True)
+        super().closeEvent(event)
+        
 class SessionViewer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
