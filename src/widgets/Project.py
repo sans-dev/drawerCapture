@@ -47,6 +47,7 @@ class InputValidator:
 class ProjectCreator(QWidget):
     changed = pyqtSignal(str)
     close_signal = pyqtSignal(bool)
+    create_successfull = pyqtSignal()
 
     def __init__(self, db_adapter, parent=None):
         super().__init__(parent)
@@ -210,12 +211,10 @@ class ProjectCreator(QWidget):
             
             admin_name = self.admin.text().strip()
             admin_password = self.password.text()
-            users = [
-                {"username": admin_name, "password": admin_password, "role": "admin"},
-            ]
+            admin = {"username": admin_name, "password": admin_password, "role": "admin"}
             self.db_adapter.create_project(project_info)
-            self.db_adapter.save_encrypted_users(project_dir, users)
-            self.close()
+            self.db_adapter.save_encrypted_users(admin)
+            self.create_successfull.emit()
 
     def closeEvent(self, event):
         self.close_signal.emit(True)
@@ -258,7 +257,6 @@ class ProjectLoader(QWidget):
         project_dir = self.dir.text()
         if self.db_adapter.load_project(project_dir):
             self.load_successful.emit()
-            self.close()
         else:
             QMessageBox.warning(self, "Failed to load project.", "INI file is invalid.")
         
@@ -604,7 +602,7 @@ class UserManager(QWidget):
 
     def refresh_user_list(self):
         self.user_list.clear()
-        users = self.db_adapter.get_users()  # Implement this method in your db_adapter
+        users = self.db_adapter.get_users()
         for user in users:
             self.user_list.addItem(f"{user['username']} ({user['role']})")
 
@@ -620,10 +618,13 @@ class UserManager(QWidget):
                 return
             
             try:
-                self.db_adapter.add_user(username, password, role)
+                new_user = {'username': username, 'password': password, 'role': role}
+                self.db_adapter.add_users(new_user)
                 self.refresh_user_list()
                 self.user_updated.emit()
                 QMessageBox.information(self, "Success", f"User {username} added successfully.")
+            except ValueError as e:
+                QMessageBox.critical(self, {str(e)})
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to add user: {str(e)}")
 
@@ -668,7 +669,7 @@ class UserManager(QWidget):
                                                       "Enter admin password:", QLineEdit.EchoMode.Password)
             if ok:
                 try:
-                    if self.db_adapter.validate_admin(admin_password):
+                    if self.db_adapter.validate_admin(self.current_user['username'], admin_password):
                         if new_role == "user" and self.db_adapter.count_admins() <= 1:
                             QMessageBox.warning(self, "Error", "Cannot change the last admin to a user.")
                         else:

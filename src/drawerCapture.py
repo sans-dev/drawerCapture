@@ -126,20 +126,22 @@ class MainWindow(QMainWindow):
         self.setEnabled(False)
         self.project_creator = ProjectCreator(self.db_adapter)
         self.project_creator.close_signal.connect(self.setEnabled)
+        self.project_creator.create_successfull.connect(self.on_create_successful)
         self.project_creator.show()
 
     def load_project(self):
         self.setEnabled(False)
         self.loader = ProjectLoader(self.db_adapter)
+        self.loader.close_signal.connect(self.setEnabled)
         self.loader.load_successful.connect(self.on_load_successful)
         self.loader.show()
         
     def login(self):
-        self.setEnabled(False)
         self.login_widget = LoginWidget(self.db_adapter)
         self.login_widget.login_successful.connect(self.on_login_successful)
         self.login_widget.close_signal.connect(self.setEnabled)
         self.login_widget.show()
+        self.setEnabled(False)
 
     def open_user_manager(self):
         self.user_manager = UserManager(self.db_adapter, self.current_user)
@@ -160,15 +162,21 @@ class MainWindow(QMainWindow):
 
     def enable_admin_features(self):
         # Show admin-only buttons, menus, etc.
+        self.project_menu.setEnabled(True)
         self.manage_museums_action.setEnabled(True)
         self.manage_user_action.setEnabled(True)
-        
+
     def disable_admin_features(self):
         # Hide admin-only buttons, menus, etc.
         self.manage_museums_action.setEnabled(False)
         self.manage_user_action.setEnabled(False)
 
     def on_load_successful(self):
+        self.loader.close()
+        self.login_action.trigger()
+
+    def on_create_successful(self):
+        self.project_creator.close()
         self.login_action.trigger()
 
 if __name__ == '__main__':

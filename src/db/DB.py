@@ -82,8 +82,8 @@ class DBAdapter(QObject):
             logger.info(f"{e}")
             raise e
 
-    def save_encrypted_users(self, project_dir, users):
-        self.db_manager.save_encrypted_users(project_dir, users)
+    def save_encrypted_users(self, user):
+        self.db_manager.save_encrypted_users(user)
 
     def verify_credentials(self, username, password):
         return self.db_manager.verify_credentials(username, password)
@@ -117,25 +117,62 @@ class DBAdapter(QObject):
         self.get_signal.emit(data)
 
     def validate_admin(self, username, password):
-        pass
+        return self.db_manager.validate_admin(username, password)
 
-    def add_user(username, password):
-        pass
-
-    def remove_user(username, password):
-        pass
+    def add_users(self, users):
+        self.db_manager.save_encrypted_users(users)
     
+    def count_admins(self):
+        return self.db_manager.count_admins()
+    
+    def change_user_role(self, user_to_change, new_role):
+        self.db_manager.change_user_role(user_to_change, new_role)
+
+    def remove_user(self, user_to_remove):
+        self.db_manager.remove_user(user_to_remove)
+
+    def get_users(self):
+        return self.db_manager.get_users()
+
 class FileAgnosticDB:
     def __init__(self):
         super().__init__()
         self.project_root_dir = None
         self.current_session = None
+        self.fernet = None
+        
+    def count_admins(self):
+        users = self.get_users()
+        admins = 0
+        for user in users:
+            if user['role'] == 'admin':
+                admins += 1
+        return admins
+
+    def change_user_role(self, user_to_change, new_role):
+        existing_users = self._load_credentials()
+        for user in existing_users:
+            if user['username'] == user_to_change:
+                user['role'] = new_role
+                break
+        encrypted_data = self.fernet.encrypt(json.dumps(existing_users).encode())
+        self._save_credentials(encrypted_data)
+
+    def remove_user(self, user_to_remove):
+        existing_users = self._load_credentials()
+        for idx, user in enumerate(existing_users):
+            if user['username'] == user_to_remove:
+                existing_users.pop(idx)
+                break
+        encrypted_data = self.fernet.encrypt(json.dumps(existing_users).encode())
+        self._save_credentials(encrypted_data)
 
     def load_project(self, project_dir):
         self.project_info = configparser.ConfigParser()
         self.project_info.read((Path(project_dir) / 'project.ini'))
         if DataValidator.validate_project_config(self.project_info):
             self.project_root_dir = Path(project_dir)
+            self._initialize_key()
             return self.create_dict_from_config()
         else: return False
 
@@ -227,6 +264,7 @@ class FileAgnosticDB:
             self.project_info.write(config_file)
 
         self.project_root_dir = project_dir
+        self._initialize_key()
         return self.create_dict_from_config()
 
     def create_config_from_dict(self, config_dict):
@@ -253,71 +291,93 @@ class FileAgnosticDB:
         else:
             raise ValueError('No project info available')
 
-    def delete_project(self):
-        pass
+    def get_users(self):
+        """
+        Retrieve all users from the encrypted credentials file.
+        Returns a list of dictionaries, each containing user information.
+        """
+        users = self._load_credentials()
+        # Return user info without passwords
+        return [{"username": user['username'], "role": user['role']} for user in users]
 
     def verify_credentials(self, username, password):
-        try:
-            # Read the key
-            key_path = Path(self.project_root_dir) / ".key"
-            with open(key_path, "rb") as f:
-                key = f.read()
-
-            fernet = Fernet(key)
-
-            # Read and decrypt the credentials
-            credentials_path = Path(self.project_root_dir) / ".credentials"
-            with open(credentials_path, "rb") as f:
-                encrypted_data = f.read()
-
-            decrypted_data = fernet.decrypt(encrypted_data)
-            users = json.loads(decrypted_data.decode())
-
-            # Verify the credentials
-            for user in users:
-                if user['username'] == username:
-                    decrypted_password = fernet.decrypt(user['password'].encode()).decode()
-                    if password == decrypted_password:
-                        return {"username": user['username'], "role": user['role']}
-
+        existing_users = self._load_credentials()
+        # Verify the credentials
+        for user in existing_users:
+            if user['username'] == username:
+                if user['password'] == password:
+                    return {"username": user['username'], "role": user['role']}
             return None
-
-        except Exception as e:
-            print(f"Error verifying credentials: {e}")
-            return None
-        
+       
     def validate_admin(self, username, password):
         user = self.verify_credentials(username, password)
         if user:
             if user['role'] == 'admin':
                 return True
         return False
-
-    def save_encrypted_users(self, project_dir, users):
-        # Generate a key and create a Fernet instance
-        key = Fernet.generate_key()
-        fernet = Fernet(key)
-
-        # Encrypt each user's password
-        encrypted_users = []
-        for user in users:
-            encrypted_user = user.copy()
-            encrypted_user['password'] = fernet.encrypt(user['password'].encode()).decode()
-            encrypted_users.append(encrypted_user)
-
-        # Convert the list to a JSON string and encrypt it
-        encrypted_data = fernet.encrypt(json.dumps(encrypted_users).encode())
-
-        # Save the encrypted data to a file
-        credentials_path = Path(project_dir) /  ".credentials"
+    
+    def save_encrypted_users(self, new_user):
+        # Load and decrypt existing users
+        existing_users = self._load_credentials() 
+        # Check if user already exists
+        self._check_duplicate_users(existing_users, new_user)
+        # Add the new user to the existing users
+        existing_users.append(new_user)
+        # Encrypt the updated users list
+        encrypted_data = self.fernet.encrypt(json.dumps(existing_users).encode())
+        self._save_credentials(encrypted_data)
+        
+    def _save_credentials(self, encrypted_data):
+        credentials_path = self.project_root_dir / ".credentials"
+        # Save the encrypted data to the file
         with open(credentials_path, "wb") as f:
             f.write(encrypted_data)
 
-        # Save the key to a separate file
-        key_path = Path(project_dir) /  ".key"
-        with open(key_path, "wb") as f:
-            f.write(key)
+    def _check_duplicate_users(self, existing_users, new_user):
+        if any(user['username'] == new_user['username'] for user in existing_users):
+                    raise ValueError(f"User '{new_user['username']}' already exists")
+        
+    def _load_credentials(self):
+        existing_users = []
+        credentials_path = self.project_root_dir / ".credentials"
+        if credentials_path.exists():
+            try:
+                with open(credentials_path, "rb") as f:
+                    encrypted_data = f.read()
+                decrypted_data = self.fernet.decrypt(encrypted_data)
+                existing_users = json.loads(decrypted_data.decode())
+                return existing_users
+            except json.JSONDecodeError:
+                print("Error decoding user data.")
+                return []
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return []
 
+    def _initialize_key(self):
+        key_path = self.project_root_dir / ".key"
+        if key_path.exists():
+            self._load_key(key_path)
+        else:
+            self._create_key(key_path)
+
+    def _load_key(self, key_path):
+        try:
+            with open(key_path, "rb") as key_file:
+                key = key_file.read()
+            self.fernet = Fernet(key)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load encryption key: {str(e)}")
+
+    def _create_key(self, key_path):
+        try:
+            key = Fernet.generate_key()
+            with open(key_path, "wb") as key_file:
+                key_file.write(key)
+            self.fernet = Fernet(key)
+        except Exception as e:
+            raise RuntimeError(f"Failed to create encryption key: {str(e)}")
+        
 class DummyDB:
    def create_session(self, payload):
        pass
