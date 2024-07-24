@@ -76,6 +76,7 @@ class MainWindow(QMainWindow):
         file_menu.addSection("Session Actions")
         self.new_session_action = QAction(QIcon('resources/assets/capture_mode.png'), "New Capture Session", self)
         file_menu.addAction(self.new_session_action)
+        self.new_session_action.setEnabled(False)
         file_menu.addSeparator()
         file_menu.addAction(exit_action)
 
