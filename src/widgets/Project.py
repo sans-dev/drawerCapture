@@ -5,13 +5,29 @@ from PyQt6.QtCore import pyqtSignal, Qt, QDir, QRegularExpression
 from PyQt6.QtGui import QIcon, QRegularExpressionValidator, QStandardItemModel, QStandardItem
 from PyQt6.QtWidgets import (QApplication, QDialog, QWidget, QVBoxLayout, QLineEdit, QPushButton, QFileDialog, QLabel, 
                              QListWidget, QHBoxLayout, QTableView, QAbstractItemView, QHeaderView, QCheckBox, 
-                             QSpacerItem, QSizePolicy, QGridLayout, QMessageBox, QInputDialog, QComboBox)
+                             QSpacerItem, QSizePolicy, QGridLayout, QMessageBox, QInputDialog, QComboBox, QTextEdit)
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 
+class ValidatorFactory:
+    @staticmethod
+    def create_password_validator(parent=None):
+        regex = QRegularExpression(r'^(?!.*[,. ;])(?=(.*[A-Za-z]){4})')
+        return QRegularExpressionValidator(regex, parent=parent)
+    
+    @staticmethod
+    def create_name_validator(parent=None):
+        regex = QRegularExpression(r'^[A-Za-z_]+(?: [A-Za-z_]+)*$')
+        return QRegularExpressionValidator(regex, parent=parent)
+    
+    @staticmethod
+    def create_authors_validator(parent=None):
+        regex = QRegularExpression(r'^[A-Za-z,]+(?: [A-Za-z,]+)*$')
+        return QRegularExpressionValidator(regex, parent=parent)
+    
 class ValidationRule:
     def __init__(self, condition, error_message, error_label):
         self.condition = condition
@@ -57,6 +73,8 @@ class ProjectCreator(QWidget):
 
         admin_layout = QVBoxLayout()
         self.admin = QLineEdit()
+        self.admin.setValidator(ValidatorFactory.create_name_validator(self.admin))
+        self.admin.setMaxLength(15)
         self.admin_error_label = QLabel()
         self.admin_error_label.setStyleSheet("color: red")
         admin_layout.addWidget(self.admin_error_label)
@@ -67,6 +85,8 @@ class ProjectCreator(QWidget):
 
         password_layout = QVBoxLayout()
         self.password = QLineEdit()
+        self.password.setValidator(ValidatorFactory.create_password_validator(self.password))
+        self.password.setMaxLength(16)
         self.password.setEchoMode(QLineEdit.EchoMode.Password)
         self.password_error_label = QLabel()
         self.password_error_label.setStyleSheet("color: red")
@@ -78,6 +98,8 @@ class ProjectCreator(QWidget):
         
         project_name_layout = QVBoxLayout()
         self.project_name = QLineEdit()
+        self.project_name.setValidator(ValidatorFactory.create_name_validator(self.project_name))
+        self.project_name.setMaxLength(16)
         self.project_error_label = QLabel()
         self.project_error_label.setStyleSheet("color: red")
         project_name_layout.addWidget(self.project_error_label)
@@ -88,9 +110,8 @@ class ProjectCreator(QWidget):
 
         author_layout = QVBoxLayout()
         self.authors = QLineEdit()
-        regex = QRegularExpression(r'^[a-zA-Z\s,]+$')
-        validator = QRegularExpressionValidator(regex)
-        self.authors.setValidator(validator)
+        self.authors.setValidator(ValidatorFactory.create_authors_validator(self.authors))
+        self.authors.setMaxLength(40)
         self.author_error_label = QLabel()
         self.author_error_label.setStyleSheet("color: red")
         author_layout.addWidget(self.author_error_label)
@@ -100,7 +121,8 @@ class ProjectCreator(QWidget):
         layout.addLayout(author_layout)
 
         description_layout = QVBoxLayout()
-        self.description = QLineEdit()
+        self.description = QTextEdit()
+        self.description.setMinimumHeight(200)
         self.description_errror_label = QLabel()
         self.description_errror_label.setStyleSheet("color: red")
         description_layout.addWidget(self.description_errror_label)
@@ -178,11 +200,6 @@ class ProjectCreator(QWidget):
             lambda: not len(authors) > 1 and not authors[0],
             "Author name cannot be empty",
             self.author_error_label
-        ))
-        validator.add_rule(ValidationRule(
-            lambda: not description,
-            "Description cannot be empty",
-            self.description_errror_label
         ))
         validator.add_rule(ValidationRule(
             lambda: not admin,
@@ -304,7 +321,6 @@ class LoginWidget(QWidget):
     def attempt_login(self):
         username = self.username_input.text()
         password = self.password_input.text()
-
         user = self.db_adapter.verify_credentials(username, password)
         if user:
             self.login_successful.emit(user)

@@ -307,7 +307,7 @@ class FileAgnosticDB:
             if user['username'] == username:
                 if user['password'] == password:
                     return {"username": user['username'], "role": user['role']}
-            return None
+        return None
        
     def validate_admin(self, username, password):
         user = self.verify_credentials(username, password)

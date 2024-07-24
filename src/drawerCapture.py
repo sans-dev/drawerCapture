@@ -57,9 +57,9 @@ class MainWindow(QMainWindow):
         
         menu_bar = self.menuBar()
         file_menu = menu_bar.addMenu("File")
+        self.user_menu = menu_bar.addMenu("User")
         edit_menu = menu_bar.addMenu("Edit")
         self.project_menu = edit_menu.addMenu('Project')
-        self.project_menu.setEnabled(False)
         help_menu = menu_bar.addMenu("Help")
 
         # Create actions
@@ -69,19 +69,29 @@ class MainWindow(QMainWindow):
         open_project_action = QAction(QIcon('resources/assets/open.png'), "Open Project", self)
         file_menu.addAction(open_project_action)
         file_menu.addSeparator()
-        self.login_action = QAction("Admin Login", self)
-        self.manage_user_action = QAction(QIcon('resources/assets/user.png'), "Manage Capturers", self)
+        self.manage_user_action = QAction(QIcon('resources/assets/user-management-icon-2048x2048-kv1zlmf8.png'), "Manage Users", self)
         self.manage_museums_action = QAction(QIcon('resources/assets/museum.png'), "Manage Museums", self)
         exit_action = QAction(QIcon('resources/assets/close.png'), "Exit", self)
         file_menu.addSeparator()
         file_menu.addSection("Session Actions")
-        new_session_action = QAction(QIcon('resources/assets/capture_mode.png'), "New Capture Session", self)
-        file_menu.addAction(new_session_action)
+        self.new_session_action = QAction(QIcon('resources/assets/capture_mode.png'), "New Capture Session", self)
+        file_menu.addAction(self.new_session_action)
         file_menu.addSeparator()
         file_menu.addAction(exit_action)
 
         self.project_menu.addAction(self.manage_user_action)
         self.project_menu.addAction(self.manage_museums_action)
+
+        self.login_action = QAction(QIcon('resources/assets/user.png'), "Change User", self)
+        self.user_info = QAction(QIcon('resources/assets/user.png'), "User Info", self)
+        self.user_settings = QAction(QIcon('resources/assets/icons8-einstellungen-50.png'), "User Settings", self)
+        self.set_enabled_user_actions(False)
+
+        self.user_menu.addAction(self.login_action)
+        self.user_menu.addAction(self.user_info)
+        self.user_menu.addSeparator()
+        self.user_menu.addAction(self.user_settings)
+    
         toolbar = QToolBar("My main toolbar")
         toolbar.setIconSize(QSize(16,16))
         self.addToolBar(toolbar)
@@ -90,7 +100,7 @@ class MainWindow(QMainWindow):
         toolbar.addSeparator()
         toolbar.addAction(self.manage_user_action)
         toolbar.addSeparator()
-        toolbar.addAction(new_session_action)
+        toolbar.addAction(self.new_session_action)
 
         toolbar.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
 
@@ -155,6 +165,7 @@ class MainWindow(QMainWindow):
         self.update_ui_based_on_role()
 
     def update_ui_based_on_role(self):
+        self.new_session_action.setEnabled(True)
         if self.current_user['role'] == 'admin':
             self.enable_admin_features()
         else:
@@ -173,11 +184,18 @@ class MainWindow(QMainWindow):
 
     def on_load_successful(self):
         self.loader.close()
-        self.login_action.trigger()
+        self.login()
+        self.set_enabled_user_actions(True)
 
     def on_create_successful(self):
         self.project_creator.close()
-        self.login_action.trigger()
+        self.login()
+        self.set_enabled_user_actions(True)
+
+    def set_enabled_user_actions(self, is_enabled):
+        self.login_action.setEnabled(is_enabled)
+        self.user_info.setEnabled(is_enabled)
+        self.user_settings.setEnabled(is_enabled)
 
 if __name__ == '__main__':
     from src.configs.DataCollection import *
