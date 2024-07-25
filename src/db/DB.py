@@ -133,6 +133,9 @@ class DBAdapter(QObject):
 
     def get_users(self):
         return self.db_manager.get_users()
+    
+    def reset_password(self, username, role, old_password, new_password):
+        return self.db_manager.reset_password(username, role, old_password, new_password)
 
 class FileAgnosticDB:
     def __init__(self):
@@ -140,7 +143,17 @@ class FileAgnosticDB:
         self.project_root_dir = None
         self.current_session = None
         self.fernet = None
-        
+    
+    def reset_password(self, username, role, old_password, new_password):
+        existing_users = self._load_credentials()
+        for user in existing_users:
+            if user['username'] == username and user['password'] == old_password:
+                user['password'] = new_password
+                break
+        encrypted_data = self.fernet.encrypt(json.dumps(existing_users).encode())
+        self._save_credentials(encrypted_data)
+        return True
+
     def count_admins(self):
         users = self.get_users()
         admins = 0
@@ -150,7 +163,7 @@ class FileAgnosticDB:
         return admins
 
     def change_user_role(self, user_to_change, new_role):
-        existing_users = self._load_credentials()
+        existing_users = self.get_users()
         for user in existing_users:
             if user['username'] == user_to_change:
                 user['role'] = new_role

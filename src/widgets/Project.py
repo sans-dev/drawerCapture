@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class ValidatorFactory:
     @staticmethod
     def create_password_validator(parent=None):
-        regex = QRegularExpression(r'^(?!.*[,. ;])(?=(.*[A-Za-z]){4})')
+        regex = QRegularExpression(r'^[a-zA-Z_#$&*\d]+')
         return QRegularExpressionValidator(regex, parent=parent)
     
     @staticmethod
@@ -70,7 +70,7 @@ class ProjectCreator(QWidget):
         self.db_adapter = db_adapter
         layout = QVBoxLayout()
         self.setWindowTitle('Create Project')
-
+        self.setGeometry(600,500,400,800)
         admin_layout = QVBoxLayout()
         self.admin = QLineEdit()
         self.admin.setValidator(ValidatorFactory.create_name_validator(self.admin))
@@ -135,7 +135,7 @@ class ProjectCreator(QWidget):
         dir_layout = QHBoxLayout()
         self.dir = QLineEdit()
 
-        self.dir_dialog = QPushButton(QIcon("resources/assets/folder.png"), "Choose")
+        self.dir_dialog = QPushButton(QIcon("resources/assets/folder.png"), "Select Dir")
         self.dir_dialog.clicked.connect(self.choose_dir)
         self.dir_error_label = QLabel()
         self.dir_error_label.setStyleSheet("color: red")
@@ -175,7 +175,6 @@ class ProjectCreator(QWidget):
         admin = self.admin.text().strip()
         pw = self.password.text().strip()
         authors = self.authors.text().strip().split(",")
-        description = self.description.text().strip()
         project_name = self.project_name.text().strip()
         project_dir = self.dir.text()
 
@@ -245,14 +244,16 @@ class ProjectLoader(QWidget):
     def __init__(self, db_adapter):
         super().__init__()
         self.db_adapter = db_adapter
-
+        self.setWindowTitle("Load Project")
+        self.setGeometry(900,600,300,100)
         layout = QVBoxLayout()
 
         self.dir = QLineEdit()
-        layout.addWidget(QLabel("Project Directory"))
-        layout.addWidget(self.dir)
-
-        self.dir_dialog = QPushButton(QIcon("resources/assets/open.png"), "Choose Dir")
+        input_layout = QHBoxLayout()
+        input_layout.addWidget(QLabel("Project Dir"))
+        input_layout.addWidget(self.dir)
+        layout.addLayout(input_layout)
+        self.dir_dialog = QPushButton(QIcon("resources/assets/open.png"), "Select Dir")
         self.dir_dialog.clicked.connect(self.choose_dir)
         layout.addWidget(self.dir_dialog)
 
@@ -293,7 +294,8 @@ class LoginWidget(QWidget):
 
     def init_ui(self):
         layout = QVBoxLayout()
-
+        self.setWindowTitle("Login")
+        self.setGeometry(600,500,300,200)
         # Username
         username_layout = QHBoxLayout()
         username_label = QLabel("Username:")
@@ -397,6 +399,8 @@ class SessionCreator(QDialog):
         self.init_ui()
 
     def init_ui(self):
+        self.setWindowTitle("New Session")
+        self.setGeometry(500,300,400,800)
         layout = QVBoxLayout()
 
         # Capturer
@@ -556,6 +560,7 @@ class AddUserDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Add New User")
+        self.setGeometry(500,600,200,200)
         layout = QVBoxLayout()
         
         self.username_input = QLineEdit()
@@ -701,6 +706,113 @@ class UserManager(QWidget):
     def closeEvent(self, event):
         self.close_signal.emit(True)
         super().closeEvent(event)
+
+class UserSettings(QWidget):
+    finished = pyqtSignal()
+    close_signal = pyqtSignal(bool)
+
+    def __init__(self, db_adapter, user):
+        super().__init__()
+
+        self.db_adapter = db_adapter
+        self.username = user['username']
+        self.role = user['role']
+        self.resetter = ResetPasswordWidget(self.db_adapter, self.username, self.role)
+        self.resetter.hide()
+        self.setWindowTitle("User Settings")
+        self.setGeometry(600,700,200,90)
+        # UI Elements
+        self.username_label = QLabel(f"Username: {self.username}")
+        self.role_label = QLabel(f"Role: {self.role}")
+        self.reset_password_button = QPushButton("Reset Password")
+
+        # Layout
+        layout = QVBoxLayout()
+        layout.addWidget(self.username_label)
+        layout.addWidget(self.role_label)
+        layout.addWidget(self.reset_password_button)
+        layout.addWidget(self.resetter)
+
+        self.setLayout(layout)
+
+        # Connections
+        self.reset_password_button.clicked.connect(self.reset_password)
+        self.resetter.finished.connect(self.enable_main_window)
+
+    def reset_password(self):
+        self.reset_password_button.hide()
+        self.resetter.show()
+
+    def enable_main_window(self):
+        self.setDisabled(False)
+        self.resetter.hide()
+        self.reset_password_button.show()
+    
+    def closeEvent(self, event):
+        self.close_signal.emit(True)
+        super().closeEvent(event)
+
+class ResetPasswordWidget(QWidget):
+    finished = pyqtSignal()
+
+    def __init__(self, db_adapter, username, role):
+        super().__init__()
+
+        self.db_adapter = db_adapter
+        self.username = username
+        self.role = role
+
+        self.setWindowTitle("Reset Password")
+
+        # UI Elements
+        self.old_password_edit = QLineEdit()
+        self.old_password_edit.setPlaceholderText("Old password")
+        self.old_password_edit.setEchoMode(QLineEdit.EchoMode.Password)
+
+        self.new_password_edit = QLineEdit()
+        self.new_password_edit.setPlaceholderText("New password")
+        self.new_password_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self.new_password_edit.setValidator(ValidatorFactory.create_password_validator(self))
+
+        self.confirm_password_edit = QLineEdit()
+        self.confirm_password_edit.setPlaceholderText("Confirm new password")
+        self.confirm_password_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self.confirm_password_edit.setValidator(ValidatorFactory.create_password_validator(self))
+
+        self.reset_button = QPushButton("Reset")
+
+        # Layout
+        layout = QVBoxLayout()
+        layout.addWidget(self.old_password_edit)
+        layout.addWidget(self.new_password_edit)
+        layout.addWidget(self.confirm_password_edit)
+        layout.addWidget(self.reset_button)
+
+        self.setLayout(layout)
+
+        # Connections
+        self.reset_button.clicked.connect(self.reset_password)
+
+    def reset_password(self):
+        old_password = self.old_password_edit.text()
+        new_password = self.new_password_edit.text()
+        confirm_password = self.confirm_password_edit.text()
+
+        if not self.new_password_edit.hasAcceptableInput() or not self.confirm_password_edit.hasAcceptableInput():
+            QMessageBox.warning(self, "Invalid Password", "New password must contain at least 4 unique characters and no ', . ;'.")
+            return
+
+        if new_password != confirm_password:
+            QMessageBox.warning(self, "Password Mismatch", "New passwords do not match.")
+            return
+
+        if self.db_adapter.reset_password(self.username, self.role, old_password, new_password):
+            QMessageBox.information(self, "Success", "Password reset successfully.")
+            self.finished.emit()
+            self.close()
+        else:
+            QMessageBox.warning(self, "Failure", "Failed to reset password.")
+
 
 def init_project_viewer(db_adapter):
     db_adapter.load_project()
