@@ -73,84 +73,117 @@ class ProjectCreator(QWidget):
     def __init__(self, db_adapter, parent=None):
         super().__init__(parent)
         self.db_adapter = db_adapter
-        layout = QVBoxLayout()
         self.setWindowTitle('Create Project')
-        self.setGeometry(600,500,400,800)
-        admin_layout = QVBoxLayout()
-        self.admin = QLineEdit()
-        self.admin.setValidator(ValidatorFactory.create_name_validator(self.admin))
-        self.admin.setMaxLength(15)
-        self.admin_error_label = ErrorLabel()
+        self.setGeometry(600, 500, 400, 800)
+        self.validator = InputValidator()
         
-        admin_layout.addWidget(QLabel("Administrator"))
-        admin_layout.addWidget(self.admin)
-        admin_layout.addWidget(self.admin_error_label)
-        admin_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        layout.addLayout(admin_layout)
+        self.input_fields = {
+            'admin': {
+                'type': 'line', 'label': 'Administrator', 'max_length': 15, 'validator': 'name',
+                'error_rule': lambda: not self.admin.text().strip(),
+                'error_message': "Provide a valid name for admin login"
+            },
+            'password': {
+                'type': 'line', 'label': 'Password', 'max_length': 16, 'echo_mode': QLineEdit.EchoMode.Password,
+                'error_rule': lambda: not self.password.text().strip() or len(set(self.password.text())) < 4 or any(char in self.password.text() for char in [';',',','.',':']),
+                'error_message': "Provide a password that has at least 4 unique characters and does not contain any of these characters ; , . :"
+            },
+            'password_confirm': {
+                'type': 'line', 'label': 'Confirm Password', 'max_length': 16, 'echo_mode': QLineEdit.EchoMode.Password,
+                'error_rule': lambda: not self.password.text().strip() == self.password_confirm.text().strip(),
+                'error_message': "Passwords do not match"
+            },
 
-        password_layout = QVBoxLayout()
-        self.password = QLineEdit()
-        self.password.setMaxLength(16)
-        self.password.setEchoMode(QLineEdit.EchoMode.Password)
-        self.password_error_label = ErrorLabel()
+            'project_name': {
+                'type': 'line', 'label': 'Project Name', 'max_length': 16, 'validator': 'name',
+                'error_rule': lambda: not self.project_name.text().strip(),
+                'error_message': "Project name cannot be empty"
+            },
+            'authors': {
+                'type': 'line', 'label': 'Authors', 'max_length': 40, 'validator': 'authors',
+                'error_rule': lambda: not len(self.authors.text().strip().split(",")) > 1 and not self.authors.text().strip(),
+                'error_message': "Author name cannot be empty"
+            },
+            'description': {'type': 'text', 'label': 'Description', 'min_height': 200},
+            'dir': {
+                'type': 'dir', 'label': 'Directory',
+                'error_rule': lambda: not self.dir.text() or not Path(self.dir.text()).exists(),
+                'error_message': "Directory does not exist"
+            }
+        }
         
-        password_layout.addWidget(QLabel("Password"))
-        password_layout.addWidget(self.password)
-        password_layout.addWidget(self.password_error_label)
-        password_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        layout.addLayout(password_layout) 
+        layout = QVBoxLayout()
+        self.create_input_fields(layout)
         
-        project_name_layout = QVBoxLayout()
-        self.project_name = QLineEdit()
-        self.project_name.setValidator(ValidatorFactory.create_name_validator(self.project_name))
-        self.project_name.setMaxLength(16)
-        self.project_error_label = ErrorLabel()
-        project_name_layout.addWidget(QLabel("Project Name"))
-        project_name_layout.addWidget(self.project_name)
-        project_name_layout.addWidget(self.project_error_label)
-        project_name_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        layout.addLayout(project_name_layout)
-
-        author_layout = QVBoxLayout()
-        self.authors = QLineEdit()
-        self.authors.setValidator(ValidatorFactory.create_authors_validator(self.authors))
-        self.authors.setMaxLength(40)
-        self.author_error_label = ErrorLabel()
-        author_layout.addWidget(QLabel("Authors"))
-        author_layout.addWidget(self.authors)
-        author_layout.addWidget(self.author_error_label)
-        author_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        layout.addLayout(author_layout)
-
-        description_layout = QVBoxLayout()
-        self.description = QTextEdit()
-        self.description.setMinimumHeight(200)
-        self.description_errror_label = ErrorLabel()
-        description_layout.addWidget(QLabel("Description"))
-        description_layout.addWidget(self.description)
-        description_layout.addWidget(self.description_errror_label)
-        description_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        layout.addLayout(description_layout)
-
-        dir_main_layout = QVBoxLayout()
-        dir_layout = QHBoxLayout()
-        self.dir = QLineEdit()
-
-        self.dir_dialog = QPushButton(QIcon("resources/assets/folder.png"), "Select Dir")
-        self.dir_dialog.clicked.connect(self.choose_dir)
-        self.dir_error_label = ErrorLabel()
-        dir_layout.addWidget(self.dir)
-        dir_layout.addWidget(self.dir_dialog)
-        
-        dir_main_layout.addWidget(QLabel("Directory"))
-        dir_main_layout.addLayout(dir_layout)
-        dir_main_layout.addWidget(self.dir_error_label)
-
-        layout.addLayout(dir_main_layout)
         self.create_button = QPushButton("Create")
         self.create_button.clicked.connect(self.create_project)
         layout.addWidget(self.create_button)
+        
         self.setLayout(layout)
+
+    def create_input_fields(self, layout):
+        for field_name, field_info in self.input_fields.items():
+            field_layout = self.create_input_layout(field_name, field_info)
+            layout.addLayout(field_layout)
+
+    def create_input_layout(self, field_name, field_info):
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel(field_info['label']))
+        
+        if field_info['type'] == 'line':
+            self.__dict__[field_name] = QLineEdit()
+            self.setup_line_edit(self.__dict__[field_name], field_info)
+            layout.addWidget(self.__dict__[field_name])
+        elif field_info['type'] == 'text':
+            self.__dict__[field_name] = QTextEdit()
+            self.__dict__[field_name].setMinimumHeight(field_info['min_height'])
+            layout.addWidget(self.__dict__[field_name])
+        elif field_info['type'] == 'dir':
+            dir_layout = QHBoxLayout()
+            self.__dict__[field_name] = QLineEdit()
+            dir_layout.addWidget(self.__dict__[field_name])
+            self.dir_dialog = QPushButton(QIcon("resources/assets/folder.png"), "Select Dir")
+            self.dir_dialog.clicked.connect(self.choose_dir)
+            dir_layout.addWidget(self.dir_dialog)
+            layout.addLayout(dir_layout)
+        
+        error_label = ErrorLabel()
+        layout.addWidget(error_label)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        
+        if 'error_rule' in field_info and 'error_message' in field_info:
+            self.bind_error_handling(self.__dict__[field_name], error_label, field_info['error_rule'], field_info['error_message'])
+        
+        return layout
+
+    def bind_error_handling(self, input_widget, error_label, error_rule, error_message):
+        def check_error():
+            if error_rule():
+                error_label.setText(error_message)
+                error_label.setVisible(True)
+            else:
+                error_label.setVisible(False)
+
+        if isinstance(input_widget, QLineEdit):
+            input_widget.textChanged.connect(check_error)
+        elif isinstance(input_widget, QTextEdit):
+            input_widget.textChanged.connect(check_error)
+
+        self.validator.add_rule(
+            ValidationRule(
+                error_rule,
+                error_message,
+                error_label
+            )
+        )
+
+    def setup_line_edit(self, line_edit, field_info):
+        line_edit.setMaxLength(field_info['max_length'])
+        if 'validator' in field_info:
+            validator_method = getattr(ValidatorFactory, f"create_{field_info['validator']}_validator")
+            line_edit.setValidator(validator_method(line_edit))
+        if 'echo_mode' in field_info:
+            line_edit.setEchoMode(field_info['echo_mode'])
 
     def choose_dir(self):
         file_dialog = QFileDialog()
@@ -164,58 +197,19 @@ class ProjectCreator(QWidget):
 
     def get_project_name(self):
         return self.project_name.text()
-
-    def handle_errors(self):
-        # Get input values
-        admin = self.admin.text().strip()
-        pw = self.password.text().strip()
-        authors = self.authors.text().strip().split(",")
-        project_name = self.project_name.text().strip()
-        project_dir = self.dir.text()
-
-        # Create validator and add rules
-        validator = InputValidator()
-        validator.add_rule(ValidationRule(
-            lambda: not project_name,
-            "Project name cannot be empty",
-            self.project_error_label
-        ))
-        validator.add_rule(ValidationRule(
-            lambda: not project_dir or not Path(project_dir).exists(),
-            "Directory does not exist",
-            self.dir_error_label
-        ))
-
-        validator.add_rule(ValidationRule(
-            lambda: not len(authors) > 1 and not authors[0],
-            "Author name cannot be empty",
-            self.author_error_label
-        ))
-        validator.add_rule(ValidationRule(
-            lambda: not admin,
-            "Provide a valid name for admin login",
-            self.admin_error_label
-        ))
-
-        validator.add_rule(ValidationRule(
-            lambda: not pw or len(set(pw)) < 4 or any(char in pw for char in [';',',','.',':']),
-            f"Provide a password that has at least 4 unique characters and does not contain any of these characters {' '.join([';',',','.',':'])}",
-            self.password_error_label
-        ))
-        # Run validation
-        return validator.validate()
-
+    
     def create_project(self):
-        if self.handle_errors():
+        if self.validator.validate():
             project_info = dict()
             project_dir = (Path(self.dir.text().strip()) / self.project_name.text().strip()).as_posix()
             project_info['Project Info'] = {
-                'project_dir' : project_dir,
+                'project_dir': project_dir,
                 'creation_date': datetime.now().strftime("%Y-%m-%d"),
                 'name': self.project_name.text().strip(),
                 'authors': self.authors.text().strip().split(","),
                 'description': self.description.toPlainText().strip(),
-                'num_captures' : 0}
+                'num_captures': 0
+            }
             
             admin_name = self.admin.text().strip()
             admin_password = self.password.text()
