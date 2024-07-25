@@ -37,10 +37,9 @@ class ValidationRule:
     def validate(self):
         if self.condition():
             self.error_label.setText(self.error_message)
-            self.error_label.show()
             return False
         else:
-            self.error_label.hide()
+            self.error_label.setText("")
             return True
 
     def has_passed(self):
@@ -60,6 +59,12 @@ class InputValidator:
             all_valid = all_valid and is_valid
         return all_valid
 
+class ErrorLabel(QLabel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setStyleSheet("color: darkred")
+        self.setText("")
+
 class ProjectCreator(QWidget):
     changed = pyqtSignal(str)
     close_signal = pyqtSignal(bool)
@@ -75,24 +80,23 @@ class ProjectCreator(QWidget):
         self.admin = QLineEdit()
         self.admin.setValidator(ValidatorFactory.create_name_validator(self.admin))
         self.admin.setMaxLength(15)
-        self.admin_error_label = QLabel()
-        self.admin_error_label.setStyleSheet("color: red")
-        admin_layout.addWidget(self.admin_error_label)
+        self.admin_error_label = ErrorLabel()
+        
         admin_layout.addWidget(QLabel("Administrator"))
         admin_layout.addWidget(self.admin)
+        admin_layout.addWidget(self.admin_error_label)
         admin_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.addLayout(admin_layout)
 
         password_layout = QVBoxLayout()
         self.password = QLineEdit()
-        self.password.setValidator(ValidatorFactory.create_password_validator(self.password))
         self.password.setMaxLength(16)
         self.password.setEchoMode(QLineEdit.EchoMode.Password)
-        self.password_error_label = QLabel()
-        self.password_error_label.setStyleSheet("color: red")
-        password_layout.addWidget(self.password_error_label)
+        self.password_error_label = ErrorLabel()
+        
         password_layout.addWidget(QLabel("Password"))
         password_layout.addWidget(self.password)
+        password_layout.addWidget(self.password_error_label)
         password_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.addLayout(password_layout) 
         
@@ -100,11 +104,10 @@ class ProjectCreator(QWidget):
         self.project_name = QLineEdit()
         self.project_name.setValidator(ValidatorFactory.create_name_validator(self.project_name))
         self.project_name.setMaxLength(16)
-        self.project_error_label = QLabel()
-        self.project_error_label.setStyleSheet("color: red")
-        project_name_layout.addWidget(self.project_error_label)
+        self.project_error_label = ErrorLabel()
         project_name_layout.addWidget(QLabel("Project Name"))
         project_name_layout.addWidget(self.project_name)
+        project_name_layout.addWidget(self.project_error_label)
         project_name_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.addLayout(project_name_layout)
 
@@ -112,22 +115,20 @@ class ProjectCreator(QWidget):
         self.authors = QLineEdit()
         self.authors.setValidator(ValidatorFactory.create_authors_validator(self.authors))
         self.authors.setMaxLength(40)
-        self.author_error_label = QLabel()
-        self.author_error_label.setStyleSheet("color: red")
-        author_layout.addWidget(self.author_error_label)
+        self.author_error_label = ErrorLabel()
         author_layout.addWidget(QLabel("Authors"))
         author_layout.addWidget(self.authors)
+        author_layout.addWidget(self.author_error_label)
         author_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.addLayout(author_layout)
 
         description_layout = QVBoxLayout()
         self.description = QTextEdit()
         self.description.setMinimumHeight(200)
-        self.description_errror_label = QLabel()
-        self.description_errror_label.setStyleSheet("color: red")
-        description_layout.addWidget(self.description_errror_label)
+        self.description_errror_label = ErrorLabel()
         description_layout.addWidget(QLabel("Description"))
         description_layout.addWidget(self.description)
+        description_layout.addWidget(self.description_errror_label)
         description_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.addLayout(description_layout)
 
@@ -137,22 +138,18 @@ class ProjectCreator(QWidget):
 
         self.dir_dialog = QPushButton(QIcon("resources/assets/folder.png"), "Select Dir")
         self.dir_dialog.clicked.connect(self.choose_dir)
-        self.dir_error_label = QLabel()
-        self.dir_error_label.setStyleSheet("color: red")
-        
+        self.dir_error_label = ErrorLabel()
         dir_layout.addWidget(self.dir)
         dir_layout.addWidget(self.dir_dialog)
-
-        dir_layout.setAlignment(Qt.AlignmentFlag.AlignTop) 
-        dir_main_layout.addWidget(self.dir_error_label)
+        
         dir_main_layout.addWidget(QLabel("Directory"))
         dir_main_layout.addLayout(dir_layout)
-        layout.addLayout(dir_main_layout)
+        dir_main_layout.addWidget(self.dir_error_label)
 
+        layout.addLayout(dir_main_layout)
         self.create_button = QPushButton("Create")
         self.create_button.clicked.connect(self.create_project)
         layout.addWidget(self.create_button)
-        layout.setAlignment(Qt.AlignmentFlag.AlignJustify)
         self.setLayout(layout)
 
     def choose_dir(self):
@@ -165,12 +162,10 @@ class ProjectCreator(QWidget):
     def get_dir(self):
         return self.dir.text()
 
-    def handle_errors(self):
-        # Hide all error labels
-        for label in [self.author_error_label, self.project_error_label, 
-                    self.dir_error_label, self.description_errror_label]:
-            label.hide()
+    def get_project_name(self):
+        return self.project_name.text()
 
+    def handle_errors(self):
         # Get input values
         admin = self.admin.text().strip()
         pw = self.password.text().strip()
@@ -190,11 +185,7 @@ class ProjectCreator(QWidget):
             "Directory does not exist",
             self.dir_error_label
         ))
-        validator.add_rule(ValidationRule(
-            lambda: (Path(project_dir) / project_name / 'project.ini').exists(),
-            "Project already exists",
-            self.dir_error_label
-        ))
+
         validator.add_rule(ValidationRule(
             lambda: not len(authors) > 1 and not authors[0],
             "Author name cannot be empty",
@@ -205,9 +196,10 @@ class ProjectCreator(QWidget):
             "Provide a valid name for admin login",
             self.admin_error_label
         ))
+
         validator.add_rule(ValidationRule(
             lambda: not pw or len(set(pw)) < 4 or any(char in pw for char in [';',',','.',':']),
-            "Provide a password that has at least 4 unique characters",
+            f"Provide a password that has at least 4 unique characters and does not contain any of these characters {' '.join([';',',','.',':'])}",
             self.password_error_label
         ))
         # Run validation
@@ -222,7 +214,7 @@ class ProjectCreator(QWidget):
                 'creation_date': datetime.now().strftime("%Y-%m-%d"),
                 'name': self.project_name.text().strip(),
                 'authors': self.authors.text().strip().split(","),
-                'description': self.description.text().strip(),
+                'description': self.description.toPlainText().strip(),
                 'num_captures' : 0}
             
             admin_name = self.admin.text().strip()
@@ -278,6 +270,8 @@ class ProjectLoader(QWidget):
         else:
             QMessageBox.warning(self, "Failed to load project.", "INI file is invalid.")
         
+    def get_project_name(self):
+        return Path(self.dir.text()).parts[-1]
 
     def closeEvent(self, event):
         self.close_signal.emit(True)
@@ -505,7 +499,7 @@ class ProjectViewer(QWidget):
         session_layout = QVBoxLayout()
         session_layout.addWidget(self.session_view)
         project_info_layout.addWidget(self.project_info_list)
-        self.project_info_list.addItem("No Project open")
+        self.project_info_list.addItem("No Project loaded")
         top_layout.addLayout(button_layout)
         top_layout.addLayout(project_info_layout)
 
@@ -515,12 +509,6 @@ class ProjectViewer(QWidget):
 
         self.db_adapter.project_changed_signal.connect(self.update_project_list)
         self.db_adapter.project_changed_signal.connect(self.update_session_view)
-
-    def create_new_session(self):
-        self.new_session_window = SessionCreator(self.db_adapter, self.sessions, parent=self)
-        self.new_session_window.setWindowModality(Qt.WindowModality.ApplicationModal)
-        self.new_session_window.exec()
-        self.changed.emit("live")
 
     def close_project(self):
         self.changed.emit("main")

@@ -360,12 +360,13 @@ class FileAgnosticDB:
                 decrypted_data = self.fernet.decrypt(encrypted_data)
                 existing_users = json.loads(decrypted_data.decode())
                 return existing_users
-            except json.JSONDecodeError:
+            except json.JSONDecodeError: # exption handling need refactoring -> propage errors to gui
                 print("Error decoding user data.")
                 return []
             except Exception as e:
                 print(f"An error occurred: {e}")
                 return []
+        return existing_users
 
     def _initialize_key(self):
         key_path = self.project_root_dir / ".key"

@@ -7,7 +7,8 @@ from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import QSize, Qt
 
 from src.utils.load_style_sheet import load_style_sheet
-from src.widgets.LiveWidget import LiveWidget
+from src.widgets.CaptureView import CaptureView
+from src.widgets.ImageWidget import ImageWidget
 from src.db.DB import DBAdapter, FileAgnosticDB
 from src.widgets.Project import ProjectCreator, ProjectLoader, ProjectViewer, LoginWidget, UserManager, UserSettings
 from src.utils.searching import init_taxonomy
@@ -46,15 +47,20 @@ class MainWindow(QMainWindow):
 
     def initUI(self):
         """
-        Initializes the user interface.
+        Initializes the user interface.setWindowTitle
         """
-        self.setWindowTitle("Drawer Capture")
+        self.mode = "Project Mode"
+        self.current_user = None
+        self.project_name = ''
+        self.set_window_title()
         self.setGeometry(0, 0, 1920, 1024)
         self.setWindowIcon(QIcon('resources/assets/logo.png'))
         self.stacked_widget = QStackedWidget(self)
         self.project_view = ProjectViewer(self.db_adapter)
-        self.capture_view = LiveWidget(db_adapter=self.db_adapter, taxonomomy=self.taxonomy,
-                                       geo_data_dir=self.geo_data_dir, fs=self.fs, panel_res=(1024, 780))
+        self.capture_view = CaptureView(db_adapter=self.db_adapter,
+                                       fs=self.fs, panel_res=(1024, 780))
+        # self.image_view = ImageWidget(
+        #    db_adapter=db_adapter, taxonomy=taxonomomy, geo_data_dir=geo_data_dir)
         self.stacked_widget.addWidget(self.project_view)
         self.stacked_widget.addWidget(self.capture_view)
         self.setCentralWidget(self.stacked_widget)
@@ -62,6 +68,11 @@ class MainWindow(QMainWindow):
         self.create_menus()
         self.create_actions()
         self.setup_toolbar()
+
+    def set_window_title(self):
+        username = self.current_user['username'] if self.current_user is not None else ''
+        title = f"Drawer Capture - {self.mode} - {self.project_name} - {username}"
+        self.setWindowTitle(title)
 
     def create_menus(self):
         menu_bar = self.menuBar()
@@ -81,7 +92,7 @@ class MainWindow(QMainWindow):
             QIcon('resources/assets/close.png'), "Exit", self)
         self.new_session_action = QAction(
             QIcon('resources/assets/add2.png'), "New Capture Session", self)
-        self.new_session_action.setEnabled(False)
+        # self.new_session_action.setEnabled(False)
 
         # Project menu actions
         self.manage_user_action = QAction(QIcon(
@@ -134,6 +145,12 @@ class MainWindow(QMainWindow):
         self.open_project_action.triggered.connect(self.load_project)
         self.manage_user_action.triggered.connect(self.open_user_manager)
         self.user_settings.triggered.connect(self.edit_user)
+        self.new_session_action.triggered.connect(self.new_session)
+
+    def new_session(self):
+        self.stacked_widget.setCurrentWidget(self.capture_view)
+        self.mode = "Capture Mode"
+        self.set_window_title()
 
     def edit_user(self):
         self.user_settings = UserSettings(self.db_adapter, self.current_user)
@@ -196,13 +213,16 @@ class MainWindow(QMainWindow):
         print(
             f"Login successful! Welcome, {user['username']} ({user['role']})")
         self.update_ui_based_on_role()
+        self.set_window_title()
 
     def on_load_successful(self):
+        self.project_name = self.loader.get_project_name()
         self.loader.close()
         self.login()
         self.set_enabled_user_actions(True)
 
     def on_create_successful(self):
+        self.project_name = self.project_creator.get_project_name()
         self.project_creator.close()
         self.login()
         self.set_enabled_user_actions(True)
