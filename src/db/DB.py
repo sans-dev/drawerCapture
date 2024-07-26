@@ -70,7 +70,6 @@ class DBAdapter(QObject):
 
     def create_session(self, session_data):
         self.project_changed_signal.emit(self.db_manager.create_session(session_data))
-        self.session_created_signal.emit(session_data)
 
     def create_project(self, project_info):
 
@@ -134,8 +133,14 @@ class DBAdapter(QObject):
     def get_users(self):
         return self.db_manager.get_users()
     
+    def get_museums(self):
+        return self.db_manager.get_museums()
+    
     def reset_password(self, username, role, old_password, new_password):
         return self.db_manager.reset_password(username, role, old_password, new_password)
+    
+    def get_current_user(self):
+        return self.db_manager.get_current_user()
 
 class FileAgnosticDB:
     def __init__(self):
@@ -392,19 +397,41 @@ class FileAgnosticDB:
         except Exception as e:
             raise RuntimeError(f"Failed to create encryption key: {str(e)}")
         
+
 class DummyDB:
-   def create_session(self, payload):
-       pass
+    def create_session(self, payload):
+        return {'Project Info': {},
+                'Session':payload}
 
-   def create_project(self, payload):
-       if not payload:
-           raise NotADirectoryError("Wrong request format.")
-       else:
-           return payload
+    def create_project(self, payload):
+        if not payload:
+            raise NotADirectoryError("Wrong request format.")
+        else:
+            return payload
 
-   def load_project(self, payload):
-       pass
+    def load_project(self, payload):
+        pass
 
-   def post_new_image(self, payload):
-       print(payload)
-       return payload
+    def post_new_image(self, payload):
+        print(payload)
+        return payload
+
+    def get_users(self):
+       return  [
+           {
+               'username': 'Peter',
+               'role': 'user'
+           },
+           {
+               'username': 'Seb',
+               'role': 'admin'
+           }]
+
+    def get_museums(self):
+        return [
+            'NHM London',
+            'Senkenberg Frankfurt'
+        ]
+    
+    def get_current_user(self):
+        return {'username': 'Peter', 'role': 'user'}

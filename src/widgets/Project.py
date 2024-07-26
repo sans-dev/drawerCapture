@@ -398,6 +398,9 @@ class CaptureViewer(QWidget):
     pass
 
 class SessionCreator(QDialog):
+    close_signal = pyqtSignal(bool)
+    session_created = pyqtSignal()
+
     def __init__(self, db_adapter, sessions, parent=None):
         super().__init__(parent)
         self.db_adapter = db_adapter
@@ -406,13 +409,13 @@ class SessionCreator(QDialog):
 
     def init_ui(self):
         self.setWindowTitle("New Session")
-        self.setGeometry(500,300,400,800)
+        self.setGeometry(500,300,400,300)
         layout = QVBoxLayout()
 
         # Capturer
         capturer_layout = QVBoxLayout()
         self.capturer_label = QLabel("Capturer*")
-        self.capturer_edit = QLineEdit()
+        self.capturer_edit = QComboBox()
         capturer_layout.addWidget(self.capturer_label)
         capturer_layout.addWidget(self.capturer_edit)
         layout.addLayout(capturer_layout)
@@ -420,7 +423,7 @@ class SessionCreator(QDialog):
         # Museum
         museum_layout = QVBoxLayout()
         self.museum_label = QLabel("Museum*")
-        self.museum_edit = QLineEdit()
+        self.museum_edit = QComboBox()
         museum_layout.addWidget(self.museum_label)
         museum_layout.addWidget(self.museum_edit)
         layout.addLayout(museum_layout)
@@ -433,35 +436,26 @@ class SessionCreator(QDialog):
         collection_name_layout.addWidget(self.collection_name_edit)
         layout.addLayout(collection_name_layout)
 
-        # Keep Data Checkbox
-        self.keep_data_checkbox = QCheckBox("Keep Data")
-        layout.addWidget(self.keep_data_checkbox)
-
-        # Error Label
-        self.error_label = QLabel()
-        self.error_label.setStyleSheet("color: red")
-        layout.addWidget(self.error_label)
-
-        # Spacer
-        spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-        layout.addItem(spacer)
-
         # Create Session Button
         self.create_session_button = QPushButton("Create Session")
         self.create_session_button.clicked.connect(self.create_session)
         layout.addWidget(self.create_session_button)
 
         self.setLayout(layout)
-        self.setWindowTitle("Create Capture Session")
+        
+    def set_user(self, user):
+        self.capturer_edit.addItem(user['username'])
+
+    def set_museums(self, museums):
+        for museum in museums:
+            self.museum_edit.addItem(museum)
 
     def create_session(self):
-        capturer = self.capturer_edit.text().strip()
-        museum = self.museum_edit.text().strip()
+        #TODO needs big refactoring
+        capturer = self.capturer_edit.currentText().strip()
+        museum = self.museum_edit.currentText().strip()
         collection_name = self.collection_name_edit.text().strip()
 
-        if not capturer or not museum:
-            self.show_error("Capturer and Museum are mandatory fields.")
-            return
         max_id = 0
         for session in self.sessions:
             _id = int(session.get("session_id"))
@@ -480,21 +474,11 @@ class SessionCreator(QDialog):
         }
         # Call the appropriate function in your db_adapter to create the session
         self.db_adapter.create_session(session_data)
-        self.close()
-
-        # Clear the input fields
-        self.capturer_edit.clear()
-        self.museum_edit.clear()
-        self.collection_name_edit.clear()
-        self.keep_data_checkbox.setChecked(False)
-        self.hide_error()
-
-    def show_error(self, message):
-        self.error_label.setText(message)
-
-    def hide_error(self):
-        self.error_label.clear()
-
+        self.session_created.emit()
+        
+    def closeEvent(self, event):
+        self.close_signal.emit(True)
+        super().closeEvent(event)
 
 class ProjectViewer(QWidget):
     changed = pyqtSignal(str)

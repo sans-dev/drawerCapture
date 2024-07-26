@@ -9,8 +9,8 @@ from PyQt6.QtCore import QSize, Qt
 from src.utils.load_style_sheet import load_style_sheet
 from src.widgets.CaptureView import CaptureView
 from src.widgets.ImageWidget import ImageWidget
-from src.db.DB import DBAdapter, FileAgnosticDB
-from src.widgets.Project import ProjectCreator, ProjectLoader, ProjectViewer, LoginWidget, UserManager, UserSettings
+from src.db.DB import DBAdapter, FileAgnosticDB, DummyDB
+from src.widgets.Project import ProjectCreator, ProjectLoader, ProjectViewer, LoginWidget, UserManager, UserSettings, SessionCreator
 from src.utils.searching import init_taxonomy
 
 logging.config.fileConfig('configs/logging.conf',
@@ -166,7 +166,17 @@ class MainWindow(QMainWindow):
         self.new_session_action.triggered.connect(self.new_session)
 
     def new_session(self):
-        self.stacked_widget.setCurrentWidget(self.capture_view)
+        self.session_creator = SessionCreator(self.db_adapter,[])
+        self.setEnabled(False)
+        self.session_creator.set_user(self.db_adapter.get_current_user())
+        self.session_creator.set_museums(self.db_adapter.get_museums())
+        self.session_creator.session_created.connect(self.on_session_created)
+        self.session_creator.close_signal.connect(self.setEnabled)
+        self.session_creator.show()
+
+    def on_session_created(self):
+        self.session_creator.close()
+        # self.stacked_widget.setCurrentWidget(self.capture_view)
         self.mode = "Capture Mode"
         self.set_window_title()
 
@@ -273,7 +283,7 @@ class MainWindow(QMainWindow):
     def finish_project_creation(self):
         self.is_creating_project = False
         self.set_enabled_user_actions(True)
-        
+
 if __name__ == '__main__':
     from src.configs.DataCollection import *
 
@@ -292,18 +302,20 @@ if __name__ == '__main__':
         logger.debug("debug mode enabled")
         logger.info("loading taxonomy")
         taxonomy = init_taxonomy(TAXONOMY['test'])
+        db = DummyDB()
     else:
         logger.setLevel(level=logging.INFO)
         logger.debug("debug mode disabled")
         logger.info("loading taxonomy")
         taxonomy = init_taxonomy(TAXONOMY['prod'])
+        db = FileAgnosticDB()
     geo_data_dir = GEO[args.geo_data]
 
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon('resources/assets/logo.png'))
     if args.style != styles[0]:
         app.setStyleSheet(load_style_sheet(args.style))
-    db = FileAgnosticDB()
+
     mainWindow = MainWindow(
         taxonomy, geo_data_dir=geo_data_dir, fs=args.fs, db=db)
     mainWindow.show()
