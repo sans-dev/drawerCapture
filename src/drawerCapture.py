@@ -40,18 +40,18 @@ class MainWindow(QMainWindow):
         self.taxonomy = taxonomy
         self.geo_data_dir = geo_data_dir
         self.fs = fs
-
+        self.mode = "Project Mode"
+        self.current_user = None
+        self.project_name = ''
         self.initUI()
-        self.disable_admin_features()
+        self.set_enabled_admin_features(False)
+        self.update_ui_based_on_mode()
         self.connect_signals()
 
     def initUI(self):
         """
         Initializes the user interface.setWindowTitle
         """
-        self.mode = "Project Mode"
-        self.current_user = None
-        self.project_name = ''
         self.set_window_title()
         self.setGeometry(0, 0, 1920, 1024)
         self.setWindowIcon(QIcon('resources/assets/logo.png'))
@@ -68,6 +68,7 @@ class MainWindow(QMainWindow):
         self.create_menus()
         self.create_actions()
         self.setup_toolbar()
+
 
     def set_window_title(self):
         username = self.current_user['username'] if self.current_user is not None else ''
@@ -105,6 +106,18 @@ class MainWindow(QMainWindow):
             QIcon('resources/assets/user.png'), "Change User", self)
         self.user_settings = QAction(
             QIcon('resources/assets/user_settings.png'), "User Settings", self)
+        
+        # Camera Settings
+        self.add_camera_action = QAction(
+            QIcon("resources/assets/camera_png.png"), "Connect Camera", self)
+
+        # Capture mode actions
+        self.capture_image = QAction(
+            QIcon("resources/assets/capture_image.png"), "Capture Image", self)
+        self.start_live_preview = QAction(
+            QIcon("resources/assets/play.png"), "Capture Image", self)
+        self.stop_live_preview = QAction(
+            QIcon("resources/assets/stop.png"), "Capture Image", self)
 
         # Add actions to menus
         self.file_menu.addAction(self.new_project_action)
@@ -117,7 +130,7 @@ class MainWindow(QMainWindow):
 
         self.project_menu.addAction(self.manage_user_action)
         self.project_menu.addAction(self.manage_museums_action)
-
+        
         self.user_menu.addAction(self.login_action)
         self.user_menu.addSeparator()
         self.user_menu.addAction(self.user_settings)
@@ -136,7 +149,11 @@ class MainWindow(QMainWindow):
         toolbar.addAction(self.user_settings)
         toolbar.addSeparator()
         toolbar.addAction(self.new_session_action)
-
+        toolbar.addAction(self.add_camera_action)
+        toolbar.addSeparator()
+        toolbar.addAction(self.start_live_preview)
+        toolbar.addAction(self.stop_live_preview)
+        toolbar.addAction(self.capture_image)
         toolbar.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
 
     def connect_signals(self):
@@ -188,24 +205,39 @@ class MainWindow(QMainWindow):
     def update_ui_based_on_role(self):
         self.new_session_action.setEnabled(True)
         if self.current_user['role'] == 'admin':
-            self.enable_admin_features()
+            self.set_enabled_admin_features(True)
         else:
-            self.disable_admin_features()
+            self.set_enabled_admin_features(False)
 
-    def enable_admin_features(self):
+    def update_ui_based_on_mode(self):
+        if self.mode == 'Project Mode':
+            self.set_enabled_project_features(True)
+            self.set_enabled_capture_features(False)
+        else:
+            self.set_enabled_project_features(False)
+            self.set_enabled_capture_features(True)
+
+    def set_enabled_capture_features(self, is_enabled):
+        self.start_live_preview.setEnabled(is_enabled)
+        self.stop_live_preview.setEnabled(is_enabled)
+        self.capture_image.setEnabled(is_enabled)
+        self.add_camera_action.setEnabled(is_enabled)
+        # self.new_session_action.setEnabled(is_enabled) #Enable later. leave now for testing
+
+    def set_enabled_project_features(self, is_enabled):
+        self.new_project_action.setEnabled(is_enabled)
+        self.open_project_action.setEnabled(is_enabled)
+        self.exit_action.setEnabled(is_enabled)
+        self.new_session_action.setEnabled(is_enabled)
+
+    def set_enabled_admin_features(self, is_enabled):
         # Show admin-only buttons, menus, etc.
-        self.project_menu.setEnabled(True)
-        self.manage_museums_action.setEnabled(True)
-        self.manage_user_action.setEnabled(True)
+        self.manage_museums_action.setEnabled(is_enabled)
+        self.manage_user_action.setEnabled(is_enabled)
 
     def set_enabled_user_actions(self, is_enabled):
         self.login_action.setEnabled(is_enabled)
         self.user_settings.setEnabled(is_enabled)
-
-    def disable_admin_features(self):
-        # Hide admin-only buttons, menus, etc.
-        self.manage_museums_action.setEnabled(False)
-        self.manage_user_action.setEnabled(False)
 
     def on_login_successful(self, user):
         # enable project edit options
