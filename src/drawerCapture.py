@@ -43,6 +43,7 @@ class MainWindow(QMainWindow):
         self.mode = "Project Mode"
         self.current_user = None
         self.project_name = ''
+        self.is_creating_project = False
         self.initUI()
         self.set_enabled_admin_features(False)
         self.update_ui_based_on_mode()
@@ -177,6 +178,7 @@ class MainWindow(QMainWindow):
 
     def create_project(self):
         self.setEnabled(False)
+        self.is_creating_project = True
         self.project_creator = ProjectCreator(self.db_adapter)
         self.project_creator.close_signal.connect(self.setEnabled)
         self.project_creator.create_successfull.connect(
@@ -247,6 +249,11 @@ class MainWindow(QMainWindow):
         self.update_ui_based_on_role()
         self.set_window_title()
 
+        if self.is_creating_project:
+            self.open_user_manager_for_project()
+        else:
+            self.set_enabled_user_actions(True)        
+
     def on_load_successful(self):
         self.project_name = self.loader.get_project_name()
         self.loader.close()
@@ -257,9 +264,16 @@ class MainWindow(QMainWindow):
         self.project_name = self.project_creator.get_project_name()
         self.project_creator.close()
         self.login()
+        
+    def open_user_manager_for_project(self):
+        self.user_manager = UserManager(self.db_adapter, self.current_user)
+        self.user_manager.close_signal.connect(self.finish_project_creation)
+        self.user_manager.show()
+
+    def finish_project_creation(self):
+        self.is_creating_project = False
         self.set_enabled_user_actions(True)
-
-
+        
 if __name__ == '__main__':
     from src.configs.DataCollection import *
 

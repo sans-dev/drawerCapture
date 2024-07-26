@@ -28,6 +28,24 @@ class ValidatorFactory:
         regex = QRegularExpression(r'^[A-Za-z,]+(?: [A-Za-z,]+)*$')
         return QRegularExpressionValidator(regex, parent=parent)
     
+class ValidationRules:
+    @staticmethod
+    def get_password_rule(password):
+        return lambda: not password.text().strip() or len(set(password.text())) < 4 or any(char in password.text() for char in [';',',','.',':'])
+    
+    @staticmethod
+    def get_password_message():
+        return "Provide a password that has at least 4 unique characters and does not contain any of these characters ; , . :"
+    
+    @staticmethod
+    def get_confirm_password_rule(password, confirm):
+        return lambda: not password.text().strip() == confirm.text().strip()
+    
+    @staticmethod
+    def get_confirm_password_message():
+        return "Passwords do not match"
+    # add wrong login data
+
 class ValidationRule:
     def __init__(self, condition, error_message, error_label):
         self.condition = condition
@@ -115,7 +133,7 @@ class ProjectCreator(QWidget):
         layout = QVBoxLayout()
         self.create_input_fields(layout)
         
-        self.create_button = QPushButton("Create")
+        self.create_button = QPushButton("Next")
         self.create_button.clicked.connect(self.create_project)
         layout.addWidget(self.create_button)
         
@@ -543,21 +561,44 @@ class AddUserDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Add New User")
         self.setGeometry(500,600,200,200)
+        self.validator = InputValidator()
         layout = QVBoxLayout()
         
         self.username_input = QLineEdit()
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password_confirm = QLineEdit()
+        self.password_confirm.setEchoMode(QLineEdit.EchoMode.Password)
+
         self.role_combo = QComboBox()
         self.role_combo.addItems(["user", "admin"])
         
+        self.password_error = ErrorLabel(self)
+        self.confirm_error = ErrorLabel(self)
+
         layout.addWidget(QLabel("Username:"))
         layout.addWidget(self.username_input)
         layout.addWidget(QLabel("Password:"))
         layout.addWidget(self.password_input)
+        layout.addWidget(self.password_error)
+        layout.addWidget(QLabel("Confirm Password:"))
+        layout.addWidget(self.password_confirm)
+        layout.addWidget(self.confirm_error)
         layout.addWidget(QLabel("Role:"))
         layout.addWidget(self.role_combo)
         
+        self.bind_error_handling(
+            self.password_input, 
+            self.password_error,
+            ValidationRules.get_password_rule(self.password_input),
+            ValidationRules.get_password_message(),
+        )
+        self.bind_error_handling(
+            self.password_confirm, 
+            self.confirm_error,
+            ValidationRules.get_confirm_password_rule(self.password_input, self.password_confirm),
+            ValidationRules.get_confirm_password_message(),
+        )
         buttons = QHBoxLayout()
         ok_button = QPushButton("OK")
         cancel_button = QPushButton("Cancel")
@@ -569,6 +610,25 @@ class AddUserDialog(QDialog):
         layout.addLayout(buttons)
         self.setLayout(layout)
 
+    def bind_error_handling(self, input_widget, error_label, error_rule, error_message):
+        def check_error():
+            if error_rule():
+                error_label.setText(error_message)
+                error_label.setVisible(True)
+            else:
+                error_label.setVisible(False)
+
+        if isinstance(input_widget, QLineEdit):
+            input_widget.textChanged.connect(check_error)
+
+        self.validator.add_rule(
+            ValidationRule(
+                error_rule,
+                error_message,
+                error_label
+            )
+        )
+
 class UserManager(QWidget):
     user_updated = pyqtSignal()  # Signal to notify of user changes
     close_signal = pyqtSignal(bool)
@@ -577,6 +637,7 @@ class UserManager(QWidget):
         super().__init__(parent)
         self.db_adapter = db_adapter
         self.current_user = current_user
+
         self.init_ui()
 
     def init_ui(self):
@@ -614,22 +675,23 @@ class UserManager(QWidget):
         if dialog.exec():
             username = dialog.username_input.text()
             password = dialog.password_input.text()
+            password_confirm = dialog.password_confirm.text()
             role = dialog.role_combo.currentText()
             
             if not username or not password:
                 QMessageBox.warning(self, "Input Error", "Username and password cannot be empty.")
                 return
-            
-            try:
-                new_user = {'username': username, 'password': password, 'role': role}
-                self.db_adapter.add_users(new_user)
-                self.refresh_user_list()
-                self.user_updated.emit()
-                QMessageBox.information(self, "Success", f"User {username} added successfully.")
-            except ValueError as e:
-                QMessageBox.critical(self, {str(e)})
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to add user: {str(e)}")
+            if dialog.validator.validate():
+                try:
+                    new_user = {'username': username, 'password': password, 'role': role}
+                    self.db_adapter.add_users(new_user)
+                    self.refresh_user_list()
+                    self.user_updated.emit()
+                    QMessageBox.information(self, "Success", f"User {username} added successfully.")
+                except ValueError as e:
+                    QMessageBox.critical(self, {str(e)})
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"Failed to add user: {str(e)}")
 
     def remove_user(self):
         selected_items = self.user_list.selectedItems()
