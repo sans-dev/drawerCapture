@@ -103,13 +103,13 @@ class ProjectCreator(QWidget):
             },
             'password': {
                 'type': 'line', 'label': 'Password', 'max_length': 16, 'echo_mode': QLineEdit.EchoMode.Password,
-                'error_rule': lambda: not self.password.text().strip() or len(set(self.password.text())) < 4 or any(char in self.password.text() for char in [';',',','.',':']),
-                'error_message': "Provide a password that has at least 4 unique characters and does not contain any of these characters ; , . :"
+                'error_rule': lambda : ValidationRules.get_password_rule(self.password),
+                'error_message': ValidationRules.get_password_message()
             },
             'password_confirm': {
                 'type': 'line', 'label': 'Confirm Password', 'max_length': 16, 'echo_mode': QLineEdit.EchoMode.Password,
-                'error_rule': lambda: not self.password.text().strip() == self.password_confirm.text().strip(),
-                'error_message': "Passwords do not match"
+                'error_rule': lambda: ValidationRules.get_confirm_password_rule(self.password, self.password_confirm),
+                'error_message': ValidationRules.get_confirm_password_message()
             },
 
             'project_name': {
@@ -176,7 +176,7 @@ class ProjectCreator(QWidget):
 
     def bind_error_handling(self, input_widget, error_label, error_rule, error_message):
         def check_error():
-            if error_rule():
+            if error_rule()():
                 error_label.setText(error_message)
                 error_label.setVisible(True)
             else:
