@@ -28,23 +28,39 @@ class ValidatorFactory:
         regex = QRegularExpression(r'^[A-Za-z,]+(?: [A-Za-z,]+)*$')
         return QRegularExpressionValidator(regex, parent=parent)
     
+
 class ValidationRules:
     @staticmethod
     def get_password_rule(password):
-        return lambda: not password.text().strip() or len(set(password.text())) < 4 or any(char in password.text() for char in [';',',','.',':'])
-    
+        return lambda: not password.text().strip() or len(set(password.text())) < 4 or any(char in password.text() for char in [';', ',', '.', ':'])
+
     @staticmethod
     def get_password_message():
         return "Provide a password that has at least 4 unique characters and does not contain any of these characters ; , . :"
-    
+
     @staticmethod
     def get_confirm_password_rule(password, confirm):
         return lambda: not password.text().strip() == confirm.text().strip()
-    
+
     @staticmethod
     def get_confirm_password_message():
         return "Passwords do not match"
-    # add wrong login data
+
+    @staticmethod
+    def get_admin_rule(admin):
+        return lambda: not admin.text().strip()
+
+    @staticmethod
+    def get_project_rule(project_name):
+        return lambda: not project_name.text().strip()
+
+    @staticmethod
+    def get_authors_rule(authors):
+        return lambda: not len(authors.text().strip().split(",")) > 1 and not authors.text().strip()
+
+    @staticmethod
+    def get_description_rule(dir):
+        return lambda: not dir.text() or not Path(dir.text()).exists()
 
 class ValidationRule:
     def __init__(self, condition, error_message, error_label):
@@ -53,7 +69,7 @@ class ValidationRule:
         self.error_label = error_label
 
     def validate(self):
-        if self.condition():
+        if not self.condition():
             self.error_label.setText(self.error_message)
             return False
         else:
@@ -98,7 +114,7 @@ class ProjectCreator(QWidget):
         self.input_fields = {
             'admin': {
                 'type': 'line', 'label': 'Administrator', 'max_length': 15, 'validator': 'name',
-                'error_rule': lambda: not self.admin.text().strip(),
+                'error_rule': lambda: ValidationRules.get_admin_rule(self.admin),
                 'error_message': "Provide a valid name for admin login"
             },
             'password': {
@@ -114,18 +130,18 @@ class ProjectCreator(QWidget):
 
             'project_name': {
                 'type': 'line', 'label': 'Project Name', 'max_length': 16, 'validator': 'name',
-                'error_rule': lambda: not self.project_name.text().strip(),
+                'error_rule': lambda: ValidationRules.get_project_rule(self.project_name),
                 'error_message': "Project name cannot be empty"
             },
             'authors': {
                 'type': 'line', 'label': 'Authors', 'max_length': 40, 'validator': 'authors',
-                'error_rule': lambda: not len(self.authors.text().strip().split(",")) > 1 and not self.authors.text().strip(),
+                'error_rule': lambda: ValidationRules.get_authors_rule(self.authors) ,
                 'error_message': "Author name cannot be empty"
             },
             'description': {'type': 'text', 'label': 'Description', 'min_height': 200},
             'dir': {
                 'type': 'dir', 'label': 'Directory',
-                'error_rule': lambda: not self.dir.text() or not Path(self.dir.text()).exists(),
+                'error_rule': lambda: ValidationRules.get_description_rule(self.dir),
                 'error_message': "Directory does not exist"
             }
         }
@@ -444,6 +460,8 @@ class SessionCreator(QDialog):
         self.setLayout(layout)
         
     def set_user(self, user):
+        if not user:
+            QMessageBox.warning(self, "You have to load or create a project before you can start a capture session.")
         self.capturer_edit.addItem(user['username'])
 
     def set_museums(self, museums):
@@ -665,7 +683,10 @@ class UserManager(QWidget):
             if not username or not password:
                 QMessageBox.warning(self, "Input Error", "Username and password cannot be empty.")
                 return
-            if dialog.validator.validate():
+            if password != password_confirm:
+                QMessageBox.warning(self, "Input Error", "Passwords do not match.")
+                return
+            if not dialog.validator.validate():
                 try:
                     new_user = {'username': username, 'password': password, 'role': role}
                     self.db_adapter.add_users(new_user)

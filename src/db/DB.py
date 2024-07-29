@@ -148,6 +148,7 @@ class FileAgnosticDB:
         self.project_root_dir = None
         self.current_session = None
         self.fernet = None
+        self.current_user = None
     
     def reset_password(self, username, role, old_password, new_password):
         existing_users = self._load_credentials()
@@ -324,6 +325,7 @@ class FileAgnosticDB:
         for user in existing_users:
             if user['username'] == username:
                 if user['password'] == password:
+                    self.current_user = user
                     return {"username": user['username'], "role": user['role']}
         return None
        
@@ -333,6 +335,9 @@ class FileAgnosticDB:
             if user['role'] == 'admin':
                 return True
         return False
+    
+    def get_current_user(self):
+        return self.current_user
     
     def save_encrypted_users(self, new_user):
         # Load and decrypt existing users

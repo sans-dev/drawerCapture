@@ -9,6 +9,7 @@ from PyQt6.QtCore import QSize, Qt
 from src.utils.load_style_sheet import load_style_sheet
 from src.widgets.CaptureView import CaptureView
 from src.widgets.ImageWidget import ImageWidget
+from src.widgets.SelectCameraListWidget import SelectCameraListWidget
 from src.db.DB import DBAdapter, FileAgnosticDB, DummyDB
 from src.widgets.Project import ProjectCreator, ProjectLoader, ProjectViewer, LoginWidget, UserManager, UserSettings, SessionCreator
 from src.utils.searching import init_taxonomy
@@ -110,7 +111,7 @@ class MainWindow(QMainWindow):
         
         # Camera Settings
         self.add_camera_action = QAction(
-            QIcon("resources/assets/camera_png.png"), "Connect Camera", self)
+            QIcon("resources/assets/camera_off.png"), "Connect Camera", self)
 
         # Capture mode actions
         self.capture_image = QAction(
@@ -174,11 +175,7 @@ class MainWindow(QMainWindow):
         self.session_creator.close_signal.connect(self.setEnabled)
         self.session_creator.show()
 
-    def on_session_created(self):
-        self.session_creator.close()
-        # self.stacked_widget.setCurrentWidget(self.capture_view)
-        self.mode = "Capture Mode"
-        self.set_window_title()
+
 
     def edit_user(self):
         self.user_settings = UserSettings(self.db_adapter, self.current_user)
@@ -225,9 +222,12 @@ class MainWindow(QMainWindow):
         if self.mode == 'Project Mode':
             self.set_enabled_project_features(True)
             self.set_enabled_capture_features(False)
+            self.stacked_widget.setCurrentWidget(self.project_view)
         else:
             self.set_enabled_project_features(False)
             self.set_enabled_capture_features(True)
+            self.stacked_widget.setCurrentWidget(self.capture_view)
+        self.set_window_title()
 
     def set_enabled_capture_features(self, is_enabled):
         self.start_live_preview.setEnabled(is_enabled)
@@ -262,7 +262,17 @@ class MainWindow(QMainWindow):
         if self.is_creating_project:
             self.open_user_manager_for_project()
         else:
-            self.set_enabled_user_actions(True)        
+            self.set_enabled_user_actions(True)
+
+    def connect_camera(self):
+        self.camera_fetcher = SelectCameraListWidget(self)
+        self.camera_fetcher.show()
+
+    def on_session_created(self):
+        self.session_creator.close()
+        self.mode = "Capture Mode"
+        self.update_ui_based_on_mode()
+        self.connect_camera()
 
     def on_load_successful(self):
         self.project_name = self.loader.get_project_name()
@@ -302,7 +312,7 @@ if __name__ == '__main__':
         logger.debug("debug mode enabled")
         logger.info("loading taxonomy")
         taxonomy = init_taxonomy(TAXONOMY['test'])
-        db = DummyDB()
+        db = FileAgnosticDB()
     else:
         logger.setLevel(level=logging.INFO)
         logger.debug("debug mode disabled")
