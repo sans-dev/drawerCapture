@@ -5,7 +5,7 @@ from PyQt6.QtCore import pyqtSignal, Qt, QDir, QRegularExpression
 from PyQt6.QtGui import QIcon, QRegularExpressionValidator, QStandardItemModel, QStandardItem
 from PyQt6.QtWidgets import (QApplication, QDialog, QWidget, QVBoxLayout, QLineEdit, QPushButton, QFileDialog, QLabel, 
                              QListWidget, QHBoxLayout, QTableView, QAbstractItemView, QHeaderView, QCheckBox, 
-                             QSpacerItem, QSizePolicy, QGridLayout, QMessageBox, QInputDialog, QComboBox, QTextEdit)
+                             QSpacerItem, QSizePolicy, QGridLayout, QMessageBox, QInputDialog, QComboBox, QTextEdit, QDialogButtonBox)
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
@@ -466,7 +466,7 @@ class SessionCreator(QDialog):
 
     def set_museums(self, museums):
         for museum in museums:
-            self.museum_edit.addItem(museum)
+            self.museum_edit.addItem(f"{museum['name']} - {museum['city']}")
 
     def create_session(self):
         #TODO needs big refactoring
@@ -862,6 +862,151 @@ class ResetPasswordWidget(QWidget):
         else:
             QMessageBox.warning(self, "Failure", "Failed to reset password.")
 
+class AddMuseumDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Add Museum")
+        layout = QVBoxLayout(self)
+        
+        self.name_input = QLineEdit(self)
+        self.name_input.setPlaceholderText("Museum Name")
+        layout.addWidget(self.name_input)
+        
+        self.city_input = QLineEdit(self)
+        self.city_input.setPlaceholderText("City")
+        layout.addWidget(self.city_input)
+        
+        self.address_input = QLineEdit(self)
+        self.address_input.setPlaceholderText("Street, Number")
+        layout.addWidget(self.address_input)
+        
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+            Qt.Orientation.Horizontal, self)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+class MuseumManager(QWidget):
+    museum_updated = pyqtSignal()  # Signal to notify of museum changes
+    close_signal = pyqtSignal(bool)
+
+    def __init__(self, db_adapter, current_user, parent=None):
+        super().__init__(parent)
+        self.db_adapter = db_adapter
+        self.current_user = current_user
+
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+        
+        self.museum_list = QListWidget()
+        layout.addWidget(self.museum_list)
+        
+        button_layout = QHBoxLayout()
+        add_button = QPushButton("Add Museum")
+        remove_button = QPushButton("Remove Museum")
+        edit_button = QPushButton("Edit Museum")
+        
+        add_button.clicked.connect(self.add_museum)
+        remove_button.clicked.connect(self.remove_museum)
+        edit_button.clicked.connect(self.edit_museum)
+        
+        button_layout.addWidget(add_button)
+        button_layout.addWidget(remove_button)
+        button_layout.addWidget(edit_button)
+        
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+        
+        self.refresh_museum_list()
+
+    def refresh_museum_list(self):
+        self.museum_list.clear()
+        museums = self.db_adapter.get_museums()
+        for museum in museums:
+            self.museum_list.addItem(f"{museum['name']} - {museum['city']} - {museum['address']}")
+
+    def add_museum(self):
+        dialog = AddMuseumDialog(self)
+        if dialog.exec():
+            name = dialog.name_input.text()
+            city = dialog.city_input.text()
+            address = dialog.address_input.text()
+            
+            if not name or not city or not address:
+                QMessageBox.warning(self, "Input Error", "All fields must be filled.")
+                return
+            
+            try:
+                new_museum = {'name': name, 'city': city, 'address': address}
+                if self.db_adapter.add_museum(new_museum):
+                    self.refresh_museum_list()
+                    self.museum_updated.emit()
+                    QMessageBox.information(self, "Success", f"Museum {name} added successfully.")
+                else:
+                    raise Exception("Some problems with the database")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to add museum: {str(e)}")
+
+    def remove_museum(self):
+        selected_items = self.museum_list.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(self, "Selection Error", "Please select a museum to remove.")
+            return
+        
+        museum_name, museum_city, museum_address = selected_items[0].text().split(' - ')  # Extract museum info
+        museum_to_remove = {'name': museum_name, 'city': museum_city, 'address': museum_address}
+        
+        confirm = QMessageBox.question(self, "Confirm Removal", f"Are you sure you want to remove {museum_to_remove}?")
+        if confirm == QMessageBox.StandardButton.Yes:
+            try:
+                self.db_adapter.remove_museum(museum_to_remove)
+                self.refresh_museum_list()
+                self.museum_updated.emit()
+                QMessageBox.information(self, "Success", f"Museum {museum_to_remove} removed successfully.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to remove museum: {str(e)}")
+
+    def edit_museum(self):
+        selected_items = self.museum_list.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(self, "Selection Error", "Please select a museum to edit.")
+            return
+        
+        museum_name = selected_items[0].text().split(' - ')[0]  # Extract museum name
+        museum_city = selected_items[0].text().split(' - ')[1]  # Extract museum city
+        museum_to_edit = {'name': museum_name, 'city': museum_city}
+        current_museum = self.db_adapter.get_museum(museum_to_edit)
+        
+        dialog = AddMuseumDialog(self)
+        dialog.setWindowTitle("Edit Museum")
+        dialog.name_input.setText(current_museum['name'])
+        dialog.city_input.setText(current_museum['city'])
+        dialog.address_input.setText(current_museum['address'])
+        
+        if dialog.exec():
+            name = dialog.name_input.text()
+            city = dialog.city_input.text()
+            address = dialog.address_input.text()
+            
+            if not name or not city or not address:
+                QMessageBox.warning(self, "Input Error", "All fields must be filled.")
+                return
+            
+            try:
+                updated_museum = {'name': name, 'city': city, 'address': address}
+                self.db_adapter.update_museum(museum_to_edit, updated_museum)
+                self.refresh_museum_list()
+                self.museum_updated.emit()
+                QMessageBox.information(self, "Success", f"Museum {name} updated successfully.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to update museum: {str(e)}")
+
+    def closeEvent(self, event):
+        self.close_signal.emit(True)
+        super().closeEvent(event)
 
 def init_project_viewer(db_adapter):
     db_adapter.load_project()

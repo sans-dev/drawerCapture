@@ -136,6 +136,15 @@ class DBAdapter(QObject):
     def get_museums(self):
         return self.db_manager.get_museums()
     
+    def get_museum(self, museum):
+        return self.db_manager.get_museum(museum)
+    
+    def add_museum(self, museum):
+        return self.db_manager.add_museum(museum)
+    
+    def remove_museum(self, museum):
+        return self.db_manager.remove_museum(museum)
+    
     def reset_password(self, username, role, old_password, new_password):
         return self.db_manager.reset_password(username, role, old_password, new_password)
     
@@ -401,42 +410,131 @@ class FileAgnosticDB:
             self.fernet = Fernet(key)
         except Exception as e:
             raise RuntimeError(f"Failed to create encryption key: {str(e)}")
-        
+
 
 class DummyDB:
+    def __init__(self):
+        self.museums = [
+            {'name': 'NHM', 'city': 'London', 'address': "Street 1"},
+            {'name':'Senkenberg', 'city':'Frankfurt', 'address': "Strasse 1"}
+        ]
+        self.users = [
+            {'username': 'Peter', 'role': 'user', 'password': 'password1'},
+            {'username': 'Seb', 'role': 'admin', 'password': 'password2'}
+        ]
+        self.current_user = None
+        self.project_info = {}
+
     def create_session(self, payload):
-        return {'Project Info': {},
-                'Session':payload}
+        return {'Project Info': {}, 'Session': payload}
 
     def create_project(self, payload):
         if not payload:
             raise NotADirectoryError("Wrong request format.")
         else:
+            self.project_info = payload
             return payload
 
-    def load_project(self, payload):
-        pass
+    def load_project(self, project_dir):
+        # Simulate loading a project
+        self.project_info = {
+            'Project Info': {'project_dir': project_dir, 'num_captures': 0},
+            'Session 1': {'name': 'Sample Session', 'num_captures': 0}
+        }
+        return self.project_info
 
     def post_new_image(self, payload):
         print(payload)
-        return payload
+        # Simulate updating capture counts
+        self.project_info['Project Info']['num_captures'] += 1
+        self.project_info['Session 1']['num_captures'] += 1
+        return self.project_info
 
     def get_users(self):
-       return  [
-           {
-               'username': 'Peter',
-               'role': 'user'
-           },
-           {
-               'username': 'Seb',
-               'role': 'admin'
-           }]
+        return [{'username': user['username'], 'role': user['role']} for user in self.users]
 
     def get_museums(self):
-        return [
-            'NHM London',
-            'Senkenberg Frankfurt'
-        ]
-    
+        return self.museums
+
+    def get_museum(self, museum):
+        for m in self.museums:
+            if m['name'] == museum['name'] and m['city'] == museum['city']:
+                return m
+
     def get_current_user(self):
-        return {'username': 'Peter', 'role': 'user'}
+        return self.current_user or {'username': 'Peter', 'role': 'user'}
+
+    def add_museum(self, museum):
+        self.museums.append(museum)
+        return True
+
+    def remove_museum(self, museum):
+        for idx, m in enumerate(self.museums):
+            if m['name'] == museum['name'] and m['city'] == museum['city']:
+                self.museums.pop(idx)
+                return True
+        return False
+
+    def reset_password(self, username, role, old_password, new_password):
+        for user in self.users:
+            if user['username'] == username and user['password'] == old_password:
+                user['password'] = new_password
+                return True
+        return False
+
+    def count_admins(self):
+        return sum(1 for user in self.users if user['role'] == 'admin')
+
+    def change_user_role(self, user_to_change, new_role):
+        for user in self.users:
+            if user['username'] == user_to_change:
+                user['role'] = new_role
+                return True
+        return False
+
+    def remove_user(self, user_to_remove):
+        for idx, user in enumerate(self.users):
+            if user['username'] == user_to_remove:
+                self.users.pop(idx)
+                return True
+        return False
+
+    def verify_credentials(self, username, password):
+        for user in self.users:
+            if user['username'] == username and user['password'] == password:
+                self.current_user = {'username': user['username'], 'role': user['role']}
+                return self.current_user
+        return None
+
+    def validate_admin(self, username, password):
+        user = self.verify_credentials(username, password)
+        return user and user['role'] == 'admin'
+
+    def save_encrypted_users(self, new_user):
+        if any(user['username'] == new_user['username'] for user in self.users):
+            raise ValueError(f"User '{new_user['username']}' already exists")
+        self.users.append(new_user)
+
+    def update_project_config(self, section, options):
+        if section not in self.project_info:
+            self.project_info[section] = {}
+        self.project_info[section].update(options)
+
+    def write_project_config(self):
+        # In a real implementation, this would write to a file
+        pass
+
+    def get_project_config(self):
+        return self.project_info
+
+    def load_image_and_meta_info(self, data):
+        # Simulate loading image and meta info
+        return {'image': 'dummy_image_data', 'meta_info': data}
+
+    def create_save_name(self, meta_info):
+        # Simulate creating save names
+        return 'dummy_image_name.jpg', 'dummy_meta_name.yml'
+
+    def add_exif_info(self, image, info):
+        # Simulate adding EXIF info
+        pass   

@@ -11,7 +11,7 @@ from src.widgets.CaptureView import CaptureView
 from src.widgets.ImageWidget import ImageWidget
 from src.widgets.SelectCameraListWidget import SelectCameraListWidget
 from src.db.DB import DBAdapter, FileAgnosticDB, DummyDB
-from src.widgets.Project import ProjectCreator, ProjectLoader, ProjectViewer, LoginWidget, UserManager, UserSettings, SessionCreator
+from src.widgets.Project import ProjectCreator, ProjectLoader, ProjectViewer, LoginWidget, UserManager, MuseumManager, UserSettings, SessionCreator
 from src.utils.searching import init_taxonomy
 
 logging.config.fileConfig('configs/logging.conf',
@@ -148,7 +148,7 @@ class MainWindow(QMainWindow):
         toolbar.addAction(self.open_project_action)
         toolbar.addSeparator()
         toolbar.addAction(self.manage_user_action)
-        toolbar.addAction(self.user_settings)
+        toolbar.addAction(self.manage_museums_action)
         toolbar.addSeparator()
         toolbar.addAction(self.new_session_action)
         toolbar.addAction(self.add_camera_action)
@@ -165,6 +165,11 @@ class MainWindow(QMainWindow):
         self.manage_user_action.triggered.connect(self.open_user_manager)
         self.user_settings.triggered.connect(self.edit_user)
         self.new_session_action.triggered.connect(self.new_session)
+        self.manage_museums_action.triggered.connect(self.manage_museums)
+
+    def manage_museums(self):
+        self.museum_manager = MuseumManager(self.db_adapter, self.db_adapter.get_current_user())
+        self.museum_manager.show()
 
     def new_session(self):
         self.session_creator = SessionCreator(self.db_adapter,[])
@@ -244,7 +249,7 @@ class MainWindow(QMainWindow):
 
     def set_enabled_admin_features(self, is_enabled):
         # Show admin-only buttons, menus, etc.
-        self.manage_museums_action.setEnabled(is_enabled)
+        # self.manage_museums_action.setEnabled(is_enabled)
         self.manage_user_action.setEnabled(is_enabled)
 
     def set_enabled_user_actions(self, is_enabled):
@@ -312,7 +317,7 @@ if __name__ == '__main__':
         logger.debug("debug mode enabled")
         logger.info("loading taxonomy")
         taxonomy = init_taxonomy(TAXONOMY['test'])
-        db = FileAgnosticDB()
+        db = DummyDB()
     else:
         logger.setLevel(level=logging.INFO)
         logger.debug("debug mode disabled")
