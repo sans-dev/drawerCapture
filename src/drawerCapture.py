@@ -166,6 +166,7 @@ class MainWindow(QMainWindow):
         self.user_settings.triggered.connect(self.edit_user)
         self.new_session_action.triggered.connect(self.new_session)
         self.manage_museums_action.triggered.connect(self.manage_museums)
+        self.add_camera_action.triggered.connect(self.add_camera)
 
     def manage_museums(self):
         self.museum_manager = MuseumManager(self.db_adapter, self.db_adapter.get_current_user())
@@ -238,7 +239,7 @@ class MainWindow(QMainWindow):
         self.start_live_preview.setEnabled(is_enabled)
         self.stop_live_preview.setEnabled(is_enabled)
         self.capture_image.setEnabled(is_enabled)
-        self.add_camera_action.setEnabled(is_enabled)
+        # self.add_camera_action.setEnabled(is_enabled)
         # self.new_session_action.setEnabled(is_enabled) #Enable later. leave now for testing
 
     def set_enabled_project_features(self, is_enabled):
@@ -246,6 +247,7 @@ class MainWindow(QMainWindow):
         self.open_project_action.setEnabled(is_enabled)
         self.exit_action.setEnabled(is_enabled)
         self.new_session_action.setEnabled(is_enabled)
+        self.add_camera_action.setEnabled(is_enabled)
 
     def set_enabled_admin_features(self, is_enabled):
         # Show admin-only buttons, menus, etc.
@@ -269,15 +271,15 @@ class MainWindow(QMainWindow):
         else:
             self.set_enabled_user_actions(True)
 
-    def connect_camera(self):
-        self.camera_fetcher = SelectCameraListWidget(self)
+    def add_camera(self):
+        self.camera_fetcher = SelectCameraListWidget()
         self.camera_fetcher.show()
 
     def on_session_created(self):
         self.session_creator.close()
         self.mode = "Capture Mode"
         self.update_ui_based_on_mode()
-        self.connect_camera()
+        self.add_camera()
 
     def on_load_successful(self):
         self.project_name = self.loader.get_project_name()

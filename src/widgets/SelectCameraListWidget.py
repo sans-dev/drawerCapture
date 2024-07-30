@@ -42,6 +42,7 @@ class SelectCameraListWidget(QWidget):
         """
         # apply style sheet
         self.setMaximumWidth(300)
+        self.setWindowTitle("Select Camera")
         self.cameraListWidget = QListWidget()
         self.cameraListWidget.setMaximumHeight(150)
         self.confirmButton = QPushButton('Confirm')
@@ -55,15 +56,11 @@ class SelectCameraListWidget(QWidget):
         self.refreshButton = QPushButton('Refresh')
         self.refreshButton.clicked.connect(self.refreshButtonClicked)
 
-        # add a label to the widget with bigger text
-        self.widgetLabel = QLabel('Select camera')
-
         self.list_spinner_stack = QStackedWidget()
         self.list_spinner_stack.addWidget(self.cameraListWidget)
         self.list_spinner_stack.addWidget(self.loadingSpinner)
 
         layout = QVBoxLayout()
-        layout.addWidget(self.widgetLabel, alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.list_spinner_stack, 0, alignment=Qt.AlignmentFlag.AlignTop)
         layout.addWidget(self.refreshButton, 0)
         layout.addWidget(self.confirmButton, 0)
@@ -137,16 +134,6 @@ class SelectCameraListWidget(QWidget):
         """
         logger.debug("enabling refresh button")
         self.refreshButton.setEnabled(True)
-
-    def close(self):
-        """
-        Closes the widget and emits the closed signal.
-        """
-        logger.debug("closing select camera list widget")
-        self.cameraFetcher.quit() 
-        self.closed.emit()
-
-        super().close()
 
 
 if __name__ == "__main__":
