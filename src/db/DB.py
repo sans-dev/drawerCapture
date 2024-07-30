@@ -427,8 +427,8 @@ class FileAgnosticDB:
 class DummyDB:
     def __init__(self):
         self.museums = [
-            {'name': 'NHM', 'city': 'London', 'address': "Street 1"},
-            {'name':'Senkenberg', 'city':'Frankfurt', 'address': "Strasse 1"}
+            {'name': 'NHM', 'city': 'London', 'street': 'Kings Lane', 'number': '1'},
+            {'name':'Senkenberg', 'city':'Frankfurt', 'street': 'Sachsen Strasse', 'number': '1'}
         ]
         self.users = [
             {'username': 'Peter', 'role': 'user', 'password': 'password1'},
@@ -485,7 +485,8 @@ class DummyDB:
             if m['name'] == museum_to_edit['name'] and m['city'] == museum_to_edit['city']:
                 m['name'] = updated_museum['name']
                 m['city'] = updated_museum['city']
-                m['address'] = updated_museum['address']
+                m['street'] = updated_museum['street']
+                m['number'] = updated_museum['number']
                 return True
         return False  
 
