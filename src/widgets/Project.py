@@ -997,7 +997,7 @@ class MuseumManager(QWidget):
             
             try:
                 updated_museum = {'name': name, 'city': city, 'address': address}
-                self.db_adapter.update_museum(museum_to_edit, updated_museum)
+                self.db_adapter.edit_museum(museum_to_edit, updated_museum)
                 self.refresh_museum_list()
                 self.museum_updated.emit()
                 QMessageBox.information(self, "Success", f"Museum {name} updated successfully.")

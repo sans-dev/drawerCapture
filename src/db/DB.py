@@ -145,6 +145,9 @@ class DBAdapter(QObject):
     def remove_museum(self, museum):
         return self.db_manager.remove_museum(museum)
     
+    def edit_museum(self, museum_to_edit, updated_museum):
+        return self.db_manager.edit_museum(museum_to_edit, updated_museum)
+    
     def reset_password(self, username, role, old_password, new_password):
         return self.db_manager.reset_password(username, role, old_password, new_password)
     
@@ -348,6 +351,15 @@ class FileAgnosticDB:
     def get_current_user(self):
         return self.current_user
     
+    def add_museum(self, museum):
+        pass
+
+    def get_museums(self, museum):
+        pass
+
+    def edit_museum(self, museum):
+        pass
+    
     def save_encrypted_users(self, new_user):
         # Load and decrypt existing users
         existing_users = self._load_credentials() 
@@ -467,6 +479,15 @@ class DummyDB:
     def add_museum(self, museum):
         self.museums.append(museum)
         return True
+
+    def edit_museum(self, museum_to_edit, updated_museum):
+        for m in self.museums:
+            if m['name'] == museum_to_edit['name'] and m['city'] == museum_to_edit['city']:
+                m['name'] = updated_museum['name']
+                m['city'] = updated_museum['city']
+                m['address'] = updated_museum['address']
+                return True
+        return False  
 
     def remove_museum(self, museum):
         for idx, m in enumerate(self.museums):
