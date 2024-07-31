@@ -4,8 +4,8 @@ from pathlib import Path
 from PyQt6.QtCore import pyqtSignal, Qt, QDir, QRegularExpression, QAbstractTableModel, QModelIndex
 from PyQt6.QtGui import QIcon, QRegularExpressionValidator, QStandardItemModel, QStandardItem
 from PyQt6.QtWidgets import (QApplication, QDialog, QWidget, QVBoxLayout, QLineEdit, QPushButton, QFileDialog, QLabel, 
-                             QListWidget, QHBoxLayout, QTableView, QAbstractItemView, QHeaderView, QCheckBox, 
-                             QSpacerItem, QSizePolicy, QGridLayout, QMessageBox, QInputDialog, QComboBox, QTextEdit, QDialogButtonBox)
+                             QListWidget, QHBoxLayout, QTableView, QAbstractItemView, QHeaderView, 
+                             QGridLayout, QMessageBox, QInputDialog, QComboBox, QTextEdit, QDialogButtonBox)
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
@@ -557,6 +557,9 @@ class ProjectViewer(QWidget):
                 self.sessions.append(data)
             continue
         self.session_view.set_data(self.sessions)
+
+    def set_camera_data(self, camera_data):
+        pass # think about how to implement this
 
 class AddUserDialog(QDialog):
     def __init__(self, parent=None):

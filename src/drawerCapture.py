@@ -45,6 +45,7 @@ class MainWindow(QMainWindow):
         self.current_user = None
         self.project_name = ''
         self.is_creating_project = False
+        self.camera_connected = False
         self.initUI()
         self.set_enabled_admin_features(False)
         self.update_ui_based_on_mode()
@@ -61,8 +62,8 @@ class MainWindow(QMainWindow):
         self.project_view = ProjectViewer(self.db_adapter)
         self.capture_view = CaptureView(db_adapter=self.db_adapter,
                                        fs=self.fs, panel_res=(1024, 780))
-        # self.image_view = ImageWidget(
-        #    db_adapter=db_adapter, taxonomy=taxonomomy, geo_data_dir=geo_data_dir)
+        self.image_view = ImageWidget(
+            db_adapter=self.db_adapter, taxonomy=self.taxonomy, geo_data_dir=geo_data_dir)
         self.stacked_widget.addWidget(self.project_view)
         self.stacked_widget.addWidget(self.capture_view)
         self.setCentralWidget(self.stacked_widget)
@@ -70,7 +71,6 @@ class MainWindow(QMainWindow):
         self.create_menus()
         self.create_actions()
         self.setup_toolbar()
-
 
     def set_window_title(self):
         username = self.current_user['username'] if self.current_user is not None else ''
@@ -181,8 +181,6 @@ class MainWindow(QMainWindow):
         self.session_creator.close_signal.connect(self.setEnabled)
         self.session_creator.show()
 
-
-
     def edit_user(self):
         self.user_settings = UserSettings(self.db_adapter, self.current_user)
         self.user_settings.close_signal.connect(self.setEnabled)
@@ -272,14 +270,24 @@ class MainWindow(QMainWindow):
             self.set_enabled_user_actions(True)
 
     def add_camera(self):
+        self.setEnabled(False)
         self.camera_fetcher = SelectCameraListWidget()
+        self.camera_fetcher.close_signal.connect(self.setEnabled)
+        self.camera_fetcher.camera_selected.connect(self.on_camera_selected)
         self.camera_fetcher.show()
+
+    def on_camera_selected(self, camera):
+        self.camera_fetcher.close()
+        self.project_view.set_camera_data(camera)
+        self.camera_connected = True
+        self.capture_view.set_camera_data(camera)
 
     def on_session_created(self):
         self.session_creator.close()
         self.mode = "Capture Mode"
         self.update_ui_based_on_mode()
-        self.add_camera()
+        if not self.camera_connected:
+            self.add_camera()
 
     def on_load_successful(self):
         self.project_name = self.loader.get_project_name()

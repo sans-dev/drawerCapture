@@ -27,7 +27,7 @@ class CaptureView(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        logger.debug("initializing live widget UI")
+        logger.debug("initializing capture view")
         self.setWindowTitle("Capture Mode")
         layout = QGridLayout()
         layout.addWidget(self.panel, 0, 0)
@@ -48,8 +48,6 @@ class CaptureView(QWidget):
         self.model = camera_data.split('usb')[0].strip()
         self.port = f"usb{camera_data.split('usb')[-1].strip()}"
         self.panel.set_camera_data(self.model, self.port)
-
-
  
     def show_error_dialog(self, msg):
         QMessageBox.critical(self, "Error", msg)

@@ -20,8 +20,9 @@ class SelectCameraListWidget(QWidget):
 
     """
     selectedCameraChanged = pyqtSignal(str)
-    closed = pyqtSignal()
+    close_signal = pyqtSignal(bool)
     refreshing = pyqtSignal()
+    camera_selected = pyqtSignal(str)
 
     def __init__(self, parent=None):
         """
@@ -95,6 +96,7 @@ class SelectCameraListWidget(QWidget):
         if selected_item is not None:
             self.selectedCameraData  = self.cameraFetcher.getCameraData(selected_item.text())
             self.selectedCameraChanged.emit(self.selectedCameraData)
+            self.camera_selected.emit(self.selectedCameraData)
 
     def refreshButtonClicked(self):
         """
@@ -134,6 +136,10 @@ class SelectCameraListWidget(QWidget):
         """
         logger.debug("enabling refresh button")
         self.refreshButton.setEnabled(True)
+
+    def closeEvent(self, event):
+        self.close_signal.emit(True)
+        super().closeEvent(event)
 
 
 if __name__ == "__main__":

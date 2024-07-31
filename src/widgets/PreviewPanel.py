@@ -78,7 +78,7 @@ class PreviewPanel(QLabel):
         """
         logger.debug("initializing preview panel")
         super().__init__()
-        self.label = QLabel("No camera selected")
+        self.label = QLabel("No camera connected")
         self.panel = Panel(panel_res)
         self.camera_data = None
         self.frame = None
@@ -178,6 +178,7 @@ class PreviewPanel(QLabel):
         # Set instance attributes
         self.model = model
         self.port = port
+        self.label.setText(f"{self.model} connected at port: {self.port}")
 
     def set_is_capture_ready(self, is_ready):
         self.is_capture_ready = is_ready
