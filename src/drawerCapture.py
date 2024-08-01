@@ -167,6 +167,7 @@ class MainWindow(QMainWindow):
         self.new_session_action.triggered.connect(self.new_session)
         self.manage_museums_action.triggered.connect(self.manage_museums)
         self.add_camera_action.triggered.connect(self.add_camera)
+        self.capture_image.triggered.connect(self.capture_view.capture_image)
 
     def manage_museums(self):
         self.museum_manager = MuseumManager(self.db_adapter, self.db_adapter.get_current_user())

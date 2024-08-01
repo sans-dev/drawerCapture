@@ -35,14 +35,14 @@ class Panel(QLabel):
         Sets the preview panel image with the latest frame from the camera stream.
         """
         logger.debug("updating preview panel with new frame")
-        self.frame = frame
+        self.frame = cv2.resize(frame, self.resolution)
         rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         h, w, ch = rgbImage.shape
         bytesPerLine = ch * w            
         qt_image = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format.Format_RGB888)
         pixmap = QPixmap.fromImage(qt_image)
         self.setPixmap(pixmap)
-
+        
     def clear_image(self):
         """
         Clears the preview panel.
@@ -160,6 +160,7 @@ class PreviewPanel(QLabel):
         self.image_capture.signals.finished.connect(self.loadingSpinner.stop)
         self.image_capture.signals.finished.connect(self.loadingSpinner.hide)
         self.image_capture.signals.finished.connect(self.restart_stream)
+        self.image_capture.signals.img_captured.connect(self.on_image_captured)
         self.panel.freeze()
         print(self.thread_pool.activeThreadCount())
         while self.thread_pool.activeThreadCount() > 0:
@@ -167,6 +168,10 @@ class PreviewPanel(QLabel):
         print(self.thread_pool.activeThreadCount())
         self.thread_pool.setMaxThreadCount(1)
         self.thread_pool.start(self.image_capture)
+
+    def on_image_captured(self, img_dir):
+        img = cv2.imread(img_dir)
+        self.panel.set_image(img)
 
     def set_camera_data(self, model=None, port=None):
         """

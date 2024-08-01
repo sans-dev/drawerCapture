@@ -48,6 +48,9 @@ class CaptureView(QWidget):
         self.model = camera_data.split('usb')[0].strip()
         self.port = f"usb{camera_data.split('usb')[-1].strip()}"
         self.panel.set_camera_data(self.model, self.port)
+
+    def capture_image(self):
+        self.panel.capture_image()
  
     def show_error_dialog(self, msg):
         QMessageBox.critical(self, "Error", msg)
