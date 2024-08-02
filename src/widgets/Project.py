@@ -236,7 +236,7 @@ class ProjectCreator(QWidget):
         if self.validator.validate():
             project_info = dict()
             project_dir = (Path(self.dir.text().strip()) / self.project_name.text().strip()).as_posix()
-            project_info['Project Info'] = {
+            project_info = {
                 'project_dir': project_dir,
                 'creation_date': datetime.now().strftime("%Y-%m-%d"),
                 'name': self.project_name.text().strip(),
@@ -483,12 +483,9 @@ class SessionCreator(QDialog):
         session_name = f"Session {session_id}"
         session_data = {
             "name" : session_name,
-            "id": str(session_id),
             "capturer": capturer,
             "museum": museum,
             "collection_name": collection_name if collection_name else None,
-            "date" : datetime.now().strftime("%Y-%m-%d"),
-            "num_captures" : 0
         }
         # Call the appropriate function in your db_adapter to create the session
         self.db_adapter.create_session(session_data)
@@ -692,7 +689,7 @@ class UserManager(QWidget):
             if not dialog.validator.validate():
                 try:
                     new_user = {'username': username, 'password': password, 'role': role}
-                    self.db_adapter.add_users(new_user)
+                    self.db_adapter.add_user(new_user)
                     self.refresh_user_list()
                     self.user_updated.emit()
                     QMessageBox.information(self, "Success", f"User {username} added successfully.")
@@ -1013,6 +1010,8 @@ class MuseumManager(QWidget):
                     QMessageBox.information(self, "Success", f"Museum {name} added successfully.")
                 else:
                     raise Exception("Some problems with the database")
+            except IndexError as e:
+                QMessageBox.critical(self, "Error", f"Failed to add museum: {str(e)}")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to add museum: {str(e)}")
 

@@ -328,7 +328,7 @@ if __name__ == '__main__':
         logger.debug("debug mode enabled")
         logger.info("loading taxonomy")
         taxonomy = init_taxonomy(TAXONOMY['test'])
-        db = DummyDB()
+        db = FileAgnosticDB()
     else:
         logger.setLevel(level=logging.INFO)
         logger.debug("debug mode disabled")

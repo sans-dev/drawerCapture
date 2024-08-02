@@ -1,59 +1,20 @@
-import numpy as np
 import yaml
+import uuid
 from pathlib import Path
 import cv2
-import copy
+import csv
+from datetime import datetime
 from cryptography.fernet import Fernet
 import json
 import configparser
 from PyQt6.QtCore import QObject, pyqtSignal
+from src.utils.Validation import DataValidator
+from src.utils.id_generator import generate_id
 
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
-
-class DataValidator:
-
-    @staticmethod
-    def validate_project_config(config):
-        #TODO implement validation
-        return True
-
-    @staticmethod
-    def validate_data_from_db(data):
-        # Perform validation checks on data received from DB
-        # Return True if data is valid, False otherwise
-        pass
-
-    @staticmethod
-    def validate_image_data(image_data):
-        # Check if image_data is a numpy array
-        if not isinstance(image_data, np.ndarray):
-            return False, "Image data must be a numpy array"
-
-        # Check if image_data has the correct shape (height, width, channels)
-        if len(image_data.shape) != 3:
-            return False, "Image data must have three dimensions (height, width, channels)"
-
-        # Check if image_data has at least 3 channels (RGB or BGR)
-        if image_data.shape[2] < 3:
-            return False, "Image data must have at least 3 channels (RGB or BGR)"
-
-        # Check if bit depth of image_data is 8 or 16
-        if image_data.dtype!= np.uint8 and image_data.dtype!= np.uint16:
-            return False, "Image data must be of type uint8 or uint16"
-        # Additional checks can be added as needed
-
-        # If all checks pass, return True for valid image data
-        return True, None
-    
-    @staticmethod
-    def validate_meta_info(meta_info):
-        contains_exception = any(isinstance(value, Exception) for value in meta_info.values())
-        if contains_exception:
-            return False, "Mandatory fields left open"
-        else: return True, None 
 
 class DBAdapter(QObject):
     put_signal = pyqtSignal(dict)
@@ -118,8 +79,8 @@ class DBAdapter(QObject):
     def validate_admin(self, username, password):
         return self.db_manager.validate_admin(username, password)
 
-    def add_users(self, users):
-        self.db_manager.save_encrypted_users(users)
+    def add_user(self, user):
+        self.db_manager.add_user(user)
     
     def count_admins(self):
         return self.db_manager.count_admins()
@@ -156,12 +117,114 @@ class DBAdapter(QObject):
 
 class FileAgnosticDB:
     def __init__(self):
-        super().__init__()
         self.project_root_dir = None
         self.current_session = None
         self.fernet = None
         self.current_user = None
+
+    def create_project(self, project_info):
+        project_dir = Path(project_info['project_dir'])
+        project_dir.mkdir(exist_ok=True)
+        
+        # Create captures directory and CSV file
+        (project_dir / 'captures').mkdir(exist_ok=True)
+        self._create_captures_csv(project_dir)
+        
+        # Create .project directory and files
+        project_data_dir = project_dir / '.project'
+        project_data_dir.mkdir(exist_ok=True)
+        
+        (project_data_dir / '.project.ini').touch()
+        (project_data_dir / '.sessions.json').write_text('{}')
+        (project_data_dir / '.museums.json').write_text('{}')
+        
+        # Write project info to .project.ini
+        config = configparser.ConfigParser()
+        config['Project Info'] = project_info
+        with (project_data_dir / '.project.ini').open('w') as f:
+            config.write(f)
+        
+        self.project_root_dir = project_dir
+        self._initialize_key()
+        return self.get_project_info()
+
+    def create_session(self, session_data):
+        session_id = str(uuid.uuid4())
+        sessions_file = self.project_root_dir / '.project' / '.sessions.json'
+        sessions = json.loads(sessions_file.read_text())
+        n_sessions = len(sessions)
+        session_data['name'] = f"session-{str(n_sessions + 1).zfill(3)}"
+        session_data['creation_date'] = datetime.now().isoformat()
+        session_data['session_dir'] = (self.project_root_dir / 'captures' / f"{session_data['name']}").as_posix()
+        session_data['num_captures'] = 0
+        session_data['captures'] = []
+        sessions[session_id] = session_data
+        sessions_file.write_text(json.dumps(sessions, indent=2))
+        Path(session_data['session_dir']).mkdir(exist_ok=True)
+        return session_id, session_data
+
+    def post_new_image(self, payload):
+        image_data = payload.get('image')
+        meta_info = payload.get('meta_info')
+        
+        sessions_file = self.project_root_dir / '.project' / '.sessions.json'
+        sessions = json.loads(sessions_file.read_text())
+        session = sessions.get(payload['session_id'])
+        if not session:
+            raise ValueError("Session not found")
+        
+        session['num_captures'] += 1
+        capture_id = session['num_captures']
+        img_name, meta_name = self._create_save_name(meta_info, capture_id, session)
+        session['captures'].append(str(img_name.relative_to(self.project_root_dir)))
+
+        sessions_file.write_text(json.dumps(sessions, indent=2))
+        
+        if not cv2.imwrite(str(img_name), image_data):
+            raise RuntimeError("Failed to save image")
+        
+        with meta_name.open('w') as f:
+            yaml.dump(meta_info, f)
+        
+        self._update_captures_csv(meta_info, session)
+        
+        return self.get_project_info()
+
+    def get_project_info(self):
+        config = configparser.ConfigParser()
+        config.read(self.project_root_dir / '.project' / '.project.ini')
+        return {section: dict(config[section]) for section in config.sections()}
+
+    def is_duplicate_museum(self, museum):
+        museums = self.get_museums()
+        for m in museums:
+            if m['name'] == museum['name'] and m['city'] == museum['city']:
+                return True
+        return False
     
+    def add_museum(self, museum):
+        is_valid, msg = DataValidator.validate_museum(museum)
+        if not is_valid:
+            raise ValueError(msg)
+        museums = self.get_museums()
+        if self.is_duplicate_museum(museum):
+            raise ValueError(f"Museum '{museum['name']}' already exists in '{museum['city']}'")
+        new_id = str(uuid.uuid4())
+        museums[new_id] = museum
+        self.save_musems(museums)
+        return True
+
+    def save_musems(self, museums):
+        museums_file = self.project_root_dir / '.project' / '.museums.json'
+        museums_file.write_text(json.dumps(museums, indent=2))
+
+    def get_museums(self):
+        museums_file = self.project_root_dir / '.project' / '.museums.json'
+        return json.loads(museums_file.read_text())
+
+    def edit_museum(self, original, updated):
+        pass
+
     def reset_password(self, username, role, old_password, new_password):
         existing_users = self._load_credentials()
         for user in existing_users:
@@ -199,71 +262,13 @@ class FileAgnosticDB:
         self._save_credentials(encrypted_data)
 
     def load_project(self, project_dir):
-        self.project_info = configparser.ConfigParser()
-        self.project_info.read((Path(project_dir) / 'project.ini'))
-        if DataValidator.validate_project_config(self.project_info):
-            self.project_root_dir = Path(project_dir)
+        self.project_root_dir = Path(project_dir)
+        project_info = self.get_project_info()
+        if DataValidator.validate_project_config(project_info):
             self._initialize_key()
-            return self.create_dict_from_config()
+            return project_info
         else: return False
-
-    def post_new_image(self, payload):
-        image_data = payload.get('image')
-        meta_info = payload.get('meta_info')
-        # Save data to the database
-        logger.info("Saving data")
-        old_conf = copy.deepcopy(self.project_info)
-        try:
-            project_options = {
-                'num_captures' : self.project_info.getint('Project Info', "num_captures") + 1
-            }
-            self.update_project_config(section="Project Info", options=project_options)
-            
-            session_options = {
-                'num_captures' : self.project_info.getint(f"Session {self.current_session_id}", "num_captures") + 1
-            }
-            self.update_project_config(section=f"Session {self.current_session_id}", options=session_options)
-
-            self.write_project_config()
-            img_name, meta_name = self.create_save_name(meta_info)
-            img_name.parent.mkdir(parents=True, exist_ok=True)
-            cv2.imwrite(img_name.as_posix(),image_data)
-            with meta_name.open('w') as f:
-                yaml.dump(meta_info, f)
-            return self.create_dict_from_config()
         
-        except FileNotFoundError as e:
-            logger.error(e)
-            self.project_info = old_conf
-            # delete image and meta file
-            Path(img_name).unlink()
-            Path(meta_name).unlink()
-            raise e
-        except TypeError as e:
-            logger.error(e)
-            self.project_info = old_conf
-            raise e
-        except Exception as e:
-            logger.error(e)
-            self.project_info = old_conf
-            Path(img_name).unlink()
-            Path(meta_name).unlink()
-            raise e
-        
-    def update_project_config(self, section, options):
-        if section not in self.project_info.sections():
-            self.project_info.add_section(section)
-        
-        for option, value in options.items():
-            self.project_info.set(section, option, str(value))
-        
-    def write_project_config(self):
-        with open(self.project_root_dir / 'project.ini', 'w') as configfile:
-            self.project_info.write(configfile)
-
-    def get_project_config(self):
-        return self.project_info
-    
     def load_image_and_meta_info(self, data):
         # Validate data received from DB
         if not DataValidator.validate_data_from_db(data):
@@ -271,56 +276,8 @@ class FileAgnosticDB:
             return
         # Process and load data from the database
 
-    def create_save_name(self, meta_info):
-        session_name = meta_info['Session Info']['name'].replace(" ","-").lower()
-        img_id = "cap-" + str(self.project_info.getint('Project Info', "num_captures")).zfill(4)
-        museum = meta_info['Session Info']['museum'].replace(" ","-").lower()
-        species_name = f"{meta_info['Species Info']['Genus']}_{meta_info['Species Info']['Species']}"
-
-        img_name = self.project_root_dir / "captures" / session_name / f"{img_id}_{museum}_{species_name}.jpg"
-        meta_name = self.project_root_dir / "captures" / session_name / f"{img_id}_{museum}_{species_name}.yml"
-        return img_name, meta_name
-
     def add_exif_info(self, image, info):
         pass
-
-    def create_project(self, project_info):
-        self.project_info = configparser.ConfigParser()
-        project_dir = Path(project_info['Project Info']['project_dir'])
-        project_dir.mkdir(exist_ok=True)
-        (project_dir / 'captures').mkdir(exist_ok=True)
-        (project_dir / 'captures.csv').write_text("date, session, museum, order, family, genus, species\n")
-        self.create_config_from_dict(project_info)
-        with (project_dir / 'project.ini').open('w') as config_file:
-            self.project_info.write(config_file)
-
-        self.project_root_dir = project_dir
-        self._initialize_key()
-        return self.create_dict_from_config()
-
-    def create_config_from_dict(self, config_dict):
-        for section, options in config_dict.items():
-            self.project_info.add_section(section)
-            for option, value in options.items():
-                self.project_info.set(section, option, str(value))
-
-    def create_dict_from_config(self):
-        config_dict = {}
-        for section in self.project_info.sections():
-            config_dict[section] = {}
-            for option in self.project_info.options(section):
-                config_dict[section][option] = self.project_info.get(section, option)
-        return config_dict
-
-    def create_session(self, session_data):
-        if self.project_info:
-            section = session_data['name']
-            self.update_project_config(section, session_data)
-            self.current_session_id = session_data['id']
-            self.write_project_config()
-            return self.create_dict_from_config()
-        else:
-            raise ValueError('No project info available')
 
     def get_users(self):
         """
@@ -351,15 +308,9 @@ class FileAgnosticDB:
     def get_current_user(self):
         return self.current_user
     
-    def add_museum(self, museum):
-        pass
+    def add_user(self, new_user):
+        self.save_encrypted_users(new_user)
 
-    def get_museums(self, museum):
-        pass
-
-    def edit_museum(self, museum):
-        pass
-    
     def save_encrypted_users(self, new_user):
         # Load and decrypt existing users
         existing_users = self._load_credentials() 
@@ -370,9 +321,9 @@ class FileAgnosticDB:
         # Encrypt the updated users list
         encrypted_data = self.fernet.encrypt(json.dumps(existing_users).encode())
         self._save_credentials(encrypted_data)
-        
+
     def _save_credentials(self, encrypted_data):
-        credentials_path = self.project_root_dir / ".credentials"
+        credentials_path = self.project_root_dir / ".project" / ".credentials"
         # Save the encrypted data to the file
         with open(credentials_path, "wb") as f:
             f.write(encrypted_data)
@@ -383,7 +334,7 @@ class FileAgnosticDB:
         
     def _load_credentials(self):
         existing_users = []
-        credentials_path = self.project_root_dir / ".credentials"
+        credentials_path = self.project_root_dir / ".project" / ".credentials"
         if credentials_path.exists():
             try:
                 with open(credentials_path, "rb") as f:
@@ -400,7 +351,7 @@ class FileAgnosticDB:
         return existing_users
 
     def _initialize_key(self):
-        key_path = self.project_root_dir / ".key"
+        key_path = self.project_root_dir / ".project" / ".key"
         if key_path.exists():
             self._load_key(key_path)
         else:
@@ -422,6 +373,39 @@ class FileAgnosticDB:
             self.fernet = Fernet(key)
         except Exception as e:
             raise RuntimeError(f"Failed to create encryption key: {str(e)}")
+        
+    def _create_captures_csv(self, project_dir):
+        csv_file = project_dir / 'captures.csv'
+        with csv_file.open('w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['date', 'session', 'capturer', 'museum', 'order', 'family', 'genus', 'species', 'directory'])
+
+    def _create_save_name(self, meta_info, capture_id, session):
+        session_dir = Path(session['session_dir'])
+        
+        order_name = meta_info['Species Info']['Order'].replace(" ", "-").lower()
+        species_name = f"{meta_info['Species Info']['Genus']}.{meta_info['Species Info']['Species']}".lower()
+        
+        img_name = session_dir / f"{session['name']}_cap-{capture_id:04d}_order-{order_name}_species-{species_name}.jpg"
+        meta_name = img_name.with_suffix('.yml')
+        
+        return img_name, meta_name
+
+    def _update_captures_csv(self, meta_info, session):
+        csv_file = self.project_root_dir / 'captures.csv'
+        with csv_file.open('a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                datetime.now().isoformat(),
+                session['name'],
+                session['capturer'],
+                session['museum'],
+                meta_info['Species Info']['Order'],
+                meta_info['Species Info']['Family'],
+                meta_info['Species Info']['Genus'],
+                meta_info['Species Info']['Species'],
+                session['captures'][-1]
+            ])
 
 
 class DummyDB:
