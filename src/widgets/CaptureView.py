@@ -25,6 +25,7 @@ class CaptureView(QWidget):
         self.port = None
         self.db_apater = db_adapter
         self.init_ui()
+        self.connect_signals()
 
     def init_ui(self):
         logger.debug("initializing capture view")
@@ -45,7 +46,7 @@ class CaptureView(QWidget):
     
     def connect_signals(self):
         self.panel.image_captured.connect(self.save_button.setEnabled)
-        
+
     def set_camera_data(self, camera_data): 
         self.model = camera_data.split('usb')[0].strip()
         self.port = f"usb{camera_data.split('usb')[-1].strip()}"
