@@ -465,7 +465,7 @@ class SessionCreator(QDialog):
         self.capturer_edit.addItem(user['username'])
 
     def set_museums(self, museums):
-        for museum in museums:
+        for museum in museums.values():
             self.museum_edit.addItem(f"{museum['name']} - {museum['city']}")
 
     def create_session(self):
@@ -981,7 +981,7 @@ class MuseumManager(QWidget):
         self.model.setHorizontalHeaderLabels(["Museum Name", "City", "Street", "Number"])
         museums = self.db_adapter.get_museums()
         self.original_data = []
-        for museum in museums:
+        for _, museum in museums.items():
             row = [
                 QStandardItem(museum['name']),
                 QStandardItem(museum['city']),
@@ -1020,28 +1020,28 @@ class MuseumManager(QWidget):
         if not selected_indexes:
             QMessageBox.warning(self, "Selection Error", "Please select a museum to remove.")
             return
+        for selected_index in selected_indexes:
+            selected_row = selected_index.row()
+            museum_name = self.model.item(selected_row, 0).text()
+            museum_city = self.model.item(selected_row, 1).text()
+            museum_street = self.model.item(selected_row, 2).text()
+            museum_number = self.model.item(selected_row, 3).text()
+            museum_to_remove = {
+                'name': museum_name, 
+                'city': museum_city, 
+                'street': museum_street, 
+                'number': museum_number
+            }
         
-        selected_row = selected_indexes[0].row()
-        museum_name = self.model.item(selected_row, 0).text()
-        museum_city = self.model.item(selected_row, 1).text()
-        museum_street = self.model.item(selected_row, 2).text()
-        museum_number = self.model.item(selected_row, 3).text()
-        museum_to_remove = {
-            'name': museum_name, 
-            'city': museum_city, 
-            'street': museum_street, 
-            'number': museum_number
-        }
-        
-        confirm = QMessageBox.question(self, "Confirm Removal", f"Are you sure you want to remove {museum_name}?")
-        if confirm == QMessageBox.StandardButton.Yes:
-            try:
-                self.db_adapter.remove_museum(museum_to_remove)
-                self.refresh_museum_list()
-                self.museum_updated.emit()
-                QMessageBox.information(self, "Success", f"Museum {museum_name} removed successfully.")
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to remove museum: {str(e)}")
+            confirm = QMessageBox.question(self, "Confirm Removal", f"Are you sure you want to remove {museum_name}?")
+            if confirm == QMessageBox.StandardButton.Yes:
+                try:
+                    self.db_adapter.remove_museum(museum_to_remove)
+                    self.refresh_museum_list()
+                    self.museum_updated.emit()
+                    QMessageBox.information(self, "Success", f"Museum {museum_name} removed successfully.")
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"Failed to remove museum: {str(e)}")
 
     def save_changes(self):
         changes = []

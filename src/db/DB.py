@@ -1,5 +1,6 @@
 import yaml
 import uuid
+import hashlib
 from pathlib import Path
 import cv2
 import csv
@@ -9,7 +10,6 @@ import json
 import configparser
 from PyQt6.QtCore import QObject, pyqtSignal
 from src.utils.Validation import DataValidator
-from src.utils.id_generator import generate_id
 
 import logging
 import logging.config
@@ -30,7 +30,7 @@ class DBAdapter(QObject):
         self.db_manager = db_manager
 
     def create_session(self, session_data):
-        self.project_changed_signal.emit(self.db_manager.create_session(session_data))
+        return self.db_manager.create_session(session_data)
 
     def create_project(self, project_info):
 
@@ -161,7 +161,7 @@ class FileAgnosticDB:
         sessions[session_id] = session_data
         sessions_file.write_text(json.dumps(sessions, indent=2))
         Path(session_data['session_dir']).mkdir(exist_ok=True)
-        return session_id, session_data
+        return session_data
 
     def post_new_image(self, payload):
         image_data = payload.get('image')
@@ -195,9 +195,8 @@ class FileAgnosticDB:
         config.read(self.project_root_dir / '.project' / '.project.ini')
         return {section: dict(config[section]) for section in config.sections()}
 
-    def is_duplicate_museum(self, museum):
-        museums = self.get_museums()
-        for m in museums:
+    def is_duplicate_museum(self, museum, museums):
+        for _, m in museums.items():
             if m['name'] == museum['name'] and m['city'] == museum['city']:
                 return True
         return False
@@ -207,9 +206,10 @@ class FileAgnosticDB:
         if not is_valid:
             raise ValueError(msg)
         museums = self.get_museums()
-        if self.is_duplicate_museum(museum):
+        new_id = self._create_uuid_from_string(self._create_string_from_dict_values(museum))
+        is_duplicate = museums.get(new_id, None)
+        if is_duplicate:
             raise ValueError(f"Museum '{museum['name']}' already exists in '{museum['city']}'")
-        new_id = str(uuid.uuid4())
         museums[new_id] = museum
         self.save_musems(museums)
         return True
@@ -223,7 +223,20 @@ class FileAgnosticDB:
         return json.loads(museums_file.read_text())
 
     def edit_museum(self, original, updated):
-        pass
+        museums = self.get_museums()
+        m_string = self._create_string_from_dict_values(original)
+        old_id = self._create_uuid_from_string(m_string)
+        del museums[old_id]
+        m_string = self._create_string_from_dict_values(original)
+        new_id = self._create_uuid_from_string(m_string)
+        museums[new_id] = updated
+        self.save_musems(museums)
+
+    def remove_museum(self, museum):
+        m_id = self._create_uuid_from_string(self._create_string_from_dict_values(museum))
+        museums = self.get_museums()
+        del museums[m_id]
+        self.save_musems(museums)
 
     def reset_password(self, username, role, old_password, new_password):
         existing_users = self._load_credentials()
@@ -407,6 +420,12 @@ class FileAgnosticDB:
                 session['captures'][-1]
             ])
 
+    def _create_uuid_from_string(self, val: str):
+        hex_string = hashlib.md5(val.encode("UTF-8")).hexdigest()
+        return str(uuid.UUID(hex=hex_string))
+
+    def _create_string_from_dict_values(self, dict):
+        return ''.join([value for value in dict.values()])
 
 class DummyDB:
     def __init__(self):

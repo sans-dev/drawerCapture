@@ -168,6 +168,10 @@ class MainWindow(QMainWindow):
         self.manage_museums_action.triggered.connect(self.manage_museums)
         self.add_camera_action.triggered.connect(self.add_camera)
         self.capture_image.triggered.connect(self.capture_view.capture_image)
+        self.exit_action.triggered.connect(self.exit_application)
+
+    def exit_application(self):
+        self.close()
 
     def manage_museums(self):
         self.museum_manager = MuseumManager(self.db_adapter, self.db_adapter.get_current_user())
@@ -238,19 +242,17 @@ class MainWindow(QMainWindow):
         self.start_live_preview.setEnabled(is_enabled)
         self.stop_live_preview.setEnabled(is_enabled)
         self.capture_image.setEnabled(is_enabled)
-        # self.add_camera_action.setEnabled(is_enabled)
-        # self.new_session_action.setEnabled(is_enabled) #Enable later. leave now for testing
+        self.add_camera_action.setEnabled(is_enabled)
+        self.new_session_action.setEnabled(is_enabled) #Enable later. leave now for testing
 
     def set_enabled_project_features(self, is_enabled):
         self.new_project_action.setEnabled(is_enabled)
         self.open_project_action.setEnabled(is_enabled)
         self.exit_action.setEnabled(is_enabled)
-        self.new_session_action.setEnabled(is_enabled)
-        self.add_camera_action.setEnabled(is_enabled)
 
     def set_enabled_admin_features(self, is_enabled):
         # Show admin-only buttons, menus, etc.
-        # self.manage_museums_action.setEnabled(is_enabled)
+        self.manage_museums_action.setEnabled(is_enabled)
         self.manage_user_action.setEnabled(is_enabled)
 
     def set_enabled_user_actions(self, is_enabled):
