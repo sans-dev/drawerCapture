@@ -38,12 +38,14 @@ class CaptureView(QWidget):
 
     def create_button_layout(self):
         self.save_button = QPushButton("Save")
-        self.close_button = QPushButton("Close")
+        self.save_button.setEnabled(False)
         layout = QHBoxLayout()
         layout.addWidget(self.save_button)
-        layout.addWidget(self.close_button)
         return layout
-
+    
+    def connect_signals(self):
+        self.panel.image_captured.connect(self.save_button.setEnabled)
+        
     def set_camera_data(self, camera_data): 
         self.model = camera_data.split('usb')[0].strip()
         self.port = f"usb{camera_data.split('usb')[-1].strip()}"

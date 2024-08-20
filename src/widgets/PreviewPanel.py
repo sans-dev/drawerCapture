@@ -35,8 +35,8 @@ class Panel(QLabel):
         Sets the preview panel image with the latest frame from the camera stream.
         """
         logger.debug("updating preview panel with new frame")
-        self.frame = cv2.resize(frame, self.resolution)
-        rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        self.frame = cv2.resize(frame, self.resolution, interpolation=cv2.INTER_AREA)
+        rgbImage = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
         h, w, ch = rgbImage.shape
         bytesPerLine = ch * w            
         qt_image = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format.Format_RGB888)
@@ -71,6 +71,7 @@ class PreviewPanel(QLabel):
     A widget that displays a live preview of the camera stream and allows capturing images.
     """
     stop_stream_signal = pyqtSignal()
+    image_captured = pyqtSignal(bool)
 
     def __init__(self, fs, panel_res):
         """
@@ -172,6 +173,7 @@ class PreviewPanel(QLabel):
     def on_image_captured(self, img_dir):
         img = cv2.imread(img_dir)
         self.panel.set_image(img)
+        self.image_captured.emit(True)
 
     def set_camera_data(self, model=None, port=None):
         """
