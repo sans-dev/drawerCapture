@@ -19,12 +19,12 @@ class ImageWidget(QWidget):
     procClicked = pyqtSignal(str)
     processed = pyqtSignal()
 
-    def __init__(self, db_adapter, taxonomy, geo_data_dir):
+    def __init__(self, db_adapter, taxonomy, geo_data_dir, panel):
         self.taxonomy = taxonomy
         self.db_adapter = db_adapter
         self.geo_data_dir = geo_data_dir
         self.emitter = ProcessEmitter()
-        self.panel = ImagePanel(self.emitter)
+        self.panel = panel
         logger.debug("initializing image widget")
         super().__init__()
         self.initUI()
@@ -45,13 +45,10 @@ class ImageWidget(QWidget):
         button_layout = QHBoxLayout()
         self.close_button = QPushButton("Close")
         self.save_button = QPushButton("Save")
-        self.capture_image_button = QPushButton(QIcon('resources/assets/capture_mode.png'), "Capture")
         self.histogram_button = QPushButton(QIcon('resources/assets/histogram.png'), "Show Histogram")
         self.add_box_button = QPushButton(QIcon('resources/assets/rectangle.png'), "Add Bounding Box")
 
-
         image_button_layout = QHBoxLayout()
-        image_button_layout.addWidget(self.capture_image_button)
         image_button_layout.addWidget(self.add_box_button)
         image_button_layout.addWidget(self.histogram_button)
 
@@ -65,13 +62,9 @@ class ImageWidget(QWidget):
 
         self.close_button.clicked.connect(self.close)
         self.save_button.clicked.connect(self.save_data)
+
     def connectSignals(self):
-        """
-        Connects the signals of the buttons to their respective functions.
-        """
-        self.procClicked.connect(self.panel.processImage)
-        self.emitter.processed.connect(self.enableButtons)
-        self.db_adapter.session_created_signal.connect(self.data_collector.set_session_data)
+        pass
 
     def close(self):
         """

@@ -18,9 +18,9 @@ class PanelButton(QPushButton):
         self.setEnabled(isEnable)
 
 class CaptureView(QWidget):
-    def __init__(self, db_adapter, fs, panel_res):
+    def __init__(self, db_adapter, panel):
         super().__init__()
-        self.panel = PreviewPanel(fs, panel_res)
+        self.panel = panel
         self.model = None
         self.port = None
         self.db_apater = db_adapter
@@ -32,6 +32,7 @@ class CaptureView(QWidget):
         self.setWindowTitle("Capture Mode")
         layout = QGridLayout()
         layout.addWidget(self.panel, 0, 0)
+        self.panel.show()
 
         button_layout = self.create_button_layout()
         layout.addLayout(button_layout,1,0)
@@ -45,8 +46,12 @@ class CaptureView(QWidget):
         return layout
     
     def connect_signals(self):
-        self.panel.image_captured.connect(self.save_button.setEnabled)
+        self.panel.image_captured.connect(self.enable_save_button)
 
+    def enable_save_button(self, img):
+        if img:
+            self.save_button.setEnabled(True)
+            
     def set_camera_data(self, camera_data): 
         self.model = camera_data.split('usb')[0].strip()
         self.port = f"usb{camera_data.split('usb')[-1].strip()}"

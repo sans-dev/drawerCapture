@@ -9,9 +9,11 @@ from PyQt6.QtCore import QSize, Qt
 from src.utils.load_style_sheet import load_style_sheet
 from src.widgets.CaptureView import CaptureView
 from src.widgets.ImageWidget import ImageWidget
+from src.widgets.PreviewPanel import PreviewPanel
 from src.widgets.SelectCameraListWidget import SelectCameraListWidget
 from src.db.DB import DBAdapter, FileAgnosticDB, DummyDB
-from src.widgets.Project import ProjectCreator, ProjectLoader, ProjectViewer, LoginWidget, UserManager, MuseumManager, UserSettings, SessionCreator
+from src.widgets.Project import (ProjectCreator, ProjectLoader, ProjectViewer, LoginWidget, 
+                                 UserManager, MuseumManager, UserSettings, SessionCreator) 
 from src.utils.searching import init_taxonomy
 
 logging.config.fileConfig('configs/logging.conf',
@@ -60,10 +62,15 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon('resources/assets/logo.png'))
         self.stacked_widget = QStackedWidget(self)
         self.project_view = ProjectViewer(self.db_adapter)
-        self.capture_view = CaptureView(db_adapter=self.db_adapter,
-                                       fs=self.fs, panel_res=(1024, 780))
+
         self.image_view = ImageWidget(
-            db_adapter=self.db_adapter, taxonomy=self.taxonomy, geo_data_dir=geo_data_dir)
+            db_adapter=self.db_adapter, 
+            taxonomy=self.taxonomy, 
+            geo_data_dir=geo_data_dir, 
+            panel=PreviewPanel(fs=self.fs, panel_res=(1024, 780)))
+        self.capture_view = CaptureView(db_adapter=self.db_adapter,
+                                       panel=PreviewPanel(fs=self.fs, panel_res=(1024, 780)))
+
         self.stacked_widget.addWidget(self.project_view)
         self.stacked_widget.addWidget(self.capture_view)
         self.stacked_widget.addWidget(self.image_view)
@@ -171,6 +178,7 @@ class MainWindow(QMainWindow):
         self.capture_image.triggered.connect(self.capture_view.capture_image)
         self.capture_view.save_button.clicked.connect(self.on_save_image)
         self.exit_action.triggered.connect(self.exit_application)
+        self.capture_view.panel.image_captured.connect(self.image_view.panel.on_image_captured)
 
     def exit_application(self):
         self.close()

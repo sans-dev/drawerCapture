@@ -71,7 +71,7 @@ class PreviewPanel(QLabel):
     A widget that displays a live preview of the camera stream and allows capturing images.
     """
     stop_stream_signal = pyqtSignal()
-    image_captured = pyqtSignal(bool)
+    image_captured = pyqtSignal(str)
 
     def __init__(self, fs, panel_res):
         """
@@ -173,7 +173,7 @@ class PreviewPanel(QLabel):
     def on_image_captured(self, img_dir):
         img = cv2.imread(img_dir)
         self.panel.set_image(img)
-        self.image_captured.emit(True)
+        self.image_captured.emit(img_dir)
 
     def set_camera_data(self, model=None, port=None):
         """
