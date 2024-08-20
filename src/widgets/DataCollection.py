@@ -495,7 +495,11 @@ class TaxonomyField(ListWidget):
         self.syn_search = SynonymSearch()
         self.syn_search.load_synonym_data(SYNONYMES[self.name])
         self.syn_search.populate_ui()
+        
         self.syn_search_button = QPushButton("Synonyme Search")
+        if self.name != 'Species':
+            self.syn_search_button.setEnabled(False)
+            self.syn_search_button.hide()
         self.search_widget.addWidget(self.direct_search)
         self.search_widget.addWidget(self.syn_search)
         layout.addWidget(self.label)

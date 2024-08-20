@@ -66,6 +66,7 @@ class MainWindow(QMainWindow):
             db_adapter=self.db_adapter, taxonomy=self.taxonomy, geo_data_dir=geo_data_dir)
         self.stacked_widget.addWidget(self.project_view)
         self.stacked_widget.addWidget(self.capture_view)
+        self.stacked_widget.addWidget(self.image_view)
         self.setCentralWidget(self.stacked_widget)
         self.stacked_widget.setCurrentWidget(self.project_view)
         self.create_menus()
@@ -168,6 +169,7 @@ class MainWindow(QMainWindow):
         self.manage_museums_action.triggered.connect(self.manage_museums)
         self.add_camera_action.triggered.connect(self.add_camera)
         self.capture_image.triggered.connect(self.capture_view.capture_image)
+        self.capture_view.save_button.clicked.connect(self.on_save_image)
         self.exit_action.triggered.connect(self.exit_application)
 
     def exit_application(self):
@@ -232,6 +234,10 @@ class MainWindow(QMainWindow):
             self.set_enabled_project_features(True)
             self.set_enabled_capture_features(False)
             self.stacked_widget.setCurrentWidget(self.project_view)
+        elif self.mode == 'Data Collection Mode':
+            self.set_enabled_project_features(False)
+            self.set_enabled_capture_features(False)
+            self.stacked_widget.setCurrentWidget(self.image_view)
         else:
             self.set_enabled_project_features(False)
             self.set_enabled_capture_features(True)
@@ -302,7 +308,11 @@ class MainWindow(QMainWindow):
         self.project_name = self.project_creator.get_project_name()
         self.project_creator.close()
         self.login()
-        
+
+    def on_save_image(self):
+        self.mode = "Data Collection Mode"
+        self.update_ui_based_on_mode()
+
     def open_user_manager_for_project(self):
         self.user_manager = UserManager(self.db_adapter, self.current_user)
         self.user_manager.close_signal.connect(self.finish_project_creation)

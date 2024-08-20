@@ -37,11 +37,11 @@ class CaptureView(QWidget):
         self.setLayout(layout)
 
     def create_button_layout(self):
-        save_button = QPushButton("Save")
-        close_button = QPushButton("Close")
+        self.save_button = QPushButton("Save")
+        self.close_button = QPushButton("Close")
         layout = QHBoxLayout()
-        layout.addWidget(save_button)
-        layout.addWidget(close_button)
+        layout.addWidget(self.save_button)
+        layout.addWidget(self.close_button)
         return layout
 
     def set_camera_data(self, camera_data): 
