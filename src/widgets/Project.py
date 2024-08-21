@@ -297,11 +297,11 @@ class ProjectLoader(QWidget):
             self.db_adapter.load_project(project_dir)
             self.load_successful.emit()
         except FileNotFoundError as fne:
-            QMessageBox.warning(self, f"project file missing", fne)
+            QMessageBox.warning(self, f"project file missing", str(fne))
         except ValueError as ve:
-            QMessageBox.warning(self, f"project file corrupted", ve) 
+            QMessageBox.warning(self, f"project file corrupted", str(ve)) 
         except Exception as e:
-            QMessageBox.warning(self, f"Something went wrong", e)
+            QMessageBox.warning(self, f"Something went wrong", str(e))
         
     def get_project_name(self):
         return Path(self.dir.text()).parts[-1]
@@ -483,7 +483,7 @@ class SessionCreator(QDialog):
             "museum": museum,
             "collection_name": collection_name if collection_name else None,
         }
-        # Call the appropriate function in your db_adapter to create the session
+        # Call the appropriate function db_adapter to create the session
         self.db_adapter.create_session(session_data)
         self.session_created.emit()
         

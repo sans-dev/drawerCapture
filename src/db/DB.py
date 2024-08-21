@@ -31,7 +31,8 @@ class DBAdapter(QObject):
         self.db_manager = db_manager
 
     def create_session(self, session_data):
-        return self.db_manager.create_session(session_data)
+        sessions = self.db_manager.create_session(session_data)
+        self.sessions_signal.emit(sessions)
 
     def create_project(self, project_info):
 
@@ -151,17 +152,19 @@ class FileAgnosticDB:
     def create_session(self, session_data):
         session_id = str(uuid.uuid4())
         sessions_file = self.project_root_dir / '.project' / '.sessions.json'
+        if not sessions_file.is_file():
+            raise FileNotFoundError(f"No sessions file found. {sessions_file}")
         sessions = json.loads(sessions_file.read_text())
         n_sessions = len(sessions)
         session_data['name'] = f"session-{str(n_sessions + 1).zfill(3)}"
         session_data['creation_date'] = datetime.now().isoformat()
-        session_data['session_dir'] = (self.project_root_dir / 'captures' / f"{session_data['name']}").as_posix()
+        session_data['session_dir'] = (Path('captures') / f"{session_data['name']}").as_posix()
         session_data['num_captures'] = 0
         session_data['captures'] = []
         sessions[session_id] = session_data
         sessions_file.write_text(json.dumps(sessions, indent=2))
-        Path(session_data['session_dir']).mkdir(exist_ok=True)
-        return session_data
+        Path(self.project_root_dir / session_data['session_dir']).mkdir()
+        return sessions
 
     def load_sessions(self):
         sessions_file = self.project_root_dir / ".project/.sessions.json"
