@@ -465,25 +465,14 @@ class SessionCreator(QDialog):
             self.museum_edit.addItem(f"{museum['name']} - {museum['city']}")
 
     def create_session(self):
-        #TODO needs big refactoring: ID creation should happen in the backend!!!
         capturer = self.capturer_edit.currentText().strip()
         museum = self.museum_edit.currentText().strip()
         collection_name = self.collection_name_edit.text().strip()
-
-        max_id = 0
-        for session in self.sessions:
-            _id = int(session.get("session_id"))
-            if _id > max_id:
-                max_id = _id
-        session_id = max_id + 1
-        session_name = f"Session {session_id}"
         session_data = {
-            "name" : session_name,
             "capturer": capturer,
             "museum": museum,
             "collection_name": collection_name if collection_name else None,
         }
-        # Call the appropriate function db_adapter to create the session
         self.db_adapter.create_session(session_data)
         self.session_created.emit()
         
