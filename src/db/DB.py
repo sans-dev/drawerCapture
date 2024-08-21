@@ -44,6 +44,9 @@ class DBAdapter(QObject):
             logger.info(f"{e}")
             raise e
 
+    def get_project_dir(self):
+        return self.db_manager.get_project_dir()
+    
     def save_encrypted_users(self, user):
         self.db_manager.save_encrypted_users(user)
 
@@ -306,6 +309,9 @@ class FileAgnosticDB:
     def add_exif_info(self, image, info):
         pass
 
+    def get_project_dir(self):
+        return self.project_root_dir
+    
     def get_users(self):
         """
         Retrieve all users from the encrypted credentials file.

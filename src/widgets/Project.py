@@ -1,11 +1,13 @@
 from datetime import datetime
 from pathlib import Path
-
+import platform
+import os
+import subprocess
 from PyQt6.QtCore import pyqtSignal, Qt, QDir, QRegularExpression, QAbstractTableModel, QModelIndex
-from PyQt6.QtGui import QIcon, QRegularExpressionValidator, QStandardItemModel, QStandardItem
+from PyQt6.QtGui import QIcon, QRegularExpressionValidator, QStandardItemModel, QStandardItem, QAction
 from PyQt6.QtWidgets import (QApplication, QDialog, QWidget, QVBoxLayout, QLineEdit, QPushButton, QFileDialog, QLabel, 
                              QListWidget, QHBoxLayout, QTableView, QAbstractItemView, QHeaderView, 
-                             QGridLayout, QMessageBox, QInputDialog, QComboBox, QTextEdit, QDialogButtonBox)
+                             QGridLayout, QMessageBox, QInputDialog, QComboBox, QTextEdit, QDialogButtonBox, QMenu)
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
@@ -364,22 +366,23 @@ class LoginWidget(QWidget):
         super().closeEvent(event)
         
 class SessionViewer(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, db_adapter=None):
         super().__init__(parent)
+        self.db_adapter = db_adapter
         self.fields = ["Name", "Capturer", "Museum", "Collection Name", "Session Dir", "# Captures"] # besser als uebergabe parameter, damit backend und hier immer gleich
+        self.row_ids = {}
         # Create the table view
         self.table_view = QTableView()
         self.table_view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table_view.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table_view.customContextMenuRequested.connect(self.create_context_menu)
         self.table_view.verticalHeader().setVisible(False)
-
         self.table_view.setSortingEnabled(True)
-
         # Set the table model (you need to provide the data)
         self.table_model = None  # Replace with your data model
-
         self.table_view.setModel(self.table_model)
 
         # Set up the layout
@@ -396,10 +399,12 @@ class SessionViewer(QWidget):
         self.table_model = QStandardItemModel(len(data), 5)
         self.table_model.setHorizontalHeaderLabels(self.fields)
         fields = [field.replace(" ","_").lower().replace("#", "num") for field in self.fields]
-        for row, session in enumerate(data):
+        for row, session_entry in enumerate(data.items()):
+            key, session = session_entry
             for column, field in enumerate(fields):
                 item = QStandardItem(str(session.get(field,None)))
                 self.table_model.setItem(row, column, item)
+            self.row_ids[row] = key
         self.table_view.setModel(self.table_model)
 
     def sort_by_column(self, column):
@@ -408,6 +413,44 @@ class SessionViewer(QWidget):
     def column_clicked(self, column):
         self.sort_by_column(column)
 
+    def create_context_menu(self, position):
+        menu = QMenu(self.table_view)
+        
+        # Erstelle die Aktionen für das Menü
+        delete_action = QAction("Delete Session", self.table_view)
+        open_in_file_browser_action = QAction("Open in filebrowser", self.table_view)
+        
+        # Füge die Aktionen dem Menü hinzu
+        menu.addAction(delete_action)
+        menu.addAction(open_in_file_browser_action)
+        
+        # Verbinde die Aktionen mit Slots
+        delete_action.triggered.connect(lambda: print("Löschen ausgelöst"))
+        open_in_file_browser_action.triggered.connect(lambda row=self.table_view.currentIndex().row(): self.open_in_file_browser(row))
+        
+        # Zeige das Menü an der angeklickten Position
+        menu.exec(self.table_view.mapToGlobal(position))
+
+    def open_in_file_browser(self, row):
+        column = self.fields.index("Session Dir")
+        relative_dir = self.table_model.item(row,column).text()
+        project_dir = self.db_adapter.get_project_dir() / relative_dir
+        try:
+            if not project_dir.is_dir():
+                raise FileNotFoundError(f"Directory does not exists: {str(project_dir)}")
+            if platform.system() == 'Linux':
+                # try nautilus
+                subprocess.run(['nautilus', project_dir.as_posix()])
+            elif platform.system() == 'Windows':
+                os.startfile(project_dir)
+        except FileNotFoundError as fne:
+            QMessageBox.warning(self, "Missing Data", str(fne))
+        except Exception as e:
+            QMessageBox.warning(self, "Something went wrong", str(e))
+
+    def delete_session(self):
+        pass
+    
 class CaptureViewer(QWidget):
     pass
 
@@ -487,7 +530,7 @@ class ProjectViewer(QWidget):
 
     def __init__(self, db_adapter):
         super().__init__()
-        self.session_view = SessionViewer()
+        self.session_view = SessionViewer(self, db_adapter=db_adapter)
         self.db_adapter = db_adapter
         main_layout = QGridLayout()
         top_layout = QVBoxLayout()
@@ -528,10 +571,8 @@ class ProjectViewer(QWidget):
             item_strings.append(f"{key}: {value}")
         return item_strings
     
-    def update_session_view(self, session_data):
-        self.sessions = []
-        for _, session in session_data.items():
-            self.sessions.append(session)
+    def update_session_view(self, sessions):
+        self.sessions = sessions
         self.session_view.set_data(self.sessions)
 
     def set_camera_data(self, camera_data):
