@@ -18,6 +18,7 @@ class PanelButton(QPushButton):
         self.setEnabled(isEnable)
 
 class CaptureView(QWidget):
+    close_signal = pyqtSignal(bool)
     def __init__(self, db_adapter, panel):
         super().__init__()
         self.panel = panel
@@ -41,12 +42,15 @@ class CaptureView(QWidget):
     def create_button_layout(self):
         self.save_button = QPushButton("Save")
         self.save_button.setEnabled(False)
+        self.end_session_button = QPushButton("End Session")
         layout = QHBoxLayout()
         layout.addWidget(self.save_button)
+        layout.addWidget(self.end_session_button)
         return layout
     
     def connect_signals(self):
         self.panel.image_captured.connect(self.enable_save_button)
+        self.end_session_button.clicked.connect(self.close)
 
     def enable_save_button(self, img):
         if img:
@@ -62,6 +66,10 @@ class CaptureView(QWidget):
  
     def show_error_dialog(self, msg):
         QMessageBox.critical(self, "Error", msg)
+
+    def closeEvent(self, event):
+        self.close_signal.emit(True)
+        super().closeEvent(event)
 
 if __name__ == "__main__":
     import sys

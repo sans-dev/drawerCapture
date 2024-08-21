@@ -179,6 +179,7 @@ class MainWindow(QMainWindow):
         self.capture_view.save_button.clicked.connect(self.on_save_image)
         self.exit_action.triggered.connect(self.exit_application)
         self.capture_view.panel.image_captured.connect(self.image_view.panel.on_image_captured)
+        self.capture_view.close_signal.connect(self.on_capture_mode_ended)
 
     def exit_application(self):
         self.close()
@@ -321,6 +322,10 @@ class MainWindow(QMainWindow):
         self.mode = "Data Collection Mode"
         self.update_ui_based_on_mode()
 
+    def on_capture_mode_ended(self):
+        self.mode = "Project Mode"
+        self.update_ui_based_on_mode()
+        
     def open_user_manager_for_project(self):
         self.user_manager = UserManager(self.db_adapter, self.current_user)
         self.user_manager.close_signal.connect(self.finish_project_creation)
