@@ -327,6 +327,7 @@ class LoginWidget(QWidget):
         username_layout = QHBoxLayout()
         username_label = QLabel("Username:")
         self.username_input = QLineEdit()
+        self.username_input.returnPressed.connect(self.attempt_login)
         username_layout.addWidget(username_label)
         username_layout.addWidget(self.username_input)
         layout.addLayout(username_layout)
@@ -336,14 +337,15 @@ class LoginWidget(QWidget):
         password_label = QLabel("Password:")
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password_input.returnPressed.connect(self.attempt_login)
         password_layout.addWidget(password_label)
         password_layout.addWidget(self.password_input)
         layout.addLayout(password_layout)
 
         # Login button
-        login_button = QPushButton("Login")
-        login_button.clicked.connect(self.attempt_login)
-        layout.addWidget(login_button)
+        self.login_button = QPushButton("Login")
+        self.login_button.clicked.connect(self.attempt_login)
+        layout.addWidget(self.login_button)
 
         self.setLayout(layout)
 
