@@ -147,9 +147,9 @@ class GeoDataField(ListWidget):
         self.name = 'Geo Info'
 
         self.map_button.clicked.connect(self.map_button_clicked)
-        self.map.new_coords_signal.connect(self.geo_coords.set_coords)
-        self.map.new_coords_signal.connect(
-            self.region_field.get_country_by_coords)
+        #self.map.new_coords_signal.connect(self.geo_coords.set_coords)
+        #self.map.new_coords_signal.connect(
+        #    self.region_field.get_country_by_coords)
 
     def init_ui(self):
         layout = QVBoxLayout()
@@ -157,9 +157,10 @@ class GeoDataField(ListWidget):
         self.region_field = RegionField(self.region_data)
         self.geo_coords = GeoCoordinatesField()
         self.map_button = QPushButton("Open Map")
+        self.map_button.setEnabled(False)
         self.description_field = GeoDescriptionField()
-        self.map = MapWindow(search_bar=RegionField, region_data=self.region_data)
-        self.map.hide()
+        # self.map = MapWindow(search_bar=RegionField, region_data=self.region_data)
+        # self.map.hide()
 
         layout.addWidget(self.label)
         layout.addWidget(self.error_label)
@@ -170,10 +171,10 @@ class GeoDataField(ListWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.setLayout(layout)
 
-        self.region_field.region_changed.connect(
-            self.map.search_bar.set_region)
-        self.map.search_bar.region_changed.connect(
-            self.region_field.set_region)
+        #self.region_field.region_changed.connect(
+        #    self.map.search_bar.set_region)
+        #self.map.search_bar.region_changed.connect(
+        #    self.region_field.set_region)
 
     def map_button_clicked(self):
         self.map.show()

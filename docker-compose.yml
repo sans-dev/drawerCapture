@@ -1,0 +1,15 @@
+services:
+  Drawer-Capture:
+    image: drawer-capture-app:latest
+    build: .
+    privileged: true
+    environment:
+      - DISPLAY=${DISPLAY}
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${XAUTHORITY:-$HOME/.Xauthority}:/root/.Xauthority:rw
+      - /home/ssander/:/data:rw
+      - /dev:/dev
+    network_mode: host
