@@ -292,11 +292,16 @@ class ProjectLoader(QWidget):
             self.dir.setText(directory)
 
     def load_project(self):
-        project_dir = self.dir.text()
-        if self.db_adapter.load_project(project_dir):
+        try:
+            project_dir = self.dir.text()
+            self.db_adapter.load_project(project_dir)
             self.load_successful.emit()
-        else:
-            QMessageBox.warning(self, "Failed to load project.", "INI file is invalid.")
+        except FileNotFoundError as fne:
+            QMessageBox.warning(self, f"project file missing", fne)
+        except ValueError as ve:
+            QMessageBox.warning(self, f"project file corrupted", ve) 
+        except Exception as e:
+            QMessageBox.warning(self, f"Something went wrong", e)
         
     def get_project_name(self):
         return Path(self.dir.text()).parts[-1]
@@ -359,7 +364,7 @@ class LoginWidget(QWidget):
 class SessionViewer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-
+        self.fields = ["Name", "Capturer", "Museum", "Collection Name", "Session Dir", "# Captures"] # besser als uebergabe parameter, damit backend und hier immer gleich
         # Create the table view
         self.table_view = QTableView()
         self.table_view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -381,27 +386,18 @@ class SessionViewer(QWidget):
         self.setLayout(layout)
 
         self.table_model = QStandardItemModel(1, 5)
-        self.table_model.setHorizontalHeaderLabels(["Session ID", "Date", "Capturer", "Museum", "# Captures"])
+        self.table_model.setHorizontalHeaderLabels(self.fields)
         self.table_view.setModel(self.table_model)
 
     def set_data(self, data):
         # Create and set the table model with the provided data
         self.table_model = QStandardItemModel(len(data), 5)
-        self.table_model.setHorizontalHeaderLabels(["Session ID", "Date", "Capturer", "Museum", "# Captures"])
-
+        self.table_model.setHorizontalHeaderLabels(self.fields)
+        fields = [field.replace(" ","_").lower().replace("#", "num") for field in self.fields]
         for row, session in enumerate(data):
-            session_id = QStandardItem(str(session["session_id"]))
-            date = QStandardItem(session["date"])
-            capturer = QStandardItem(session["capturer"])
-            museum = QStandardItem(session["museum"])
-            num_captures = QStandardItem(str(session["num_captures"]))
-
-            self.table_model.setItem(row, 0, session_id)
-            self.table_model.setItem(row, 1, date)
-            self.table_model.setItem(row, 2, capturer)
-            self.table_model.setItem(row, 3, museum)
-            self.table_model.setItem(row, 4, num_captures)
-
+            for column, field in enumerate(fields):
+                item = QStandardItem(str(session.get(field,None)))
+                self.table_model.setItem(row, column, item)
         self.table_view.setModel(self.table_model)
 
     def sort_by_column(self, column):
@@ -469,7 +465,7 @@ class SessionCreator(QDialog):
             self.museum_edit.addItem(f"{museum['name']} - {museum['city']}")
 
     def create_session(self):
-        #TODO needs big refactoring
+        #TODO needs big refactoring: ID creation should happen in the backend!!!
         capturer = self.capturer_edit.currentText().strip()
         museum = self.museum_edit.currentText().strip()
         collection_name = self.collection_name_edit.text().strip()
@@ -519,7 +515,7 @@ class ProjectViewer(QWidget):
         self.setLayout(main_layout)
 
         self.db_adapter.project_changed_signal.connect(self.update_project_list)
-        self.db_adapter.project_changed_signal.connect(self.update_session_view)
+        self.db_adapter.sessions_signal.connect(self.update_session_view)
 
     def close_project(self):
         self.changed.emit("main")
@@ -541,18 +537,10 @@ class ProjectViewer(QWidget):
             item_strings.append(f"{key}: {value}")
         return item_strings
     
-    def update_session_view(self, project_info):
+    def update_session_view(self, session_data):
         self.sessions = []
-        for key, value in project_info.items():
-            if "Session" in key:
-                data = dict()
-                data['session_id'] = value.get('id')
-                data['date'] = value.get('date')
-                data['capturer'] = value.get('capturer')
-                data['museum'] = value.get('museum')
-                data['num_captures'] = value.get('num_captures')
-                self.sessions.append(data)
-            continue
+        for _, session in session_data.items():
+            self.sessions.append(session)
         self.session_view.set_data(self.sessions)
 
     def set_camera_data(self, camera_data):

@@ -24,6 +24,7 @@ class DBAdapter(QObject):
     validation_error_signal = pyqtSignal(str)
     project_changed_signal = pyqtSignal(dict)
     session_created_signal = pyqtSignal(dict)
+    sessions_signal = pyqtSignal(dict)
 
     def __init__(self, db_manager):
         super().__init__()
@@ -50,10 +51,9 @@ class DBAdapter(QObject):
 
     def load_project(self, project_dir):
         project_info = self.db_manager.load_project(project_dir)
-        if project_info:
-            self.project_changed_signal.emit(self.db_manager.load_project(project_dir))
-            return True
-        else: return False
+        sessions = self.db_manager.load_sessions()
+        self.project_changed_signal.emit(project_info)
+        self.sessions_signal.emit(sessions)
 
     def send_data_to_db(self, image_data, meta_info):
         logger.info(f"Validating data...")
@@ -163,6 +163,14 @@ class FileAgnosticDB:
         Path(session_data['session_dir']).mkdir(exist_ok=True)
         return session_data
 
+    def load_sessions(self):
+        sessions_file = self.project_root_dir / ".project/.sessions.json"
+        if not sessions_file.is_file():
+            raise FileNotFoundError(f"Session data missing for {sessions_file}")
+        with sessions_file.open() as f:
+            sessions = json.load(f)
+        return sessions
+        
     def post_new_image(self, payload):
         image_data = payload.get('image')
         meta_info = payload.get('meta_info')
@@ -192,7 +200,10 @@ class FileAgnosticDB:
 
     def get_project_info(self):
         config = configparser.ConfigParser()
-        config.read(self.project_root_dir / '.project' / '.project.ini')
+        project_file = self.project_root_dir / '.project' / '.project.ini'
+        if not project_file.is_file():
+            raise FileNotFoundError(f"Project INI file missing at {project_file}")
+        config.read(project_file)
         return {section: dict(config[section]) for section in config.sections()}
 
     def is_duplicate_museum(self, museum, museums):
@@ -277,10 +288,10 @@ class FileAgnosticDB:
     def load_project(self, project_dir):
         self.project_root_dir = Path(project_dir)
         project_info = self.get_project_info()
-        if DataValidator.validate_project_config(project_info):
-            self._initialize_key()
-            return project_info
-        else: return False
+        if not DataValidator.validate_project_config(project_info):
+            raise ValueError(f"Project data are not valid for {project_dir}")
+        self._initialize_key()
+        return project_info
         
     def load_image_and_meta_info(self, data):
         # Validate data received from DB
