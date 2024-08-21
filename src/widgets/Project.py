@@ -622,6 +622,7 @@ class UserManager(QWidget):
         self.init_ui()
 
     def init_ui(self):
+        self.setWindowTitle("Mange Users")
         layout = QVBoxLayout()
         
         self.user_list = QListWidget()
