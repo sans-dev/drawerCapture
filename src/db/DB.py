@@ -4,6 +4,7 @@ import hashlib
 from pathlib import Path
 import cv2
 import csv
+import shutil
 from datetime import datetime
 from cryptography.fernet import Fernet
 import json
@@ -80,6 +81,10 @@ class DBAdapter(QObject):
             return
         self.get_signal.emit(data)
 
+    def delete_session(self, session_id):
+        sessions = self.db_manager.delete_session(session_id)
+        self.sessions_signal.emit(sessions)
+
     def validate_admin(self, username, password):
         return self.db_manager.validate_admin(username, password)
 
@@ -97,6 +102,9 @@ class DBAdapter(QObject):
 
     def get_users(self):
         return self.db_manager.get_users()
+    
+    def get_current_user(self):
+        return self.db_manager.get_current_user()
     
     def get_museums(self):
         return self.db_manager.get_museums()
@@ -306,6 +314,41 @@ class FileAgnosticDB:
             return
         # Process and load data from the database
 
+    def delete_session(self, session_id):
+        sessions_file = self.project_root_dir / ".project" / ".sessions.json"
+        if not sessions_file.is_file():
+            raise FileNotFoundError(f"No sessions file in: {sessions_file}")
+
+        with sessions_file.open() as f:
+            sessions = json.load(f)
+
+        session_to_delete = sessions.get(session_id, None) 
+        if not session_to_delete:
+            raise FileNotFoundError(f"Session not in database: {session_id}")
+
+        # Delete the session from the dictionary and delete the directory
+        del sessions[session_id]
+        session_dir_to_delete = self.project_root_dir / Path(session_to_delete['session_dir'])
+        if not session_dir_to_delete.is_dir():
+            raise FileNotFoundError(f"Session directory {str(session_dir_to_delete)} does not exists.")
+        shutil.rmtree(str(session_dir_to_delete))
+
+        # Update session directories and names for remaining sessions
+        for i, (sid, session) in enumerate(sessions.items()):
+            new_session_dir = self.project_root_dir / "captures" / f"session-{i+1:03}"
+            old_session_dir = self.project_root_dir / sessions[sid]['session_dir']
+            if new_session_dir == old_session_dir:
+                continue
+            sessions[sid]['session_dir'] = str(new_session_dir.relative_to(self.project_root_dir)) 
+            sessions[sid]['name'] = f"session-{i+1:03}"
+            old_session_dir.rename(new_session_dir)
+
+        # Save the updated sessions to the file
+        with sessions_file.open('w') as f:
+            json.dump(sessions, f, indent=2)
+
+        return sessions
+    
     def add_exif_info(self, image, info):
         pass
 

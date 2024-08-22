@@ -366,9 +366,10 @@ class LoginWidget(QWidget):
         super().closeEvent(event)
         
 class SessionViewer(QWidget):
-    def __init__(self, parent=None, db_adapter=None):
+    def __init__(self, parent=None, db_adapter=None, current_user=None):
         super().__init__(parent)
         self.db_adapter = db_adapter
+        self.current_user = current_user
         self.fields = ["Name", "Capturer", "Museum", "Collection Name", "Session Dir", "# Captures"] # besser als uebergabe parameter, damit backend und hier immer gleich
         self.row_ids = {}
         # Create the table view
@@ -425,9 +426,10 @@ class SessionViewer(QWidget):
         menu.addAction(open_in_file_browser_action)
         
         # Verbinde die Aktionen mit Slots
-        delete_action.triggered.connect(lambda: print("Löschen ausgelöst"))
+        delete_action.triggered.connect(self.delete_session)
         open_in_file_browser_action.triggered.connect(lambda row=self.table_view.currentIndex().row(): self.open_in_file_browser(row))
-        
+        if self.db_adapter.get_current_user()['role'] != 'admin':
+            delete_action.setEnabled(False)
         # Zeige das Menü an der angeklickten Position
         menu.exec(self.table_view.mapToGlobal(position))
 
@@ -449,8 +451,22 @@ class SessionViewer(QWidget):
             QMessageBox.warning(self, "Something went wrong", str(e))
 
     def delete_session(self):
-        pass
-    
+        row = self.table_view.currentIndex().row()
+        session_id = self.row_ids[row]
+        session_name = self.table_model.item(row,0).text()
+        captures_column = self.fields.index('# Captures')
+        num_captures = self.table_model.item(row, captures_column).text()
+        confirm = QMessageBox.question(self, "Confirm Deletion",
+                                       f"{session_name} contains {num_captures} captures! Are you shure you want to delete it?")
+        if not confirm:
+            return                             
+        try:
+            self.db_adapter.delete_session(session_id)
+        except FileNotFoundError as fne:
+            QMessageBox.warning(self, "Missing Data", str(fne))
+        except Exception as e:
+            QMessageBox.warning(self, "Something went wrong", str(e))
+
 class CaptureViewer(QWidget):
     pass
 
@@ -772,6 +788,9 @@ class UserManager(QWidget):
                         QMessageBox.warning(self, "Authentication Failed", "Invalid admin password.")
                 except Exception as e:
                     QMessageBox.critical(self, "Error", f"Failed to change user role: {str(e)}")
+    
+    def get_current_user(self):
+        return self.current_user
     
     def closeEvent(self, event):
         self.close_signal.emit(True)

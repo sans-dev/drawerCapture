@@ -43,7 +43,7 @@ class MainWindow(QMainWindow):
         self.taxonomy = taxonomy
         self.geo_data_dir = geo_data_dir
         self.fs = fs
-        self.mode = "Project Mode"
+        self.mode = "Default Mode"
         self.current_user = None
         self.project_name = ''
         self.is_creating_project = False
@@ -239,15 +239,18 @@ class MainWindow(QMainWindow):
             self.set_enabled_admin_features(False)
 
     def update_ui_based_on_mode(self):
-        if self.mode == 'Project Mode':
+        if self.mode =='Default Mode': # no project loaded
             self.set_enabled_project_features(True)
             self.set_enabled_capture_features(False)
+        if self.mode == 'Project Mode': # Project loaded
+            self.set_enabled_project_features(True)
+            self.set_enabled_capture_features(True)
             self.stacked_widget.setCurrentWidget(self.project_view)
-        elif self.mode == 'Data Collection Mode':
+        elif self.mode == 'Data Collection Mode': # image view active
             self.set_enabled_project_features(False)
             self.set_enabled_capture_features(False)
             self.stacked_widget.setCurrentWidget(self.image_view)
-        else:
+        elif self.mode == 'Capture Mode': # capture view is active
             self.set_enabled_project_features(False)
             self.set_enabled_capture_features(True)
             self.stacked_widget.setCurrentWidget(self.capture_view)
@@ -325,7 +328,7 @@ class MainWindow(QMainWindow):
     def on_capture_mode_ended(self):
         self.mode = "Project Mode"
         self.update_ui_based_on_mode()
-        
+
     def open_user_manager_for_project(self):
         self.user_manager = UserManager(self.db_adapter, self.current_user)
         self.user_manager.close_signal.connect(self.finish_project_creation)
