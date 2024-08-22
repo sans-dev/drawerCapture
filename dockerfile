@@ -1,6 +1,7 @@
 # Basis-Image: Ubuntu
 FROM ubuntu:latest
 
+VOLUME /hostpipe
 # Umgebungsvariablen setzen
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -56,7 +57,7 @@ RUN pip3 install --no-cache-dir cryptography
 # Arbeitsverzeichnis erstellen
 WORKDIR /app
 
-# Kopieren Sie hier Ihre Python-Anwendung in den Container
+
 COPY . /app
 
 # Befehl zum Ausführen Ihrer Anwendung

@@ -12,4 +12,7 @@ services:
       - ${XAUTHORITY:-$HOME/.Xauthority}:/root/.Xauthority:rw
       - $HOME:/$HOME:rw
       - /dev:/dev
+      - type: bind
+        source: $HOME/named_pipes/
+        target: /hostpipe
     network_mode: host

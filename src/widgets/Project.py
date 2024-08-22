@@ -442,7 +442,7 @@ class SessionViewer(QWidget):
                 raise FileNotFoundError(f"Directory does not exists: {str(project_dir)}")
             if platform.system() == 'Linux':
                 # try nautilus
-                subprocess.run(['nautilus', project_dir.as_posix()])
+                subprocess.run(['./start_nautilus.sh', str(project_dir)])
             elif platform.system() == 'Windows':
                 os.startfile(project_dir)
         except FileNotFoundError as fne:

@@ -1,0 +1,1 @@
+while true; do eval "$(cat $HOME/named_pipes/drawercapture_host)"; done
