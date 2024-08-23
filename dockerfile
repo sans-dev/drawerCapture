@@ -56,10 +56,8 @@ RUN pip3 install --no-cache-dir pyyaml
 RUN pip3 install --no-cache-dir cryptography
 # Arbeitsverzeichnis erstellen
 WORKDIR /app
-
-
 COPY . /app
 
-# Befehl zum Ausführen Ihrer Anwendung
-RUN ls data/
+
+# Run drawer capture
 CMD ["/opt/venv/bin/python", "-m", "src.drawerCapture", "--debug","--geo-data", "level-0", "--style", "PicPax"]

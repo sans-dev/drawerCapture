@@ -12,7 +12,7 @@ trap "kill -SIGTERM $eval_pipe_pid" TERM
 
 echo "Starting app container"
 # Start Docker Compose
-docker compose up
+MY_UID="$(id -u)" MY_GID="$(id -g)" docker compose up
 
 # Remove the named pipe directory (after Docker Compose exits)
 rm -r "$HOME"/named_pipes

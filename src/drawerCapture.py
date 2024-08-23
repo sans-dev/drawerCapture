@@ -180,6 +180,7 @@ class MainWindow(QMainWindow):
         self.exit_action.triggered.connect(self.exit_application)
         self.capture_view.panel.image_captured.connect(self.image_view.panel.on_image_captured)
         self.capture_view.close_signal.connect(self.on_capture_mode_ended)
+        self.db_adapter.project_changed_signal.connect(self.capture_view.panel.set_image_dir)
 
     def exit_application(self):
         self.close()

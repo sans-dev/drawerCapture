@@ -2,17 +2,21 @@ services:
   Drawer-Capture:
     image: drawer-capture-app:latest
     build: .
-    privileged: true
     environment:
       - DISPLAY=${DISPLAY}
     devices:
       - /dev/bus/usb:/dev/bus/usb
+    user: ${MY_UID}:${MY_GID}
+    privileged: true
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ${XAUTHORITY:-$HOME/.Xauthority}:/root/.Xauthority:rw
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro     
       - $HOME:/$HOME:rw
       - /dev:/dev
       - type: bind
         source: $HOME/named_pipes/
         target: /hostpipe
     network_mode: host
+    

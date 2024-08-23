@@ -86,7 +86,7 @@ class PreviewPanel(QLabel):
         self.panel_res = panel_res
         self.fs = fs
         self.is_streaming = False
-        self.img_dir = 'data/captures'
+        self.img_dir = ''
         self.thread_pool = QThreadPool()
         
         self.init_ui()
@@ -174,6 +174,10 @@ class PreviewPanel(QLabel):
         img = cv2.imread(img_dir)
         self.panel.set_image(img)
         self.image_captured.emit(img_dir)
+
+    def set_image_dir(self, project_info):
+        # when project is loaded, set this dir
+        self.img_dir = project_info['Project Info']['project_dir'] + "/.project/.tmp_cap"
 
     def set_camera_data(self, model=None, port=None):
         """
