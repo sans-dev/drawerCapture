@@ -181,6 +181,7 @@ class MainWindow(QMainWindow):
         self.capture_view.panel.image_captured.connect(self.image_view.panel.on_image_captured)
         self.capture_view.close_signal.connect(self.on_capture_mode_ended)
         self.db_adapter.project_changed_signal.connect(self.capture_view.panel.set_image_dir)
+        self.image_view.close_signal.connect(self.on_data_collected)
 
     def exit_application(self):
         self.close()
@@ -324,6 +325,10 @@ class MainWindow(QMainWindow):
 
     def on_save_image(self):
         self.mode = "Data Collection Mode"
+        self.update_ui_based_on_mode()
+
+    def on_data_collected(self):
+        self.mode = "Capture Mode"
         self.update_ui_based_on_mode()
 
     def on_capture_mode_ended(self):

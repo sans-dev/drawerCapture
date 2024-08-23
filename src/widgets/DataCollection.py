@@ -113,23 +113,34 @@ class SessionInfoField(QWidget):
     def onClicked(self):
         pass
 
+    def set_value(self, new_value):
+        self.value.clear()
+        self.value.addItem(QListWidgetItem(str(new_value)))
+
+    def get_label_text(self):
+        return self.label.text()
 
 class SessionInfoWidget(ListWidget):
     def __init__(self):
         super().__init__("Session Info")
-        self._layout = QVBoxLayout()
-        self._layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.name = 'Session Info'
+        self.fields = {}
 
-    def set_session_data(self, data):
+    def set_session_data(self, data): # error when session data is updated, because layout already exists
         self.session_data = data
-        _layout = QVBoxLayout()
-        _layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        for label, value in data.items():
-            field = SessionInfoField(label, value)
-            field.setFixedHeight(60)
-            _layout.addWidget(field)
-        self.setLayout(_layout)
+        if not self.fields: # no layout was set
+            _layout = QVBoxLayout()
+            _layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+            for label, value in data.items():
+                l = label.capitalize().replace("_", " ")
+                field = SessionInfoField(l, value)
+                field.setFixedHeight(60)
+                _layout.addWidget(field)
+                self.fields[l] = field
+            self.setLayout(_layout)
+        else:
+            for label, value in data.items():
+                l = label.capitalize().replace("_", " ")
+                self.fields[l].set_value(value)
 
     def get_data(self):
         return self.session_data
@@ -326,8 +337,8 @@ class GeoCoordinatesField(QWidget):
                 raise ValueError("Geocoordinates are mandatory.")
 
         data = {
-            'longitude': self.longitude_input.text(),
-            'lattitude': self.lattitude_input.text(),
+            'longitude': self.longitude_input.text().replace(",","."),
+            'lattitude': self.lattitude_input.text().replace(",", "."),
             'radius': self.radius_input.text(),
             'bbox': self.calculate_bbox(float(self.longitude_input.text()),float(self.lattitude_input.text()), float(self.radius_input.text())),
             'type': self.type

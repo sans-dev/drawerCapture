@@ -1,4 +1,4 @@
-import numpy as np
+from pathlib import Path
 
 class DataValidator:
     @staticmethod
@@ -13,24 +13,13 @@ class DataValidator:
         pass
 
     @staticmethod
-    def validate_image_data(image_data):
+    def validate_image_data(img_dir):
         # Check if image_data is a numpy array
-        if not isinstance(image_data, np.ndarray):
-            return False, "Image data must be a numpy array"
+        if not isinstance(img_dir, str):
+            return False, "Image data must be a string object"
 
-        # Check if image_data has the correct shape (height, width, channels)
-        if len(image_data.shape) != 3:
-            return False, "Image data must have three dimensions (height, width, channels)"
-
-        # Check if image_data has at least 3 channels (RGB or BGR)
-        if image_data.shape[2] < 3:
-            return False, "Image data must have at least 3 channels (RGB or BGR)"
-
-        # Check if bit depth of image_data is 8 or 16
-        if image_data.dtype!= np.uint8 and image_data.dtype!= np.uint16:
-            return False, "Image data must be of type uint8 or uint16"
-        # Additional checks can be added as needed
-
+        if not Path(img_dir).is_file():
+            return False, "No image data found in tmp dir"
         # If all checks pass, return True for valid image data
         return True, None
     

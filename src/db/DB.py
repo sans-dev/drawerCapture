@@ -36,7 +36,6 @@ class DBAdapter(QObject):
         self.sessions_signal.emit(sessions)
 
     def create_project(self, project_info):
-
         try:
             response = self.db_manager.create_project(project_info)
             self.project_changed_signal.emit(response)
@@ -60,20 +59,12 @@ class DBAdapter(QObject):
         self.project_changed_signal.emit(project_info)
         self.sessions_signal.emit(sessions)
 
-    def send_data_to_db(self, image_data, meta_info):
-        logger.info(f"Validating data...")
-        is_valid, msg = DataValidator.validate_image_data(image_data)
-        if not is_valid:
-            print("Invalid image data", msg)
-            return False
-        is_valid, msg = DataValidator.validate_meta_info(meta_info)
-        if not is_valid:
-            print("Invalid meta data", msg)
-            return False
+    def save_image_data(self, payload):
         logger.info(f"Sending data to DB...")
-        payload = {'image': image_data, 'meta_info': meta_info}
-        self.project_changed_signal.emit(self.db_manager.post_new_image(payload))
-        return True # control outside behavior
+        project_info, sessions = self.db_manager.post_new_image(payload)
+        self.project_changed_signal.emit(project_info)
+        self.sessions_signal.emit(sessions)
+        return True
 
     def receive_data_from_db(self, data):
         if not DataValidator.validate_data_from_db(data):
@@ -186,12 +177,25 @@ class FileAgnosticDB:
         return sessions
         
     def post_new_image(self, payload):
-        image_data = payload.get('image')
-        meta_info = payload.get('meta_info')
+        # add the session id to the payload
+        img_dir = payload.get('img_dir', None)
+        meta_info = payload.get('meta_info', {})
+        sid = payload.get('sid')
+
+        logger.info(f"Validating meta info")
+        is_valid, msg = DataValidator.validate_meta_info(meta_info)
+        if not is_valid:
+            print("Invalid meta data", msg)
+            return False
+        is_valid, msg = DataValidator.validate_image_data(img_dir)
+        if not is_valid:
+            print("Invalid image dir", msg)
+            return False
         
         sessions_file = self.project_root_dir / '.project' / '.sessions.json'
         sessions = json.loads(sessions_file.read_text())
-        session = sessions.get(payload['session_id'])
+
+        session = sessions.get(sid)
         if not session:
             raise ValueError("Session not found")
         
@@ -200,17 +204,13 @@ class FileAgnosticDB:
         img_name, meta_name = self._create_save_name(meta_info, capture_id, session)
         session['captures'].append(str(img_name.relative_to(self.project_root_dir)))
 
-        sessions_file.write_text(json.dumps(sessions, indent=2))
-        
-        if not cv2.imwrite(str(img_name), image_data):
-            raise RuntimeError("Failed to save image")
-        
+        sessions_file.write_text(json.dumps(sessions, indent=2))   
         with meta_name.open('w') as f:
             yaml.dump(meta_info, f)
-        
+        # move the image to new location
         self._update_captures_csv(meta_info, session)
         
-        return self.get_project_info()
+        return {}
 
     def get_project_info(self):
         config = configparser.ConfigParser()
@@ -500,11 +500,15 @@ class DummyDB:
             {'username': 'Peter', 'role': 'user', 'password': 'password1'},
             {'username': 'Seb', 'role': 'admin', 'password': 'password2'}
         ]
+        sessions_file = Path("tests/data/test_sessions.json")
+        self.sessions = json.loads(sessions_file.read_text())
         self.current_user = None
         self.project_info = {}
 
     def create_session(self, payload):
-        return {'Project Info': {}, 'Session': payload}
+        session_id = str(uuid.uuid4())
+        self.sessions[session_id] = payload
+        return self.sessions
 
     def create_project(self, payload):
         if not payload:
@@ -517,16 +521,19 @@ class DummyDB:
         # Simulate loading a project
         self.project_info = {
             'Project Info': {'project_dir': project_dir, 'num_captures': 0},
-            'Session 1': {'name': 'Sample Session', 'num_captures': 0}
         }
         return self.project_info
 
+    def load_sessions(self):
+        return self.sessions
+    
     def post_new_image(self, payload):
-        print(payload)
         # Simulate updating capture counts
+        session = self.sessions.get(payload['sid'])
+        session['num_captures'] = 1
         self.project_info['Project Info']['num_captures'] += 1
-        self.project_info['Session 1']['num_captures'] += 1
-        return self.project_info
+        self.sessions[payload['sid']] = session
+        return self.project_info, self.sessions
 
     def get_users(self):
         return [{'username': user['username'], 'role': user['role']} for user in self.users]

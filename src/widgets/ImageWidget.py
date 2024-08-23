@@ -18,17 +18,18 @@ class ImageWidget(QWidget):
     changed = pyqtSignal(str)
     procClicked = pyqtSignal(str)
     processed = pyqtSignal()
+    close_signal = pyqtSignal(bool)
 
     def __init__(self, db_adapter, taxonomy, geo_data_dir, panel):
         self.taxonomy = taxonomy
         self.db_adapter = db_adapter
         self.geo_data_dir = geo_data_dir
-        self.emitter = ProcessEmitter()
         self.panel = panel
+        self.panel.label.hide()
         logger.debug("initializing image widget")
         super().__init__()
         self.initUI()
-        self.connectSignals()
+        self.connect_signals()
 
     def initUI(self):
         """
@@ -60,18 +61,19 @@ class ImageWidget(QWidget):
 
         self.setLayout(layout)
 
+    def connect_signals(self):
         self.close_button.clicked.connect(self.close)
-        self.save_button.clicked.connect(self.save_data)
+        self.save_button.clicked.connect(self.savedata)
+        self.db_adapter.sessions_signal.connect(self.set_session_data)
+        self.panel.image_captured.connect(self.set_img_dir)
 
-    def connectSignals(self):
-        pass
+    def set_session_data(self, sessions):
+        self.sid = list(sessions.keys())[-1]
+        self.current_session = sessions[self.sid]
+        self.data_collector.set_session_data(self.current_session)
 
-    def close(self):
-        """
-        Closes the widget and emits a signal to switch to live mode. 
-        """
-        self.changed.emit("live")
-        super().close()
+    def set_img_dir(self, img_dir):
+        self.img_dir = img_dir
 
     def enableButtons(self):
         """
@@ -84,14 +86,6 @@ class ImageWidget(QWidget):
         Disables the buttons of the widget.
         """
         logger.debug("disabling buttons")
-    
-    def setImage(self, image_path):
-        """
-        Sets the image of the widget to the specified image path.
-        """
-        logger.debug("updating image widget with new image: %s", image_path)
-        self.panel.loadImage(image_path)
-        self.enableButtons()
 
     def enhanceButtonClicked(self):
         """
@@ -99,19 +93,25 @@ class ImageWidget(QWidget):
         """
         self.procClicked.emit("adaptive_he")
 
-    def save_data(self):
+    def savedata(self):
         """
         Opens a file dialog to save the image.
         """
-        logger.info("Retreiving image data from Panel")
-        image_data = self.panel.get_image()
         logger.info("Retreiving meta info from Panel")
         meta_info = self.data_collector.get_data()
         logger.info("Send data to db")
-        
-        if self.db_adapter.send_data_to_db(image_data, meta_info):
-            if QMessageBox.question(self, 'Title', 'Data where saved into database. Continue capturing?').name == 'Yes':    
+        payload = {
+            'img_dir' : self.img_dir,
+            'meta_info' : meta_info,
+            'sid' : self.sid
+        }
+        if self.db_adapter.save_image_data(payload):
+            if QMessageBox.question(self, 'Title', ' Image and metadata saved! Go to capture mode?').name == 'Yes':    
                 self.close()
+
+    def closeEvent(self, event):
+        self.close_signal.emit(True)
+        super().closeEvent(event)
 
 if __name__ == "__main__":
     import sys
@@ -121,6 +121,7 @@ if __name__ == "__main__":
     from src.utils.searching import init_taxonomy
     from src.configs.DataCollection import *
     from src.utils.load_style_sheet import load_style_sheet
+    from src.widgets.PreviewPanel import PreviewPanel
 
     parser = ArgumentParser()
     parser.add_argument('--taxonomy', choices=['test', 'prod'])
@@ -129,19 +130,20 @@ if __name__ == "__main__":
     taxonomy = init_taxonomy(TAXONOMY[args.taxonomy])
     db = DummyDB()
     db_adapter = DBAdapter(db)
+    db_adapter.load_project("")
     geo_data_dir = GEO[args.geo_data]
-    
     app = QApplication(sys.argv)
     app.setStyleSheet(load_style_sheet('PicPax'))
-    window = ImageWidget(db_adapter, taxonomy, geo_data_dir)
-    window.setImage("tests/data/test_img.jpg")
-    window.show()
-    db_adapter.session_created_signal.emit(
-        {
-            'Name' : 'Session 1',
-            'ID' : '1',
-            'Capturer' : 'Sebastian',
-            'Museum' : 'Senkenberg Frankfurt'
+    panel = PreviewPanel(fs=1, panel_res=(1024, 780))
+    window = ImageWidget(db_adapter, taxonomy, geo_data_dir, panel)
+    session_data = {
+            "capturer": "Bernd",
+            "museum": "das",
+            "collection_name": "Brot",
+            "date": "1231231",
+            "num_captures": "0"
         }
-    )
+    db_adapter.create_session(session_data)
+    window.panel.on_image_captured("tests/data/test_img.jpg")
+    window.show()
     sys.exit(app.exec())

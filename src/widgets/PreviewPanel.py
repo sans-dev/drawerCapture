@@ -1,7 +1,7 @@
 import logging
 import logging.config
 
-from PyQt6.QtWidgets import QSizePolicy, QFrame
+from PyQt6.QtWidgets import QSizePolicy, QFrame, QMessageBox
 from PyQt6.QtWidgets import QLabel, QGridLayout, QVBoxLayout
 from PyQt6.QtCore import QTimer, pyqtSignal, Qt, QThreadPool, pyqtSlot
 from PyQt6.QtGui import QImage, QPixmap
@@ -171,9 +171,12 @@ class PreviewPanel(QLabel):
         self.thread_pool.start(self.image_capture)
 
     def on_image_captured(self, img_dir):
-        img = cv2.imread(img_dir)
-        self.panel.set_image(img)
-        self.image_captured.emit(img_dir)
+        try:
+            img = cv2.imread(img_dir)
+            self.panel.set_image(img)
+            self.image_captured.emit(img_dir)
+        except FileNotFoundError as fne:
+            QMessageBox.warning(self, "Could not load tmp image capture", f"{fne}")
 
     def set_image_dir(self, project_info):
         # when project is loaded, set this dir

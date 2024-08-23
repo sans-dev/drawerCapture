@@ -25,7 +25,7 @@ class ImageCapture(CameraWorker):
     imageCaptured (pyqtSignal): A signal emitted when an image is captured.
     """
 
-    WAIT_TIME_MS = 30_000
+    WAIT_TIME_MS = 10_000
     signals = CaptureSignals()
 
     def __init__(self, cameraData=None):
@@ -65,6 +65,8 @@ class ImageCapture(CameraWorker):
             return
 
         if not self.proc.waitForFinished(ImageCapture.WAIT_TIME_MS):
+            # try to load image anyway
+            self.signals.img_captured.emit(f"{self.config['--image_dir']}/{self.config['--image_name']}{self.config['--image_format']}")
             self._handle_failure(f"image capture process did not finish in {ImageCapture.WAIT_TIME_MS} ms")
             return
 
