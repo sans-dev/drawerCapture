@@ -3,7 +3,7 @@ from pathlib import Path
 import platform
 import os
 import subprocess
-from PyQt6.QtCore import pyqtSignal, Qt, QDir, QRegularExpression, QAbstractTableModel, QModelIndex
+from PyQt6.QtCore import pyqtSignal, Qt, QDir, QRegularExpression, QAbstractTableModel, QModelIndex, QThread
 from PyQt6.QtGui import QIcon, QRegularExpressionValidator, QStandardItemModel, QStandardItem, QAction
 from PyQt6.QtWidgets import (QApplication, QDialog, QWidget, QVBoxLayout, QLineEdit, QPushButton, QFileDialog, QLabel, 
                              QListWidget, QHBoxLayout, QTableView, QAbstractItemView, QHeaderView, 
@@ -12,6 +12,35 @@ import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
+
+
+class OpenDirThread(QThread):
+    finished = pyqtSignal()
+
+    def __init__(self, project_dir, parent=None):
+        super().__init__(parent)
+        self.project_dir = project_dir
+
+    def run(self):
+        logger.info("Open directory thread started")
+        try:
+            if platform.system() == 'Linux':
+                out = subprocess.run(['./start_nautilus.sh', str(self.project_dir)])
+                if out.returncode != 0:
+                    out = subprocess.run(['nautilus', str(self.project_dir)])
+                if out.returncode != 0:
+                    raise FileNotFoundError("Nautlius is unavailable")
+
+            elif platform.system() == 'Windows':
+                os.startfile(self.project_dir)
+
+        except FileNotFoundError as fne:
+            # Use a signal to send the error back to the main thread
+            self.emit(pyqtSignal('FileNotFoundError'), str(fne)) 
+        except Exception as e:
+            self.emit(pyqtSignal('Exception'), str(e))
+        finally:
+            self.finished.emit()
 
 
 class ValidatorFactory:
@@ -428,27 +457,25 @@ class SessionViewer(QWidget):
         # Verbinde die Aktionen mit Slots
         delete_action.triggered.connect(self.delete_session)
         open_in_file_browser_action.triggered.connect(lambda row=self.table_view.currentIndex().row(): self.open_in_file_browser(row))
-        if self.db_adapter.get_current_user()['role'] != 'admin':
+        user = self.db_adapter.get_current_user()
+        if not user:
+            return
+        if user['role'] != 'admin':
             delete_action.setEnabled(False)
         # Zeige das Menü an der angeklickten Position
         menu.exec(self.table_view.mapToGlobal(position))
 
     def open_in_file_browser(self, row):
-        column = self.fields.index("Session Dir")
-        relative_dir = self.table_model.item(row,column).text()
-        project_dir = self.db_adapter.get_project_dir() / relative_dir
-        try:
+            column = self.fields.index("Session Dir")
+            relative_dir = self.table_model.item(row, column).text()
+            project_dir = self.db_adapter.get_project_dir() / relative_dir
+
             if not project_dir.is_dir():
                 raise FileNotFoundError(f"Directory does not exists: {str(project_dir)}")
-            if platform.system() == 'Linux':
-                # try nautilus
-                subprocess.run(['./start_nautilus.sh', str(project_dir)])
-            elif platform.system() == 'Windows':
-                os.startfile(project_dir)
-        except FileNotFoundError as fne:
-            QMessageBox.warning(self, "Missing Data", str(fne))
-        except Exception as e:
-            QMessageBox.warning(self, "Something went wrong", str(e))
+            
+            # Create and start the thread
+            self.open_dir_thread = OpenDirThread(project_dir)
+            self.open_dir_thread.start()
 
     def delete_session(self):
         row = self.table_view.currentIndex().row()
