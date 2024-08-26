@@ -53,6 +53,10 @@ def dummy_img():
     return img_array
 
 @pytest.fixture
+def dummy_img_dir():
+    return 'tests/data/test_img.jpg'
+
+@pytest.fixture
 def dummy_meta():
     meta_infos = {}
     meta_infos = {
@@ -70,9 +74,9 @@ def corrupted_dummy_img():
     pass
 
 @pytest.fixture
-def dummy_post(dummy_img, dummy_meta):
+def dummy_post(dummy_img_dir, dummy_meta):
     post = {}
-    post['image'] = dummy_img
+    post['img_dir'] = dummy_img_dir
     post['meta_info'] = dummy_meta
     return post
 
@@ -105,8 +109,9 @@ class TestFileAgnosticDB:
         assert session_id is not None
 
     def test_post_new_image(self, file_agnostic_db, dummy_post):
-        session_id, _ = file_agnostic_db.create_session(session_data)
-        dummy_post['session_id'] = session_id
+        sessions = file_agnostic_db.create_session(session_data)
+        sid = list(sessions.keys())[-1]
+        dummy_post['sid'] = sid
         file_agnostic_db.post_new_image(dummy_post)
         
     def test_post_image_fail(self, file_agnostic_db, dummy_post):

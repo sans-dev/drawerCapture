@@ -335,12 +335,17 @@ class GeoCoordinatesField(QWidget):
                 self.longitude_input.clear()
                 self.lattitude_input.clear()
                 raise ValueError("Geocoordinates are mandatory.")
-
+        longitude = float(self.longitude_input.text().replace(",","."))
+        lattitude = float(self.lattitude_input.text().replace(",", "."))
+        radius = float(self.radius_input.text().replace(",", "."))
+        bbox = self.calculate_bbox(longitude,lattitude, radius)
+        for key, data in bbox.items():
+            bbox[key] = [f'{value:.5f}' for value in data]
         data = {
-            'longitude': self.longitude_input.text().replace(",","."),
-            'lattitude': self.lattitude_input.text().replace(",", "."),
-            'radius': self.radius_input.text(),
-            'bbox': self.calculate_bbox(float(self.longitude_input.text()),float(self.lattitude_input.text()), float(self.radius_input.text())),
+            'longitude': longitude,
+            'lattitude': lattitude,
+            'radius': radius,
+            'bbox': bbox, 
             'type': self.type
         }
 

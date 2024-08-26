@@ -68,9 +68,11 @@ class ImageWidget(QWidget):
         self.panel.image_captured.connect(self.set_img_dir)
 
     def set_session_data(self, sessions):
-        self.sid = list(sessions.keys())[-1]
-        self.current_session = sessions[self.sid]
-        self.data_collector.set_session_data(self.current_session)
+        sessions_ids = list(sessions.keys())
+        if sessions_ids:
+            self.sid = sessions_ids[-1]
+            self.current_session = sessions[self.sid]
+            self.data_collector.set_session_data(self.current_session)
 
     def set_img_dir(self, img_dir):
         self.img_dir = img_dir

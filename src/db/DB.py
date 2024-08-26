@@ -2,7 +2,7 @@ import yaml
 import uuid
 import hashlib
 from pathlib import Path
-import cv2
+import pandas as pd
 import csv
 import shutil
 from datetime import datetime
@@ -73,8 +73,9 @@ class DBAdapter(QObject):
         self.get_signal.emit(data)
 
     def delete_session(self, session_id):
-        sessions = self.db_manager.delete_session(session_id)
+        project_info, sessions = self.db_manager.delete_session(session_id)
         self.sessions_signal.emit(sessions)
+        self.project_changed_signal.emit(project_info)
 
     def validate_admin(self, username, password):
         return self.db_manager.validate_admin(username, password)
@@ -202,15 +203,17 @@ class FileAgnosticDB:
         session['num_captures'] += 1
         capture_id = session['num_captures']
         img_name, meta_name = self._create_save_name(meta_info, capture_id, session)
-        session['captures'].append(str(img_name.relative_to(self.project_root_dir)))
+        session['captures'].append(str(img_name))
 
-        sessions_file.write_text(json.dumps(sessions, indent=2))   
-        with meta_name.open('w') as f:
-            yaml.dump(meta_info, f)
-        # move the image to new location
+        sessions_file.write_text(json.dumps(sessions, indent=2))
+        (self.project_root_dir / meta_name).write_text(yaml.dump(meta_info))
+        meta_info['Session Info'] = session
+        shutil.copy(img_dir,str((self.project_root_dir / img_name)))
         self._update_captures_csv(meta_info, session)
-        
-        return {}
+        project_info = self.get_project_info()
+        project_info['Project Info']['num_captures'] = str(int(project_info['Project Info']['num_captures']) + 1)
+        self._save_project_info(project_info)
+        return project_info, sessions
 
     def get_project_info(self):
         config = configparser.ConfigParser()
@@ -326,6 +329,14 @@ class FileAgnosticDB:
         if not session_to_delete:
             raise FileNotFoundError(f"Session not in database: {session_id}")
 
+        session_name = session_to_delete['name']
+        # load csv file
+        capture_csv = pd.read_csv(self.project_root_dir / 'captures.csv')
+        capture_csv = capture_csv[capture_csv['session'] != session_name]
+        capture_csv.to_csv(self.project_root_dir / 'captures.csv')
+        n_captures = str(len(capture_csv))
+        project_info = self.get_project_info()
+        project_info['num_captures'] = n_captures
         # Delete the session from the dictionary and delete the directory
         del sessions[session_id]
         session_dir_to_delete = self.project_root_dir / Path(session_to_delete['session_dir'])
@@ -347,7 +358,8 @@ class FileAgnosticDB:
         with sessions_file.open('w') as f:
             json.dump(sessions, f, indent=2)
 
-        return sessions
+        # calc new total number of captures for the project
+        return project_info, sessions
     
     def add_exif_info(self, image, info):
         pass
@@ -398,6 +410,13 @@ class FileAgnosticDB:
         encrypted_data = self.fernet.encrypt(json.dumps(existing_users).encode())
         self._save_credentials(encrypted_data)
 
+    def _save_project_info(self, project_info):
+        config = configparser.ConfigParser()
+        config['Project Info'] = project_info
+
+        with open(self.project_root_dir / '.project/project.ini', 'w') as configfile:
+            config.write(configfile)
+
     def _save_credentials(self, encrypted_data):
         credentials_path = self.project_root_dir / ".project" / ".credentials"
         # Save the encrypted data to the file
@@ -407,7 +426,7 @@ class FileAgnosticDB:
     def _check_duplicate_users(self, existing_users, new_user):
         if any(user['username'] == new_user['username'] for user in existing_users):
                     raise ValueError(f"User '{new_user['username']}' already exists")
-        
+    
     def _load_credentials(self):
         existing_users = []
         credentials_path = self.project_root_dir / ".project" / ".credentials"
@@ -454,8 +473,8 @@ class FileAgnosticDB:
         csv_file = project_dir / 'captures.csv'
         with csv_file.open('w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(['date', 'session', 'capturer', 'museum', 'order', 'family', 'genus', 'species', 'directory'])
-
+            writer.writerow(['Timestamp', 'Session Name', 'Capturer', 'Museum', 'Order', 'Family', 'Genus', 'Species', 'Directory'])
+    
     def _create_save_name(self, meta_info, capture_id, session):
         session_dir = Path(session['session_dir'])
         
@@ -468,20 +487,31 @@ class FileAgnosticDB:
         return img_name, meta_name
 
     def _update_captures_csv(self, meta_info, session):
+        new_row = {
+            'Timestamp': datetime.now().isoformat(),
+            'Session Name': session['name'],
+            'Capturer': session['capturer'],
+            'Museum': session['museum'],
+            'Order': meta_info['Species Info']['Order'],
+            'Family': meta_info['Species Info']['Family'],
+            'Genus': meta_info['Species Info']['Genus'],
+            'Species': meta_info['Species Info']['Species'],
+            'Directory': session['captures'][-1] 
+    }
         csv_file = self.project_root_dir / 'captures.csv'
-        with csv_file.open('a', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow([
-                datetime.now().isoformat(),
-                session['name'],
-                session['capturer'],
-                session['museum'],
-                meta_info['Species Info']['Order'],
-                meta_info['Species Info']['Family'],
-                meta_info['Species Info']['Genus'],
-                meta_info['Species Info']['Species'],
-                session['captures'][-1]
-            ])
+        column_names = ['Timestamp', 'Session Name', 'Capturer', 'Museum', 'Order', 'Family', 'Genus', 'Species', 'Directory']
+        dtypes = {'Timestamp': str,  
+                'Session Name': str, 
+                'Capturer': str,
+                'Museum': str,
+                'Order': str,
+                'Family': str,
+                'Genus': str,
+                'Species': str,
+                'Directory': str}
+        captures_csv = pd.read_csv(csv_file, names=column_names, dtype=dtypes)
+        captures_csv.loc[len(captures_csv)] = new_row
+        captures_csv.to_csv(csv_file, index=False)
 
     def _create_uuid_from_string(self, val: str):
         hex_string = hashlib.md5(val.encode("UTF-8")).hexdigest()
