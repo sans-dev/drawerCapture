@@ -11,10 +11,11 @@ museum_data = {
 }
 
 session_data = {
-    "name" : None,
-    "capturer": 'Thomas',
-    "museum": 'Senkenberg',
-    "collection_name": "Insects",
+    "Session Name" : None,
+    "Capturer": 'Thomas',
+    "Museum": 'Senkenberg',
+    "Collection Name": "Insects",
+    'Captures': []
 }
 
 project_config ={
@@ -24,6 +25,23 @@ project_config ={
         'description': 'bar',
         'date': '2020-01-01',
         'authors': 'baz'}
+
+@pytest.fixture
+def dummy_meta():
+    return {
+        "sessionName": "session-01",
+        "collectionName": "Insect of Afrika",
+        "order": "Burdi",
+        "family": "Burdeae",
+        "genus": "Burdus",
+        "species": "burdulus",
+        "museum": "Senkenberg - Frankfurt",
+        "capturer": "Toni",
+        "directory": "path/to/file.jpg",
+        "timestap": None,
+        "sessionDir": "dir/to/session/",
+        "captureID": 1
+    }
 
 @pytest.fixture
 def project_dict(tmp_path):
@@ -56,18 +74,7 @@ def dummy_img():
 def dummy_img_dir():
     return 'tests/data/test_img.jpg'
 
-@pytest.fixture
-def dummy_meta():
-    meta_infos = {}
-    meta_infos = {
-            'Species Info': {
-                'Order': "Order",
-                'Family': "Family",
-                'Genus': "Genus",
-                'Species': 'species'},
-            'Museum': 'test'}
-            
-    return meta_infos
+
 
 @pytest.fixture
 def corrupted_dummy_img():
@@ -108,6 +115,10 @@ class TestFileAgnosticDB:
         assert _session_data['session_dir'] == (file_agnostic_db.project_root_dir / 'captures' / f"{session_data['name']}").as_posix()
         assert session_id is not None
 
+
+    def test_create_save_name(self, file_agnostic_db, dummy_meta):
+        file_agnostic_db._create_save_name(dummy_meta)
+
     def test_post_new_image(self, file_agnostic_db, dummy_post):
         sessions = file_agnostic_db.create_session(session_data)
         sid = list(sessions.keys())[-1]
@@ -143,7 +154,14 @@ class TestFileAgnosticDB:
             db.add_museum('test')
         db.add_museum(museum_data)
         museums = db.get_museums()
-        
+
+    def test_get_ccv_header(self):
+        csv_header = FileAgnosticDB._get_csv_header()
+
+    def test_update_captures_csv(self, file_agnostic_db, dummy_meta):
+        file_agnostic_db._update_captures_csv(dummy_meta)
+        dummy_meta['collectionName'] = None
+        file_agnostic_db._update_captures_csv(dummy_meta)
 
 class TestDBAdapter:
     def test_create_project(self, project_dict):

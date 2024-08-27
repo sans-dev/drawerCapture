@@ -119,12 +119,27 @@ class DBAdapter(QObject):
     def get_current_user(self):
         return self.db_manager.get_current_user()
 
+
+CSV_SCHEMA = {
+        "sessionName": None,
+        "collectionName": None,
+        "order": None,
+        "family": None,
+        "genus": None,
+        "species": None,
+        "museum": None,
+        "capturer": None,
+        "directory": None,
+        "timestamp": None
+    }
+
 class FileAgnosticDB:
     def __init__(self):
         self.project_root_dir = None
         self.current_session = None
         self.fernet = None
         self.current_user = None
+        self.captures_csv_header = FileAgnosticDB._get_csv_header()
 
     def create_project(self, project_info):
         project_dir = Path(project_info['project_dir'])
@@ -200,16 +215,22 @@ class FileAgnosticDB:
         if not session:
             raise ValueError("Session not found")
         
+        meta_info['Session Info'] = session
+        meta_info_flat = self._flatten_dict(meta_info)
         session['num_captures'] += 1
-        capture_id = session['num_captures']
-        img_name, meta_name = self._create_save_name(meta_info, capture_id, session)
+        meta_info_flat['captureID'] = session['num_captures'] # refactor session keys...
+        meta_info_flat['sessionName'] = session['name']
+        meta_info_flat['sessionDir'] = session['session_dir']
+        meta_info_flat['collectionName'] = session['collection_name']
+        img_name, meta_name = self._create_save_name(meta_info_flat)
+        meta_info_flat['directory'] = str(img_name)
         session['captures'].append(str(img_name))
 
         sessions_file.write_text(json.dumps(sessions, indent=2))
         (self.project_root_dir / meta_name).write_text(yaml.dump(meta_info))
-        meta_info['Session Info'] = session
         shutil.copy(img_dir,str((self.project_root_dir / img_name)))
-        self._update_captures_csv(meta_info, session)
+
+        self._update_captures_csv(meta_info_flat)
         project_info = self.get_project_info()
         project_info['Project Info']['num_captures'] = str(int(project_info['Project Info']['num_captures']) + 1)
         self._save_project_info(project_info)
@@ -410,6 +431,17 @@ class FileAgnosticDB:
         encrypted_data = self.fernet.encrypt(json.dumps(existing_users).encode())
         self._save_credentials(encrypted_data)
 
+    def _flatten_dict(self, nested_dict):
+        """Flattens a nested dictionary and keeps only the innermost keys."""
+        flattened_dict = {}
+        for key, value in nested_dict.items():
+            if isinstance(value, dict):
+                inner_flattened = self._flatten_dict(value) 
+                flattened_dict.update(inner_flattened) # Merge flattened sub-dictionaries
+            else:
+                flattened_dict[key] = value
+        return flattened_dict
+    
     def _save_project_info(self, project_info):
         config = configparser.ConfigParser()
         config['Project Info'] = project_info
@@ -473,45 +505,37 @@ class FileAgnosticDB:
         csv_file = project_dir / 'captures.csv'
         with csv_file.open('w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(['Timestamp', 'Session Name', 'Capturer', 'Museum', 'Order', 'Family', 'Genus', 'Species', 'Directory'])
+            writer.writerow(self.captures_csv_header)
     
-    def _create_save_name(self, meta_info, capture_id, session):
-        session_dir = Path(session['session_dir'])
+    def _create_save_name(self, meta_info):
+        session_dir = Path(meta_info['sessionDir'])
         
-        order_name = meta_info['Species Info']['Order'].replace(" ", "-").lower()
-        species_name = f"{meta_info['Species Info']['Genus']}.{meta_info['Species Info']['Species']}".lower()
+        order_name = meta_info['order'].replace(" ", "-").lower()
+        species_name = f"{meta_info['genus']}.{meta_info['species']}".lower()
         
-        img_name = session_dir / f"{session['name']}_cap-{capture_id:04d}_order-{order_name}_species-{species_name}.jpg"
+        img_name = session_dir / f"{meta_info['sessionName']}_cap-{meta_info['captureID']:04d}_order-{order_name}_species-{species_name}.jpg"
         meta_name = img_name.with_suffix('.yml')
         
         return img_name, meta_name
 
-    def _update_captures_csv(self, meta_info, session):
-        new_row = {
-            'Timestamp': datetime.now().isoformat(),
-            'Session Name': session['name'],
-            'Capturer': session['capturer'],
-            'Museum': session['museum'],
-            'Order': meta_info['Species Info']['Order'],
-            'Family': meta_info['Species Info']['Family'],
-            'Genus': meta_info['Species Info']['Genus'],
-            'Species': meta_info['Species Info']['Species'],
-            'Directory': session['captures'][-1] 
-    }
+    def _update_captures_csv(self, meta_info):
+        new_row = []
+        for col in CSV_SCHEMA.keys():
+            d = meta_info.get(col, None)
+            if not d:
+                if col == "collectionName":
+                    d = 'General'
+                else:
+                    continue
+            new_row.append(d)
+
+        time_stamp = datetime.now().isoformat().split(".")[0]
+        new_row.append(time_stamp)
         csv_file = self.project_root_dir / 'captures.csv'
-        column_names = ['Timestamp', 'Session Name', 'Capturer', 'Museum', 'Order', 'Family', 'Genus', 'Species', 'Directory']
-        dtypes = {'Timestamp': str,  
-                'Session Name': str, 
-                'Capturer': str,
-                'Museum': str,
-                'Order': str,
-                'Family': str,
-                'Genus': str,
-                'Species': str,
-                'Directory': str}
-        captures_csv = pd.read_csv(csv_file, names=column_names, dtype=dtypes)
-        captures_csv.loc[len(captures_csv)] = new_row
-        captures_csv.to_csv(csv_file, index=False)
+        with open(csv_file, 'a', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(new_row)
+        logger.info("Finished updating captures csv")
 
     def _create_uuid_from_string(self, val: str):
         hex_string = hashlib.md5(val.encode("UTF-8")).hexdigest()
@@ -519,6 +543,19 @@ class FileAgnosticDB:
 
     def _create_string_from_dict_values(self, dict):
         return ''.join([value for value in dict.values()])
+    
+    @classmethod
+    def _get_csv_header(self):
+        """Extracts keys from a dictionary and formats them as a CSV header string.
+
+        Args:
+            data: A dictionary containing data for a row in your CSV file.
+
+        Returns:
+            A string representing the CSV header with commas separating column names.
+        """
+
+        return [key.title().replace("name", " Name") for key in CSV_SCHEMA.keys()]
 
 class DummyDB:
     def __init__(self):

@@ -1,0 +1,3 @@
+Bugs:
+ - File browser öffenet immer session 1. Pfad muss wahrscheinlich korrigiert werden (siehe Project module)
+ - captures csv macht komische Sachen

@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLineEdit, QListWidget,
                              QCompleter, QHBoxLayout, QTextEdit, QDoubleSpinBox, QStackedWidget)
 
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
+from PyQt6.QtGui import QPalette,QColor
 from src.configs.DataCollection import *
 
 from src.widgets.MapWidget import MapWindow
@@ -615,7 +616,7 @@ class DateInputWidget(ListWidget):
         logger.info(f"Initializing {self.__class__.__name__}")
         self.mandatory = mandatory
         if self.mandatory:
-            self.name = f"{label_text}*"
+            self.name = f"{label_text}"
         self.init_ui(label_text)
 
     def init_ui(self, label_text):
@@ -623,6 +624,9 @@ class DateInputWidget(ListWidget):
         self.label = QLabel(label_text)
         layout.addWidget(self.label)
         self.date_edit = QDateEdit()
+        palette = self.date_edit.palette()
+        palette.setColor(QPalette.ColorRole.Base, QColor("lightgray"))
+        self.date_edit.setPalette(palette)
         self.date_edit.setDisplayFormat('dd.MM.yyyy')
         self.date_edit.setMaximumDate(QDate.currentDate())
         # Enable calendar popup for date selection
@@ -630,8 +634,6 @@ class DateInputWidget(ListWidget):
         self.date_edit.setDate(QDate.currentDate())
         layout.addWidget(self.error_label)
         layout.addWidget(self.date_edit)
-        self.checkbox = QCheckBox("Keep Data")
-        layout.addWidget(self.checkbox)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         self.setLayout(layout)
@@ -748,9 +750,9 @@ class DataCollection(QWidget):
                 if widget.info_type == "Session Info":
                     data["Session Info"] = widget.get_data()
                 if widget.info_type == "Specimen Info":
-                    species_info[widget.name] = widget.get_data()
+                    species_info[widget.name.lower()] = widget.get_data()
                 elif widget.info_type == "Collection Info":
-                    collection_info[widget.name] = widget.get_data()
+                    collection_info[widget.name.lower()] = widget.get_data()
                 widget.hide_error()
             except ValueError as e:
                 tab_idx = self.find_widget_tab(widget)
