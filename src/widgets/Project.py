@@ -456,7 +456,7 @@ class SessionViewer(QWidget):
         
         # Verbinde die Aktionen mit Slots
         delete_action.triggered.connect(self.delete_session)
-        open_in_file_browser_action.triggered.connect(lambda row=self.table_view.currentIndex().row(): self.open_in_file_browser(row))
+        open_in_file_browser_action.triggered.connect(self.open_in_file_browser)
         user = self.db_adapter.get_current_user()
         if not user:
             return
@@ -465,7 +465,8 @@ class SessionViewer(QWidget):
         # Zeige das Menü an der angeklickten Position
         menu.exec(self.table_view.mapToGlobal(position))
 
-    def open_in_file_browser(self, row):
+    def open_in_file_browser(self):
+            row = self.table_view.currentIndex().row()
             column = self.fields.index("Session Dir")
             relative_dir = self.table_model.item(row, column).text()
             project_dir = self.db_adapter.get_project_dir() / relative_dir
