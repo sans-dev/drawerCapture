@@ -1,7 +1,9 @@
 import logging
 import logging.config
-
-from PyQt6.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QPushButton, QMessageBox
+import cv2
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+from PyQt6.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QPushButton, QMessageBox, QVBoxLayout
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QIcon
 from src.widgets.DataCollection import DataCollection
@@ -10,6 +12,59 @@ from src.signals.ProcessEmitter import ProcessEmitter
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
+
+class HistogramWidget(QWidget):
+    def __init__(self, image_path):
+        super().__init__()
+
+        self.image_path = image_path
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle('Histogram')
+        self.setWindowIcon(QIcon('resources/assets/histogram.png'))
+        # Create Matplotlib figure and canvas
+        self.figure = Figure(figsize=(8, 6))
+        self.canvas = FigureCanvas(self.figure)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.canvas)
+        self.setLayout(layout)
+
+        self.plot_histogram()
+
+    def plot_histogram(self):
+        # Load the image
+        img = cv2.imread(self.image_path)
+
+        if img is None:
+            print("Error loading image.")
+            return
+
+        # Calculate RGB histograms
+        hist_r = cv2.calcHist([img], [0], None, [256], [0, 256])
+        hist_g = cv2.calcHist([img], [1], None, [256], [0, 256])
+        hist_b = cv2.calcHist([img], [2], None, [256], [0, 256])
+
+        # Flatten the histogram arrays to 1D
+        hist_r = hist_r.flatten()
+        hist_g = hist_g.flatten()
+        hist_b = hist_b.flatten()
+
+        # Plot the histogram on the Matplotlib canvas
+        ax = self.figure.add_subplot(111)
+        ax.plot(hist_r, color='red', label='Red')
+        ax.plot(hist_g, color='green', label='Green')
+        ax.plot(hist_b, color='blue', label='Blue')
+        # Fill the area under each histogram curve
+        ax.fill_between(range(len(hist_r)), hist_r, alpha=0.3, color='red') 
+        ax.fill_between(range(len(hist_g)), hist_g, alpha=0.3, color='green')
+        ax.fill_between(range(len(hist_b)), hist_b, alpha=0.3, color='blue')
+        ax.set_xlabel('Pixel Intensity')
+        ax.set_ylabel('Frequency')
+
+        self.canvas.draw()
+
 
 class ImageWidget(QWidget):
     """
@@ -66,6 +121,11 @@ class ImageWidget(QWidget):
         self.save_button.clicked.connect(self.savedata)
         self.db_adapter.sessions_signal.connect(self.set_session_data)
         self.panel.image_captured.connect(self.set_img_dir)
+        self.histogram_button.clicked.connect(self.show_histogram)
+
+    def show_histogram(self):
+        self.histogram_window = HistogramWidget(self.img_dir)
+        self.histogram_window.show()
 
     def set_session_data(self, sessions):
         sessions_ids = list(sessions.keys())

@@ -1,3 +1,11 @@
 Bugs:
- - File browser öffenet immer session 1. Pfad muss wahrscheinlich korrigiert werden (siehe Project module)
- - captures csv macht komische Sachen
+
+Features:
+  - Histogram
+  - cropping 
+  - bounding boxes
+  - project merger
+
+Installation:
+  - upload assets and bigger files into cloud service from where is is downloaded into the container/repo during installation
+  
