@@ -44,6 +44,9 @@ class DBAdapter(QObject):
             logger.info(f"{e}")
             raise e
 
+    def merge_project(self, source_adapter, keep_empty_sessions):
+        self.db_manager.merge_project(source_adapter, keep_empty_sessions)
+
     def get_project_dir(self):
         return self.db_manager.get_project_dir()
     
@@ -58,6 +61,10 @@ class DBAdapter(QObject):
         sessions = self.db_manager.load_sessions()
         self.project_changed_signal.emit(project_info)
         self.sessions_signal.emit(sessions)
+
+    def load_project_for_merger(self, project_dir):
+        project_info = self.db_manager.load_project(project_dir)
+        sessions = self.db_manager.load_sessions()
 
     def save_image_data(self, payload):
         logger.info(f"Sending data to DB...")
@@ -140,6 +147,9 @@ class FileAgnosticDB:
         self.fernet = None
         self.current_user = None
         self.captures_csv_header = FileAgnosticDB._get_csv_header()
+
+    def merge_project(self, source_adapter, keep_emty_sessions):
+        pass
 
     def create_project(self, project_info):
         project_dir = Path(project_info['project_dir'])

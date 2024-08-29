@@ -13,7 +13,7 @@ from src.widgets.PreviewPanel import PreviewPanel
 from src.widgets.SelectCameraListWidget import SelectCameraListWidget
 from src.db.DB import DBAdapter, FileAgnosticDB, DummyDB
 from src.widgets.Project import (ProjectCreator, ProjectLoader, ProjectViewer, LoginWidget, 
-                                 UserManager, MuseumManager, UserSettings, SessionCreator) 
+                                 UserManager, MuseumManager, UserSettings, SessionCreator, ProjectMerger) 
 from src.utils.searching import init_taxonomy
 
 logging.config.fileConfig('configs/logging.conf',
@@ -110,6 +110,8 @@ class MainWindow(QMainWindow):
             'resources/assets/user-management-icon-2048x2048-kv1zlmf8.png'), "Manage Users", self)
         self.manage_museums_action = QAction(
             QIcon('resources/assets/museum.png'), "Manage Museums", self)
+        self.merge_projects_action = QAction(
+            QIcon('resources/assets/add2.png'), "Merge Projects", self)
 
         # User menu actions
         self.login_action = QAction(
@@ -140,6 +142,8 @@ class MainWindow(QMainWindow):
 
         self.project_menu.addAction(self.manage_user_action)
         self.project_menu.addAction(self.manage_museums_action)
+        self.project_menu.addSeparator()
+        self.project_menu.addAction(self.merge_projects_action)
         
         self.user_menu.addAction(self.login_action)
         self.user_menu.addSeparator()
@@ -182,9 +186,18 @@ class MainWindow(QMainWindow):
         self.capture_view.close_signal.connect(self.on_capture_mode_ended)
         self.db_adapter.project_changed_signal.connect(self.capture_view.panel.set_image_dir)
         self.image_view.close_signal.connect(self.on_data_collected)
+        self.merge_projects_action.triggered.connect(self.merge_projects)
 
     def exit_application(self):
         self.close()
+
+    def merge_projects(self):
+        source_project_adapter = DBAdapter(self.db)
+        self.project_merger = ProjectMerger(target_project_adapter=self.db_adapter, 
+                                            soure_project_adapter=source_project_adapter)
+        self.setEnabled(False)
+        self.project_merger.close_signal.connect(self.setEnabled)
+        self.project_merger.show()
 
     def manage_museums(self):
         self.museum_manager = MuseumManager(self.db_adapter, self.db_adapter.get_current_user())

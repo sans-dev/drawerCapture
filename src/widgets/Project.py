@@ -7,7 +7,7 @@ from PyQt6.QtCore import pyqtSignal, Qt, QDir, QRegularExpression, QAbstractTabl
 from PyQt6.QtGui import QIcon, QRegularExpressionValidator, QStandardItemModel, QStandardItem, QAction
 from PyQt6.QtWidgets import (QApplication, QDialog, QWidget, QVBoxLayout, QLineEdit, QPushButton, QFileDialog, QLabel, 
                              QListWidget, QHBoxLayout, QTableView, QAbstractItemView, QHeaderView, 
-                             QGridLayout, QMessageBox, QInputDialog, QComboBox, QTextEdit, QDialogButtonBox, QMenu)
+                             QCheckBox, QGridLayout, QMessageBox, QInputDialog, QComboBox, QTextEdit, QDialogButtonBox, QMenu, QStackedWidget)
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
@@ -129,6 +129,77 @@ class ErrorLabel(QLabel):
         super().__init__(parent)
         self.setStyleSheet("color: darkred")
         self.setText("")
+
+
+class ProjectMerger(QWidget):
+    close_signal = pyqtSignal(bool)
+    def __init__(self, target_project_adapter, soure_project_adapter):
+        super().__init__()
+        self.target_project_adapter = target_project_adapter
+        self.source_project_adapter = soure_project_adapter
+        self.target_project_view = ProjectViewer(target_project_adapter)
+        self.source_project_view = ProjectViewer(soure_project_adapter)
+        ProjectLoader(target_project_adapter).load_project()
+
+        self.setWindowTitle("Project Merger")
+
+        # Create layouts
+        main_layout = QHBoxLayout()
+        left_layout = QVBoxLayout()
+        right_layout = QVBoxLayout()
+        self.setLayout(main_layout) 
+
+        # Left side (target project)
+        target_label = QLabel("Target Project Information")
+        self.merge_button = QPushButton("Merge Projects")
+        left_layout.addWidget(target_label)
+        left_layout.addWidget(self.target_project_view)
+        left_layout.addWidget(self.merge_button)
+        self.merge_button.setEnabled(False)
+        # Right side (source project - initially empty)
+        source_label = QLabel("Source Project Information")
+        
+        right_layout.addWidget(source_label)
+
+        # Load project button
+        self.load_button = QPushButton("Load Project")
+        self.load_button.clicked.connect(self.load_source_project)
+        self.button_source_stack = QStackedWidget()
+        self.button_source_stack.addWidget(self.source_project_view)
+        self.button_source_stack.addWidget(self.load_button)
+        self.button_source_stack.setCurrentWidget(self.load_button)
+        self.keep_empty_checkbox = QCheckBox("Keep empty sessions")
+
+        # Add layouts to main layout
+        main_layout.addLayout(left_layout)
+        main_layout.addLayout(right_layout)
+        right_layout.addWidget(self.button_source_stack)
+        right_layout.addWidget(self.keep_empty_checkbox)
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.merge_button.clicked.connect(self.merge_projects)
+
+    def merge_projects(self):
+        self.target_project_adapter.merge_project(self.source_project_adapter, self.keep_empty_checkbox.isChecked())
+    
+    def load_source_project(self):
+        try:        
+            self.loader = ProjectLoader(self.source_project_adapter)  # Create ProjectLoader instance
+            self.loader.choose_dir()
+            self.loader.load_project()
+            self.button_source_stack.setCurrentWidget(self.source_project_view)
+            self.merge_button.setEnabled(True)
+        except FileNotFoundError as fne:
+            QMessageBox.warning(self, f"project file missing", str(fne))
+        except ValueError as ve:
+            QMessageBox.warning(self, f"project file corrupted", str(ve)) 
+        except Exception as e:
+            QMessageBox.warning(self, f"Something went wrong", str(e))
+
+    def closeEvent(self, event):
+        self.close_signal.emit(True)
+        super().closeEvent(event)
 
 class ProjectCreator(QWidget):
     changed = pyqtSignal(str)
@@ -295,11 +366,13 @@ class ProjectLoader(QWidget):
     def __init__(self, db_adapter):
         super().__init__()
         self.db_adapter = db_adapter
+
         self.setWindowTitle("Load Project")
         self.setGeometry(900,600,300,100)
         layout = QVBoxLayout()
-
-        self.dir = QLineEdit()
+        self.dir = QLineEdit()        
+        if self.db_adapter.get_project_dir():
+            self.dir.setText(str(self.db_adapter.get_project_dir()))
         input_layout = QHBoxLayout()
         input_layout.addWidget(QLabel("Project Dir"))
         input_layout.addWidget(self.dir)
@@ -337,6 +410,9 @@ class ProjectLoader(QWidget):
     def get_project_name(self):
         return Path(self.dir.text()).parts[-1]
 
+    def get_dir(self):
+        return self.dir.text()
+    
     def closeEvent(self, event):
         self.close_signal.emit(True)
         super().closeEvent(event)
