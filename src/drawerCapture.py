@@ -192,7 +192,7 @@ class MainWindow(QMainWindow):
         self.close()
 
     def merge_projects(self):
-        source_project_adapter = DBAdapter(self.db)
+        source_project_adapter = DBAdapter(FileAgnosticDB())
         self.project_merger = ProjectMerger(target_project_adapter=self.db_adapter, 
                                             soure_project_adapter=source_project_adapter)
         self.setEnabled(False)

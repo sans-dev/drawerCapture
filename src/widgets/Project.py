@@ -148,12 +148,13 @@ class ProjectMerger(QWidget):
         left_layout = QVBoxLayout()
         right_layout = QVBoxLayout()
         self.setLayout(main_layout) 
-
+        self.keep_empty_checkbox = QCheckBox("Keep empty source sessions")
         # Left side (target project)
         target_label = QLabel("Target Project Information")
         self.merge_button = QPushButton("Merge Projects")
         left_layout.addWidget(target_label)
         left_layout.addWidget(self.target_project_view)
+        left_layout.addWidget(self.keep_empty_checkbox)
         left_layout.addWidget(self.merge_button)
         self.merge_button.setEnabled(False)
         # Right side (source project - initially empty)
@@ -164,17 +165,14 @@ class ProjectMerger(QWidget):
         # Load project button
         self.load_button = QPushButton("Load Project")
         self.load_button.clicked.connect(self.load_source_project)
-        self.button_source_stack = QStackedWidget()
-        self.button_source_stack.addWidget(self.source_project_view)
-        self.button_source_stack.addWidget(self.load_button)
-        self.button_source_stack.setCurrentWidget(self.load_button)
-        self.keep_empty_checkbox = QCheckBox("Keep empty sessions")
-
+        
         # Add layouts to main layout
         main_layout.addLayout(left_layout)
         main_layout.addLayout(right_layout)
-        right_layout.addWidget(self.button_source_stack)
-        right_layout.addWidget(self.keep_empty_checkbox)
+        right_layout.addWidget(self.source_project_view)
+        right_layout.addWidget(QLabel())
+        right_layout.addWidget(self.load_button)
+        
         self.connect_signals()
 
     def connect_signals(self):
@@ -188,7 +186,6 @@ class ProjectMerger(QWidget):
             self.loader = ProjectLoader(self.source_project_adapter)  # Create ProjectLoader instance
             self.loader.choose_dir()
             self.loader.load_project()
-            self.button_source_stack.setCurrentWidget(self.source_project_view)
             self.merge_button.setEnabled(True)
         except FileNotFoundError as fne:
             QMessageBox.warning(self, f"project file missing", str(fne))

@@ -125,7 +125,9 @@ class DBAdapter(QObject):
     
     def get_current_user(self):
         return self.db_manager.get_current_user()
-
+    
+    def load_sessions(self):
+        return self.db_manager.load_sessions()
 
 CSV_SCHEMA = {
         "sessionName": None,
@@ -149,6 +151,43 @@ class FileAgnosticDB:
         self.captures_csv_header = FileAgnosticDB._get_csv_header()
 
     def merge_project(self, source_adapter, keep_emty_sessions):
+        source_sessions = source_adapter.load_sessions()
+        target_sessions = self.load_sessions()
+        if not keep_emty_sessions:
+            source_sessions = {key: session for key, session in source_sessions.items() if session['captures']}
+
+        n_captures = 0
+        for target_session in target_sessions.values():
+            n_captures += len(target_session['captures'])
+        n_captures += 1
+        session_start_idx = len(target_sessions) + 1
+        # start integration here
+        for source_session in source_sessions.values():
+            new_session_name = f"session-{session_start_idx:03}"  # Rename for uniqueness
+            new_capture_name = f"cap-{n_captures:04}"
+            new_sid = str(uuid.uuid4())
+            migrated_session = source_session.copy()
+            migrated_session['name'] = new_session_name
+            migrated_session['session_dir'] = migrated_session['session_dir'].replace(source_session['name'], new_session_name)
+            migrated_session['captures'] = [cap.replace(source_session['name'], new_session_name)
+                                            .replace(self.get_value_name(cap,'cap'), new_capture_name) for cap in migrated_session['captures']]
+            # Add the migrated session to the target dictionary
+            target_sessions[new_sid] = migrated_session
+            # Copy data from source to target (you'll need to implement this)
+            self.copy_data(source_session, migrated_session, source_root=source_adapter.get_project_dir())  
+            session_start_idx += 1 
+
+        return target_sessions
+    
+    def get_value_name(self, value_str, pattern, splitter="_"):
+        parts = value_str.split(splitter)
+        del parts[0]
+        for part in parts:
+            if pattern in part:
+                return part
+
+    def copy_data(self, source_session, target_session, source_root):
+        target_root = self.get_project_dir()
         pass
 
     def create_project(self, project_info):
