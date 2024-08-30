@@ -71,7 +71,7 @@ def taxonomy(tmpdir):
     p = tmpdir.mkdir("taxonomy")
     taxonomy_data_dir = p.join("taxonomy.json")
     with taxonomy_data_dir.open("w") as f:
-        json.dump(taxonomy_data, f)
+        json.dump(taxonomy_data, f,indent=2)
     return init_taxonomy(taxonomy_data_dir)
 
 def test_searchable_item_list_widget(qtbot):

@@ -217,7 +217,7 @@ class FileAgnosticDB:
         
         # Write project info to .project.json
         with (project_data_dir / '.project.json').open('w') as f:
-            json.dump(project_info, f)
+            json.dump(project_info, f, indent=2)
         
         self.project_root_dir = project_dir
         self._initialize_key()
@@ -501,7 +501,7 @@ class FileAgnosticDB:
     
     def _save_project_info(self, project_info):
         with open(self.project_root_dir / '.project/.project.json', 'w') as f:
-            json.dump(project_info, f)
+            json.dump(project_info, f, indent=2)
 
     def _save_credentials(self, encrypted_data):
         credentials_path = self.project_root_dir / ".project" / ".credentials"

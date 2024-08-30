@@ -111,6 +111,6 @@ for order in orders_pbar:
                 species.append(sp)
 
 with open('resources/taxonomy/taxonomy.json', 'w') as f:
-    json.dump(species, f, indent=4)
+    json.dump(species, f, indent=2)
 
 print("Taxonomy saved to taxonomy.json")
