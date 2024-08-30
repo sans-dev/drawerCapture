@@ -7,7 +7,7 @@ from PyQt6.QtCore import pyqtSignal, Qt, QDir, QRegularExpression, QAbstractTabl
 from PyQt6.QtGui import QIcon, QRegularExpressionValidator, QStandardItemModel, QStandardItem, QAction
 from PyQt6.QtWidgets import (QApplication, QDialog, QWidget, QVBoxLayout, QLineEdit, QPushButton, QFileDialog, QLabel, 
                              QListWidget, QHBoxLayout, QTableView, QAbstractItemView, QHeaderView, 
-                             QCheckBox, QGridLayout, QMessageBox, QInputDialog, QComboBox, QTextEdit, QDialogButtonBox, QMenu, QStackedWidget)
+                             QCheckBox, QGridLayout, QMessageBox, QInputDialog, QComboBox, QTextEdit, QDialogButtonBox, QMenu, QProgressBar)
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
@@ -139,6 +139,8 @@ class ProjectMerger(QWidget):
         self.source_project_adapter = soure_project_adapter
         self.target_project_view = ProjectViewer(target_project_adapter)
         self.source_project_view = ProjectViewer(soure_project_adapter)
+        self.target_project_view.set_enable_conext_menu(False)
+        self.source_project_view.set_enable_conext_menu(False)
         ProjectLoader(target_project_adapter).load_project()
 
         self.setWindowTitle("Project Merger")
@@ -179,7 +181,13 @@ class ProjectMerger(QWidget):
         self.merge_button.clicked.connect(self.merge_projects)
 
     def merge_projects(self):
+        if self.target_project_adapter.get_project_dir() == self.source_project_adapter.get_project_dir():
+            QMessageBox.information(self, "Merge Projects", "You cannot merge the same project.")
+            return
+        self.setEnabled(False)
         self.target_project_adapter.merge_project(self.source_project_adapter, self.keep_empty_checkbox.isChecked())
+        QMessageBox.information(self, "Merge Projects", "Done integrating sessions from source project into target project.")
+        self.close()
     
     def load_source_project(self):
         try:        
@@ -519,6 +527,9 @@ class SessionViewer(QWidget):
     def column_clicked(self, column):
         self.sort_by_column(column)
 
+    def set_enable_context_menu(self, enable):
+        self.table_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu if enable else Qt.ContextMenuPolicy.NoContextMenu)
+
     def create_context_menu(self, position):
         menu = QMenu(self.table_view)
         
@@ -674,6 +685,9 @@ class ProjectViewer(QWidget):
         self.db_adapter.project_changed_signal.connect(self.update_project_list)
         self.db_adapter.sessions_signal.connect(self.update_session_view)
 
+    def set_enable_conext_menu(self, enable):
+        self.session_view.set_enable_context_menu(enable)
+        
     def close_project(self):
         self.changed.emit("main")
         super().close()
