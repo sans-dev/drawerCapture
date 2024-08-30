@@ -347,8 +347,11 @@ class ProjectCreator(QWidget):
             admin_name = self.admin.text().strip()
             admin_password = self.password.text()
             admin = {"username": admin_name, "password": admin_password, "role": "admin"}
-            self.db_adapter.create_project(project_info)
-            self.db_adapter.save_encrypted_users(admin)
+            try:
+                self.db_adapter.create_project(project_info)
+                self.db_adapter.save_encrypted_users(admin)
+            except Exception as e:
+                QMessageBox.warning(self, "Something went wrong", str(e))
             self.create_successfull.emit()
 
     def closeEvent(self, event):
@@ -677,7 +680,6 @@ class ProjectViewer(QWidget):
             logger.info(f"{project_info}")
             return
         self.project_info_list.clear()
-        project_info = project_info['Project Info']
         item_strings = self._create_project_info_item_str_list(project_info)
         self.project_info_list.addItems(item_strings)
 

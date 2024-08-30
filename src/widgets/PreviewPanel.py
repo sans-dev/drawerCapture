@@ -180,7 +180,7 @@ class PreviewPanel(QLabel):
 
     def set_image_dir(self, project_info):
         # when project is loaded, set this dir
-        self.img_dir = project_info['Project Info']['project_dir'] + "/.project/.tmp_cap"
+        self.img_dir = project_info['project_dir'] + "/.project/.tmp_cap"
 
     def set_camera_data(self, model=None, port=None):
         """

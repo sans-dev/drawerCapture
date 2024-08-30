@@ -8,7 +8,6 @@ import shutil
 from datetime import datetime
 from cryptography.fernet import Fernet
 import json
-import configparser
 from PyQt6.QtCore import QObject, pyqtSignal
 from src.utils.Validation import DataValidator
 
@@ -212,15 +211,13 @@ class FileAgnosticDB:
         project_data_dir = project_dir / '.project'
         project_data_dir.mkdir(exist_ok=True)
         
-        (project_data_dir / '.project.ini').touch()
+        (project_data_dir / '.project.json').touch()
         (project_data_dir / '.sessions.json').write_text('{}')
         (project_data_dir / '.museums.json').write_text('{}')
         
-        # Write project info to .project.ini
-        config = configparser.ConfigParser()
-        config['Project Info'] = project_info
-        with (project_data_dir / '.project.ini').open('w') as f:
-            config.write(f)
+        # Write project info to .project.json
+        with (project_data_dir / '.project.json').open('w') as f:
+            json.dump(project_info, f)
         
         self.project_root_dir = project_dir
         self._initialize_key()
@@ -291,17 +288,17 @@ class FileAgnosticDB:
 
         self._update_captures_csv(meta_info_flat)
         project_info = self.get_project_info()
-        project_info['Project Info']['num_captures'] = str(int(project_info['Project Info']['num_captures']) + 1)
+        project_info['num_captures'] = str(int(project_info['num_captures']) + 1)
         self._save_project_info(project_info)
         return project_info, sessions
 
     def get_project_info(self):
-        config = configparser.ConfigParser()
-        project_file = self.project_root_dir / '.project' / '.project.ini'
+        project_file = self.project_root_dir / '.project' / '.project.json'
         if not project_file.is_file():
             raise FileNotFoundError(f"Project INI file missing at {project_file}")
-        config.read(project_file)
-        return {section: dict(config[section]) for section in config.sections()}
+        with project_file.open('r') as f:
+            project_info = json.load(f)
+        return project_info
 
     def is_duplicate_museum(self, museum, museums):
         for _, m in museums.items():
@@ -413,10 +410,11 @@ class FileAgnosticDB:
         # load csv file
         capture_csv = pd.read_csv(self.project_root_dir / 'captures.csv')
         capture_csv = capture_csv[capture_csv['Session Name'] != session_name]
-        capture_csv.to_csv(self.project_root_dir / 'captures.csv')
+        capture_csv.to_csv(self.project_root_dir / 'captures.csv', index=False)
         n_captures = str(len(capture_csv))
         project_info = self.get_project_info()
         project_info['num_captures'] = n_captures
+        self._save_project_info(project_info)
         # Delete the session from the dictionary and delete the directory
         del sessions[session_id]
         session_dir_to_delete = self.project_root_dir / Path(session_to_delete['session_dir'])
@@ -502,11 +500,8 @@ class FileAgnosticDB:
         return flattened_dict
     
     def _save_project_info(self, project_info):
-        config = configparser.ConfigParser()
-        config['Project Info'] = project_info
-
-        with open(self.project_root_dir / '.project/project.ini', 'w') as configfile:
-            config.write(configfile)
+        with open(self.project_root_dir / '.project/.project.json', 'w') as f:
+            json.dump(project_info, f)
 
     def _save_credentials(self, encrypted_data):
         credentials_path = self.project_root_dir / ".project" / ".credentials"
@@ -646,7 +641,7 @@ class DummyDB:
     def load_project(self, project_dir):
         # Simulate loading a project
         self.project_info = {
-            'Project Info': {'project_dir': project_dir, 'num_captures': 0},
+            'project_dir': project_dir, 'num_captures': 0
         }
         return self.project_info
 
@@ -657,7 +652,7 @@ class DummyDB:
         # Simulate updating capture counts
         session = self.sessions.get(payload['sid'])
         session['num_captures'] = 1
-        self.project_info['Project Info']['num_captures'] += 1
+        self.project_info['num_captures'] += 1
         self.sessions[payload['sid']] = session
         return self.project_info, self.sessions
 

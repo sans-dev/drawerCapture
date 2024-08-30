@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from configparser import ConfigParser
+import json
 from src.db.DB import FileAgnosticDB, DBAdapter, DummyDB
 
 museum_data = {
@@ -56,7 +56,7 @@ def agnostic_project_dir(tmp_path):
     project_config['project_dir'] = str(tmp_path)
     db.create_project(project_config)
     config = db.create_project(project_config)
-    return config['Project Info']['project_dir']
+    return config['project_dir']
 
 @pytest.fixture
 def file_agnostic_db(tmp_path):
@@ -97,7 +97,6 @@ class TestFileAgnosticDB:
         db = FileAgnosticDB()
         project_config['project_dir'] = str(tmp_path)
         config = db.create_project(project_config)
-        config = config['Project Info']
         assert config['project_dir'] == str(tmp_path)
         assert config['num_captures'] == '0'
         assert config['name'] == 'foo'
@@ -134,7 +133,7 @@ class TestFileAgnosticDB:
     def test_load_project(self, agnostic_project_dir):
         db = FileAgnosticDB()
         db.load_project(agnostic_project_dir)
-        conf = db.get_project_info()['Project Info']
+        conf = db.get_project_info()
         assert conf['num_captures'] == '0'
         assert conf['name'] == 'foo'
         assert conf['description'] == 'bar'
@@ -167,8 +166,8 @@ class TestDBAdapter:
     def test_create_project(self, project_dict):
         adapter = DBAdapter(DummyDB())
         response = adapter.create_project(project_dict)
-        assert response['Project Info']['name'] == project_dict['Project Info']['name']
-        assert response['Project Info']['date'] == project_dict['Project Info']['date']
+        assert response['name'] == project_dict['name']
+        assert response['date'] == project_dict['date']
         with pytest.raises(NotADirectoryError):
             response = adapter.create_project(None)
 
