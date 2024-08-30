@@ -167,9 +167,12 @@ class ImageWidget(QWidget):
             'meta_info' : meta_info,
             'sid' : self.sid
         }
-        if self.db_adapter.save_image_data(payload):
-            if QMessageBox.question(self, 'Title', ' Image and metadata saved! Go to capture mode?').name == 'Yes':    
-                self.close()
+        try:
+            if self.db_adapter.save_image_data(payload):
+                if QMessageBox.question(self, 'Title', ' Image and metadata saved! Go to capture mode?').name == 'Yes':    
+                    self.close()
+        except Exception as e:
+            QMessageBox.warning(self, "Something went wrong", str(e))
 
     def closeEvent(self, event):
         self.close_signal.emit(True)

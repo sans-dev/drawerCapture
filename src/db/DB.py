@@ -69,6 +69,8 @@ class DBAdapter(QObject):
     def save_image_data(self, payload):
         logger.info(f"Sending data to DB...")
         project_info, sessions = self.db_manager.post_new_image(payload)
+        if not project_info:
+            return False
         self.project_changed_signal.emit(project_info)
         self.sessions_signal.emit(sessions)
         return True
@@ -188,7 +190,15 @@ class FileAgnosticDB:
 
     def copy_data(self, source_session, target_session, source_root):
         target_root = self.get_project_dir()
-        pass
+        # create absolute path tupes for coying
+        source_caps = [Path(source_root) / cap_dir for cap_dir in source_session['captures']]
+        target_caps = [Path(target_root) / cap_dir for cap_dir in target_session['captures']]
+        # create directory
+        target_dir = Path(target_root) / target_session['session_dir']
+        target_dir.mkdir(parents=True, exist_ok=True)
+        for source_cap, target_cap in zip(source_caps, target_caps):
+            shutil.copy2(str(source_cap), str(target_cap))
+            shutil.copy2(str(source_cap.with_suffix('.yml')), str(target_cap.with_suffix('.yml')))
 
     def create_project(self, project_info):
         project_dir = Path(project_info['project_dir'])
@@ -251,11 +261,11 @@ class FileAgnosticDB:
         is_valid, msg = DataValidator.validate_meta_info(meta_info)
         if not is_valid:
             print("Invalid meta data", msg)
-            return False
+            return False, []
         is_valid, msg = DataValidator.validate_image_data(img_dir)
         if not is_valid:
             print("Invalid image dir", msg)
-            return False
+            return False, []
         
         sessions_file = self.project_root_dir / '.project' / '.sessions.json'
         sessions = json.loads(sessions_file.read_text())
@@ -402,7 +412,7 @@ class FileAgnosticDB:
         session_name = session_to_delete['name']
         # load csv file
         capture_csv = pd.read_csv(self.project_root_dir / 'captures.csv')
-        capture_csv = capture_csv[capture_csv['session'] != session_name]
+        capture_csv = capture_csv[capture_csv['Session Name'] != session_name]
         capture_csv.to_csv(self.project_root_dir / 'captures.csv')
         n_captures = str(len(capture_csv))
         project_info = self.get_project_info()
