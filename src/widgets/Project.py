@@ -633,6 +633,9 @@ class SessionCreator(QDialog):
         capturer = self.capturer_edit.currentText().strip()
         museum = self.museum_edit.currentText().strip()
         collection_name = self.collection_name_edit.text().strip()
+        if museum == '':
+            QMessageBox.information(self, "Missing Data", "You must select a museum before you can create a session.")
+            return
         session_data = {
             "capturer": capturer,
             "museum": museum,

@@ -44,7 +44,9 @@ class DBAdapter(QObject):
             raise e
 
     def merge_project(self, source_adapter, keep_empty_sessions):
-        self.db_manager.merge_project(source_adapter, keep_empty_sessions)
+        project_info, sessions = self.db_manager.merge_project(source_adapter, keep_empty_sessions)
+        self.project_changed_signal.emit(project_info)
+        self.sessions_signal.emit(sessions)
 
     def get_project_dir(self):
         return self.db_manager.get_project_dir()
@@ -153,32 +155,18 @@ class FileAgnosticDB:
 
     def merge_project(self, source_adapter, keep_emty_sessions):
         source_sessions = source_adapter.load_sessions()
-        target_sessions = self.load_sessions()
         if not keep_emty_sessions:
             source_sessions = {key: session for key, session in source_sessions.items() if session['captures']}
-
-        n_captures = 0
-        for target_session in target_sessions.values():
-            n_captures += len(target_session['captures'])
-        n_captures += 1
-        session_start_idx = len(target_sessions) + 1
-        # start integration here
-        for source_session in source_sessions.values():
-            new_session_name = f"session-{session_start_idx:03}"  # Rename for uniqueness
-            new_capture_name = f"cap-{n_captures:04}"
-            new_sid = str(uuid.uuid4())
-            migrated_session = source_session.copy()
-            migrated_session['name'] = new_session_name
-            migrated_session['session_dir'] = migrated_session['session_dir'].replace(source_session['name'], new_session_name)
-            migrated_session['captures'] = [cap.replace(source_session['name'], new_session_name)
-                                            .replace(self.get_value_name(cap,'cap'), new_capture_name) for cap in migrated_session['captures']]
-            # Add the migrated session to the target dictionary
-            target_sessions[new_sid] = migrated_session
+        # get number of current sessions to check if a new sessions was created or not
+        sessions = self.load_sessions()
+        project_info = self.get_project_info()
+        for sid, source_session in source_sessions.items():
+            new_sessions = self.create_session(source_session.copy(), session_id=sid)
+            if len(new_sessions) == len(sessions):
+                continue
             # Copy data from source to target (you'll need to implement this)
-            self.copy_data(source_session, migrated_session, source_root=source_adapter.get_project_dir())  
-            session_start_idx += 1 
-
-        return target_sessions
+            project_info, sessions = self.import_session_data(source_session, sid, source_root=source_adapter.get_project_dir())
+        return project_info, sessions
     
     def get_value_name(self, value_str, pattern, splitter="_"):
         parts = value_str.split(splitter)
@@ -187,17 +175,20 @@ class FileAgnosticDB:
             if pattern in part:
                 return part
 
-    def copy_data(self, source_session, target_session, source_root):
-        target_root = self.get_project_dir()
+    def import_session_data(self, source_session, sid, source_root):
         # create absolute path tupes for coying
+        project_info = self.get_project_info()
+        sessions = self.load_sessions()
         source_caps = [Path(source_root) / cap_dir for cap_dir in source_session['captures']]
-        target_caps = [Path(target_root) / cap_dir for cap_dir in target_session['captures']]
-        # create directory
-        target_dir = Path(target_root) / target_session['session_dir']
-        target_dir.mkdir(parents=True, exist_ok=True)
-        for source_cap, target_cap in zip(source_caps, target_caps):
-            shutil.copy2(str(source_cap), str(target_cap))
-            shutil.copy2(str(source_cap.with_suffix('.yml')), str(target_cap.with_suffix('.yml')))
+        for source_cap in source_caps:
+            payload = {}
+            payload['img_dir'] = str(source_cap)
+            payload['sid'] = sid
+            with source_cap.with_suffix('.yml').open('r') as f:
+                meta_info = yaml.safe_load(f)
+            payload['meta_info'] = meta_info
+            project_info, sessions = self.post_new_image(payload)
+        return project_info, sessions
 
     def create_project(self, project_info):
         project_dir = Path(project_info['project_dir'])
@@ -223,12 +214,15 @@ class FileAgnosticDB:
         self._initialize_key()
         return self.get_project_info()
 
-    def create_session(self, session_data):
-        session_id = str(uuid.uuid4())
+    def create_session(self, session_data, session_id=None):
+        if not session_id:
+            session_id = str(uuid.uuid4())
         sessions_file = self.project_root_dir / '.project' / '.sessions.json'
         if not sessions_file.is_file():
             raise FileNotFoundError(f"No sessions file found. {sessions_file}")
         sessions = json.loads(sessions_file.read_text())
+        if sessions.get(session_id, None):
+            return sessions    
         n_sessions = len(sessions)
         session_data['name'] = f"session-{str(n_sessions + 1).zfill(3)}"
         session_data['creation_date'] = datetime.now().isoformat()
