@@ -1,6 +1,6 @@
 services:
   Drawer-Capture:
-    image: drawer-capture-app:latest
+    image: containerseb/drawer-capture-app:latest
     build: .
     environment:
       - DISPLAY=${DISPLAY}

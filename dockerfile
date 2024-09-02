@@ -54,6 +54,7 @@ RUN pip3 install --no-cache-dir pandas
 RUN pip3 install --no-cache-dir rawpy
 RUN pip3 install --no-cache-dir pyyaml
 RUN pip3 install --no-cache-dir cryptography
+RUN pip3 install --no-cache-dir matplotlib
 # Arbeitsverzeichnis erstellen
 WORKDIR /app
 COPY . /app
