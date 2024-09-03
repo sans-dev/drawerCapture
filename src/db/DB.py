@@ -205,6 +205,7 @@ class FileAgnosticDB:
         (project_data_dir / '.project.json').touch()
         (project_data_dir / '.sessions.json').write_text('{}')
         (project_data_dir / '.museums.json').write_text('{}')
+        (project_data_dir / '.tmp_cap').mkdir(exist_ok=True)
         
         # Write project info to .project.json
         with (project_data_dir / '.project.json').open('w') as f:

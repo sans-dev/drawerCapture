@@ -56,9 +56,11 @@ RUN pip3 install --no-cache-dir pyyaml
 RUN pip3 install --no-cache-dir cryptography
 RUN pip3 install --no-cache-dir matplotlib
 # Arbeitsverzeichnis erstellen
+
 WORKDIR /app
 COPY . /app
 
-
+#USER ssander
+#RUN chown -R 1000:1000 /app
 # Run drawer capture
-CMD ["/opt/venv/bin/python", "-m", "src.drawerCapture", "--debug","--geo-data", "level-0", "--style", "PicPax"]
+CMD ["/opt/venv/bin/python", "-m", "src.drawerCapture", "--debug","--geo-data", "level-0", "--style", "Combinear"]

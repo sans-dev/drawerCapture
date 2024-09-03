@@ -25,7 +25,7 @@ class OpenDirThread(QThread):
         logger.info("Open directory thread started")
         try:
             if platform.system() == 'Linux':
-                out = subprocess.run(['./start_nautilus.sh', str(self.project_dir)])
+                out = subprocess.run(['./src/cmds/start_nautilus.sh', str(self.project_dir)])
                 if out.returncode != 0:
                     out = subprocess.run(['nautilus', str(self.project_dir)])
                 if out.returncode != 0:

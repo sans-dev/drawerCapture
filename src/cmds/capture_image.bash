@@ -21,6 +21,8 @@ FILE_NAME="$IMAGE_DIR/$IMAGE_NAME$IMAGE_FORMAT"
 
 # capture image and download to image dir with full resolution
 # check if debug is enabled
+cd $IMAGE_DIR
+pkill -f gphoto2
 
 gphoto2 --set-config movie=0
 
