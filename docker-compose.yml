@@ -1,12 +1,12 @@
 services:
   Drawer-Capture:
-    image: containerseb/drawer-capture-app:latest
+    image: drawer-capture-app:test
     build: .
     environment:
       - DISPLAY=${DISPLAY}
     devices:
       - /dev/bus/usb:/dev/bus/usb
-    user: ${MY_UID}:${MY_GID}
+    user: 1000:1000
     privileged: true
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
