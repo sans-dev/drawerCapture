@@ -63,4 +63,4 @@ COPY . /app
 #USER ssander
 #RUN chown -R 1000:1000 /app
 # Run drawer capture
-CMD ["/opt/venv/bin/python", "-m", "src.drawerCapture", "--debug","--geo-data", "level-0", "--style", "PicPax"]
+CMD ["/opt/venv/bin/python", "-m", "src.drawerCapture", "--debug","--geo-data", "level-0", "--style", "Combinear"]
