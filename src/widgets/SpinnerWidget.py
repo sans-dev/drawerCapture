@@ -3,7 +3,7 @@ import logging.config
 
 from PyQt6.QtGui import QMovie
 from PyQt6.QtWidgets import  QLabel, QVBoxLayout, QWidget
-from PyQt6.QtCore import QSize
+from PyQt6.QtCore import QSize, Qt
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
@@ -35,12 +35,12 @@ class LoadingSpinner(QWidget):
 
         # Create a QLabel to display the GIF image
         self.label = QLabel(self)
-        layout.addWidget(self.label)
+        layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Load and start the GIF animation
         self.movie = QMovie("resources/assets/Spinner-1s-200px.gif")
         # make movie smaller
-        self.movie.setScaledSize(QSize(100, 100))
+        self.movie.setScaledSize(QSize(80, 80))
         self.label.setMovie(self.movie)
 
     def start(self):

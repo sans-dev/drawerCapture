@@ -26,38 +26,49 @@ class CameraFetcher(QThread):
         super().__init__()
         self.proc = None
         self.cameras_data = []
+        self.output = []
+        self.error = []
 
     def run(self):
         """
         Starts the camera fetching process and emits the 'finished' signal when the process is done.
         """
+        self.output = []
+        self.error = []
+        cameras = []
+        self.cameras_data = []
         if self.proc is None:
             logger.info("fetching cameras")
             self.proc = QProcess()
             self.proc.finished.connect(self.procFinished)
-
+            self.proc.readyReadStandardOutput.connect(self.append_output)
+            self.proc.setCurrentReadChannel(1)
+            self.proc.readyReadStandardError.connect(self.append_error)
             self.proc.start('gphoto2', ['--auto-detect'])
+            if not self.proc.waitForStarted():
+                logger.error('failed to start camera fetching', self.output)
             finished = self.proc.waitForFinished(self.WAIT_TIME_MS)
             logger.debug("finished: %s", finished)
             if not finished:
                 self.finished.emit(['No cameras found'])
                 logger.debug("Fetching cameras timed out")
                 return
-            
-            output = self.proc.readAllStandardOutput()
-            lines = output.data().decode('utf-8').split('\n')
-            cameras = []
-            self.cameras_data = []
-
-            for line in lines:
+            for line in self.output:
                 if 'usb:' in line:
-                    logger.debug("found camera: %s", line)
-                    cameras.append(line.split('usb:')[0])
-                    self.cameras_data.append(line)
+                    data = line.split('\n')[2]
+                    logger.debug("found camera: %s", data)
+                    cameras.append(data.split('usb:')[0])
+                    self.cameras_data.append(data)
 
             if len(cameras) == 0:
                 cameras.append('No cameras found')
             self.finished.emit(cameras)
+
+    def append_output(self):
+        self.output.append(self.proc.readAllStandardOutput().data().decode('utf-8'))
+
+    def append_error(self):
+        self.error.append(self.proc.readAllStandardOutput().data().decode('utf-8'))
 
     def procFinished(self):
         """

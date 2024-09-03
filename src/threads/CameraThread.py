@@ -1,12 +1,12 @@
 import subprocess
 import logging
 import logging.config
-from PyQt6.QtCore import QThread, QProcess
+from PyQt6.QtCore import QRunnable
 
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
-class CameraThread(QThread):
+class CameraWorker(QRunnable):
     """
     A QThread subclass for capturing images from a camera using gphoto2.
 
@@ -44,7 +44,7 @@ class CameraThread(QThread):
     def __init__(self, cameraData=None):
         super().__init__()
         if cameraData:
-            self.setCameraData(cameraData)
+            self.set_camera_data(cameraData)
         self.model = None
         self.port = None
         self.config = dict()
@@ -52,21 +52,21 @@ class CameraThread(QThread):
 
         self.proc = None
 
-    def setCameraData(self, cameraData):
+    def set_camera_data(self, model, port):
         """
         Sets the camera model and port based on the given cameraData string.
 
         Parameters:
         -----------
-        cameraData : str
-            A string containing the camera model and port in the format "MODEL usb:PORT".
+        model : str
+        port : str
 
         Returns:
         --------
         None
         """
-        self.model = cameraData.split('usb')[0].strip()
-        self.port = f"usb{cameraData.split('usb')[-1].strip()}"
+        self.model = model
+        self.port = port
         self.config['--model'] = self.model
         self.config['--port'] = self.port
 
@@ -106,17 +106,6 @@ class CameraThread(QThread):
                     pid
                 ]
                 subprocess.run(cmd)
-
-    def _procFinished(self):
-        """
-        Callback function to be called when the gphoto2 process finishes.
-
-        Returns:
-        --------
-        None
-        """
-        print("In Camera Thread proc_finished")
-        self.proc = None
 
     def _buildKwargs(self):
         """
@@ -173,4 +162,3 @@ class CameraThread(QThread):
         None
         """
         self._stopGphoto2Slaves()
-        super().quit()

@@ -1,16 +1,21 @@
-from pathlib import Path
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
 
-from PyQt6.QtCore import pyqtSignal, QProcess
-
-from PyQt6.QtGui import QPixmap
-from src.threads.CameraThread import CameraThread
+from datetime import datetime
+from PyQt6.QtCore import pyqtSignal, QProcess, QObject
+from src.threads.CameraThread import CameraWorker
 
 logger = logging.getLogger(__name__)
 
-class ImageCapture(CameraThread):
+
+class CaptureSignals(QObject):
+    img_captured = pyqtSignal(str)
+    failed_signal = pyqtSignal(str)
+    finished = pyqtSignal()
+    started = pyqtSignal()
+
+class ImageCapture(CameraWorker):
     """
     A thread for capturing images from a camera.
 
@@ -20,13 +25,8 @@ class ImageCapture(CameraThread):
     imageCaptured (pyqtSignal): A signal emitted when an image is captured.
     """
 
-    IMG_FORMATS = {
-        'Fuji' : '.raf',
-    }
-    WAIT_TIME_MS = 30_000
-
-    imageCaptured = pyqtSignal(str)
-    failed_signal = pyqtSignal(str)
+    WAIT_TIME_MS = 10_000
+    signals = CaptureSignals()
 
     def __init__(self, cameraData=None):
         super().__init__(cameraData=cameraData)
@@ -35,67 +35,86 @@ class ImageCapture(CameraThread):
         self.config['--image_dir'] = ''
         self.config['--image_name'] = ''
         self.config['--image_format'] = '.jpg'
-        self.proc = QProcess()
-        self.proc.readyReadStandardError.connect(self.printStdErr)
-        self.proc.readyReadStandardOutput.connect(self.printStdOut)
-        self.proc.finished.connect(self.finished)
-        self.proc.moveToThread(self)
-        # self.finished.connect(self.proc.deleteLater)
-        self.finished.connect(self.quit)
 
     def run(self):
         """
         Runs the image capture thread.
         """
         logger.info("running image capture thread")
-        super()._stopGphoto2Slaves()
+        self.signals.started.emit()
         self._captureImage()
+        self.signals.finished.emit()
+        self.quit()
 
     def _captureImage(self):
-        """
-        Starts the image capture process.
-        """
-        if self.proc.state() is QProcess.ProcessState.NotRunning:
+        self.proc = QProcess()
+        self.proc.readyReadStandardError.connect(self.printStdErr)
+        self.proc.readyReadStandardOutput.connect(self.printStdOut)
 
-            logger.debug("starting image capture process")
-            self.proc.start(self.cmd, self._buildKwargs())
-            started = self.proc.waitForStarted()
-            if not started:
-                logger.warining("failed to start image capture process")
-                self.failed_signal.emit("failed to start image capture process")
-                return
-            finished = self.proc.waitForFinished(ImageCapture.WAIT_TIME_MS)
-            if not finished:
-                logger.warning("image capture process did not finish in {} ms".format(ImageCapture.WAIT_TIME_MS))
-                self.failed_signal.emit("image capture process did not finish in {} ms".format(ImageCapture.WAIT_TIME_MS))
-                return
-            if self.proc.exitCode()!= 0 and not "Saving file as " in " ".join(self.get_std_err()):
-                logger.warning("image capture process exited with code {}. {}".format(self.proc.exitCode(), self.get_std_err()))
-                self.failed_signal.emit("image capture process exited with code {}. {}".format(self.proc.exitCode(), self.get_std_err()))
-                return
-            logger.info("image capture process finished")
-            self.imageCaptured.emit(self.config['--image_dir'] + self.config['--image_name'] + self.config['--image_format'])
-        else:
+        if self.proc.state() is not QProcess.ProcessState.NotRunning:
             logger.warning("image capture process already running")
             print(self.proc.state())
+            return
+
+        logger.debug("starting image capture process")
+        self.set_image_name()
+        self.proc.start(self.cmd, self._buildKwargs())
+
+        if not self.proc.waitForStarted():
+            self._handle_failure("failed to start image capture process")
+            return
+
+        if not self.proc.waitForFinished(ImageCapture.WAIT_TIME_MS):
+            # try to load image anyway
+            self.signals.img_captured.emit(f"{self.config['--image_dir']}/{self.config['--image_name']}{self.config['--image_format']}")
+            self._handle_failure(f"image capture process did not finish in {ImageCapture.WAIT_TIME_MS} ms")
+            return
+
+        if self.proc.exitCode() != 0 and not any("Saving file as " in err for err in self.get_std_err()):
+            self._handle_failure(f"image capture process exited with code {self.proc.exitCode()}. {self.get_std_err()}")
+            return
+
+        logger.info("image capture process finished")
+        self.signals.img_captured.emit(f"{self.config['--image_dir']}/{self.config['--image_name']}{self.config['--image_format']}")
+
+    def _handle_failure(self, message):
+        logger.warning(message)
+        self.signals.failed_signal.emit(message)
         
+    def set_image_name(self):
+        self.config['--image_name'] = datetime.now().isoformat().replace(':','_').replace('.','-')
+
+    def set_image_dir(self, dir):
+        self.config['--image_dir'] = dir
+
     def quit(self):
         """
         Quits the image capture thread and emits the imageCaptured signal.
         """
-        logger.info("quitting image capture thread")
-        #super()._stopGphoto2Slaves()
-        #self.proc.kill()
+        logger.info("quitting image capture worker")
+        self.proc.terminate()
 
-    def setUpConfig(self, config: dict):
-        """
-        Sets up the configuration for the image capture thread.
+def handle_capture(response):
+    print(response)
 
-        Args:
-        config (dict): A dictionary of configuration options.
-        """
-        for key, value in config.items():
-            try:
-                self.config[key] = value
-            except KeyError:
-                logger.error("key %s not found in config", key)
+if __name__ == "__main__":
+    import sys
+    from PyQt6.QtWidgets import QApplication
+    from PyQt6.QtCore import QThread
+
+    app = QApplication(sys.argv)
+    capture = ImageCapture()
+    capture.set_camera_data('Sony Alpha-A5100 (Control)', 'usb:001,015')
+    capture.set_image_dir('data/captures')
+    thread = QThread()
+    capture.moveToThread(thread)
+    thread.finished.connect(capture.deleteLater)
+    thread.started.connect(capture.run)
+    thread.finished.connect(capture.quit)
+    capture.imageCaptured.connect(handle_capture)
+    thread.finished.connect(app.quit)
+    thread.start()
+    thread.quit()
+    thread.wait()
+
+    sys.exit(app.exec())
