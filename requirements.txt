@@ -13,7 +13,7 @@ rawpy==0.18.1
 requests==2.31.0
 tifffile==2023.9.26
 tqdm==4.66.1
-urllib3==2.2.1
+urllib3==2.2.2
 pygbif
 folium
 PyQt6-WebEngine
