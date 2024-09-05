@@ -10,7 +10,7 @@ from src.widgets.DataCollection import DataCollection
 from src.widgets.ImagePanel import ImagePanel
 from src.signals.ProcessEmitter import ProcessEmitter
 
-logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
+logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 class HistogramWidget(QWidget):

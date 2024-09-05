@@ -1,8 +1,0 @@
-# ignore compressed files
-*.zip
-*.rar
-*.7z
-*.gz
-
-# ignore png files in folders
-/*/*.png

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from src.threads.CameraThread import CameraWorker
 
-logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
+logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 

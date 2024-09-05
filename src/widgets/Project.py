@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (QApplication, QDialog, QWidget, QVBoxLayout, QLineE
                              QCheckBox, QGridLayout, QMessageBox, QInputDialog, QComboBox, QTextEdit, QDialogButtonBox, QMenu, QProgressBar)
 import logging
 import logging.config
-logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
+logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 

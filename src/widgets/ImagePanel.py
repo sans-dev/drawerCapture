@@ -7,7 +7,7 @@ import cv2
 
 from src.processors.adaptive_he import AdaptiveHE
 
-logging.config.fileConfig('configs/logging.conf',
+logging.config.fileConfig('configs/logging/logging.conf',
                           disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 

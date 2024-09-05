@@ -5,7 +5,7 @@ from PyQt6.QtGui import QMovie
 from PyQt6.QtWidgets import  QLabel, QVBoxLayout, QWidget
 from PyQt6.QtCore import QSize, Qt
 
-logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
+logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 

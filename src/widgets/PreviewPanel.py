@@ -13,7 +13,7 @@ from src.threads.VideoCaptureDevice import VideoCaptureDevice
 from src.threads.ImageCapture import ImageCapture
 from src.widgets.SpinnerWidget import LoadingSpinner
 
-logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
+logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 class Panel(QLabel):

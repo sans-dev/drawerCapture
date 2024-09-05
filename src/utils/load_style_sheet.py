@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-STYLES_DIR = Path("styles")
+STYLES_DIR = Path("assets/styles")
 
 def load_style_sheet(style_name: str):
     """

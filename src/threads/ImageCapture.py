@@ -1,6 +1,6 @@
 import logging
 import logging.config
-logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
+logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)
 
 from datetime import datetime
 from PyQt6.QtCore import pyqtSignal, QProcess, QObject

@@ -14,7 +14,7 @@ from src.configs.DataCollection import *
 from src.widgets.MapWidget import MapWindow
 import logging
 import logging.config
-logging.config.fileConfig('configs/logging.conf',
+logging.config.fileConfig('configs/logging/logging.conf',
                           disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
@@ -454,6 +454,9 @@ class SynonymSearch(QWidget):
         self.tool_label.show()
 
     def load_synonym_data(self, synonym_dir):
+        if not synonym_dir:
+            self.synonymes = {}
+            return
         self.synonymes = json.load(
             open(synonym_dir))
 
@@ -511,7 +514,8 @@ class TaxonomyField(ListWidget):
             20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         self.label = QLabel(self.label_text)
         self.syn_search = SynonymSearch()
-        self.syn_search.load_synonym_data(SYNONYMES[self.name])
+        syn_file = SYNONYMES.get(self.name, None)
+        self.syn_search.load_synonym_data(syn_file)
         self.syn_search.populate_ui()
         
         self.syn_search_button = QPushButton("Synonyme Search")

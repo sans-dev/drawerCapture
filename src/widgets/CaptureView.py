@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import QWidget, QPushButton, QHBoxLayout, QMessageBox, QSpa
 from PyQt6.QtCore import Qt, pyqtSignal
 from src.widgets.PreviewPanel import PreviewPanel
 
-logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
+logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 

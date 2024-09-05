@@ -3,7 +3,7 @@ import logging
 import logging.config
 from PyQt6.QtCore import QRunnable
 
-logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
+logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 class CameraWorker(QRunnable):

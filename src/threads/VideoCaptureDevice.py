@@ -1,6 +1,6 @@
 import logging
 import logging.config
-logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
+logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)
 
 import cv2
 from PyQt6.QtCore import QRunnable, pyqtSignal, QObject

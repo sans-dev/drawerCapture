@@ -13,7 +13,7 @@ from src.utils.Validation import DataValidator
 
 import logging
 import logging.config
-logging.config.fileConfig('configs/logging.conf', disable_existing_loggers=False)
+logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 class DBAdapter(QObject):

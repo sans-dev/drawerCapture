@@ -16,7 +16,7 @@ from src.widgets.Project import (ProjectCreator, ProjectLoader, ProjectViewer, L
                                  UserManager, MuseumManager, UserSettings, SessionCreator, ProjectMerger) 
 from src.utils.searching import init_taxonomy
 
-logging.config.fileConfig('configs/logging.conf',
+logging.config.fileConfig('configs/logging/logging.conf',
                           disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ class MainWindow(QMainWindow):
         """
         self.set_window_title()
         self.setGeometry(0, 0, 1920, 1024)
-        self.setWindowIcon(QIcon('resources/assets/logo.png'))
+        self.setWindowIcon(QIcon('assets/icons/app_icon.png'))
         self.stacked_widget = QStackedWidget(self)
         self.project_view = ProjectViewer(self.db_adapter)
 
@@ -96,40 +96,40 @@ class MainWindow(QMainWindow):
     def create_actions(self):
         # File menu actions
         self.new_project_action = QAction(
-            QIcon('resources/assets/add.png'), "New Project", self)
+            QIcon('assets/icons/add.png'), "New Project", self)
         self.open_project_action = QAction(
-            QIcon('resources/assets/open.png'), "Open Project", self)
+            QIcon('assets/icons/open.png'), "Open Project", self)
         self.exit_action = QAction(
-            QIcon('resources/assets/close.png'), "Exit", self)
+            QIcon('assets/icons/close.png'), "Exit", self)
         self.new_session_action = QAction(
-            QIcon('resources/assets/add2.png'), "New Capture Session", self)
+            QIcon('assets/icons/add2.png'), "New Capture Session", self)
         # self.new_session_action.setEnabled(False)
 
         # Project menu actions
         self.manage_user_action = QAction(QIcon(
-            'resources/assets/user-management-icon-2048x2048-kv1zlmf8.png'), "Manage Users", self)
+            'assets/icons/user-management-icon-2048x2048-kv1zlmf8.png'), "Manage Users", self)
         self.manage_museums_action = QAction(
-            QIcon('resources/assets/museum.png'), "Manage Museums", self)
+            QIcon('assets/icons/museum.png'), "Manage Museums", self)
         self.merge_projects_action = QAction(
-            QIcon('resources/assets/add2.png'), "Merge Projects", self)
+            QIcon('assets/icons/add2.png'), "Merge Projects", self)
 
         # User menu actions
         self.login_action = QAction(
-            QIcon('resources/assets/user.png'), "Change User", self)
+            QIcon('assets/icons/user.png'), "Change User", self)
         self.user_settings = QAction(
-            QIcon('resources/assets/user_settings.png'), "User Settings", self)
+            QIcon('assets/icons/user_settings.png'), "User Settings", self)
         
         # Camera Settings
         self.add_camera_action = QAction(
-            QIcon("resources/assets/camera_off.png"), "Connect Camera", self)
+            QIcon("assets/icons/camera_off.png"), "Connect Camera", self)
 
         # Capture mode actions
         self.capture_image = QAction(
-            QIcon("resources/assets/capture_image.png"), "Capture Image", self)
+            QIcon("assets/icons/capture_image.png"), "Capture Image", self)
         self.start_live_preview = QAction(
-            QIcon("resources/assets/play.png"), "Capture Image", self)
+            QIcon("assets/icons/play.png"), "Capture Image", self)
         self.stop_live_preview = QAction(
-            QIcon("resources/assets/stop.png"), "Capture Image", self)
+            QIcon("assets/icons/stop.png"), "Capture Image", self)
 
         # Add actions to menus
         self.file_menu.addAction(self.new_project_action)
@@ -385,7 +385,7 @@ if __name__ == '__main__':
     geo_data_dir = GEO[args.geo_data]
 
     app = QApplication(sys.argv)
-    app.setWindowIcon(QIcon('resources/assets/logo.png'))
+    app.setWindowIcon(QIcon('assets/icons/app_icon.png'))
     if args.style != styles[0]:
         app.setStyleSheet(load_style_sheet(args.style))
 
