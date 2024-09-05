@@ -20,7 +20,3 @@ venv*
 resources/*
 tests/data
 profiling/*
-
-# Ignore everything in the assets directory except the tracked files
-assets/*
-!assets/.gitattributes
