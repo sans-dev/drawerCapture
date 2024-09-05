@@ -1,3 +1,12 @@
+'''
+Module: PreviewPanel.py
+Author: Sebastian Sander
+This module contains the implementation of the PreviewPanel widget, which displays a live preview of the camera stream and allows capturing images.
+
+'''
+
+
+
 import logging
 import logging.config
 

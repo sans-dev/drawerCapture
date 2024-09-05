@@ -1,3 +1,19 @@
+"""
+Module: drawerCapture.py
+Author: Sebastian Sander
+This module contains the main window class for the DrawerCapture application. The main window is responsible for managing the user interface and handling user interactions.
+Classes:
+- MainWindow: The main window of the DrawerCapture application.
+Functions:
+- None
+Constants:
+- None
+Exceptions:
+- None
+
+"""
+
+
 import sys
 from argparse import ArgumentParser
 import logging

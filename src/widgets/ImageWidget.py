@@ -1,3 +1,12 @@
+'''
+Module: ImageWidget
+
+Author: Sebastian Sander
+
+A module that contains the ImageWidget class, which is a widget that displays an image and provides buttons to crop, enhance, save, and close the image.
+
+'''
+
 import logging
 import logging.config
 import cv2
@@ -7,8 +16,6 @@ from PyQt6.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QPushButton, QMes
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QIcon
 from src.widgets.DataCollection import DataCollection
-from src.widgets.ImagePanel import ImagePanel
-from src.signals.ProcessEmitter import ProcessEmitter
 
 logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)

@@ -1,3 +1,9 @@
+"""
+Module for implementing a TaxonomyTree data structure.
+
+Author: Sebastian Sander
+"""
+
 import json
 
 class TrieNode:

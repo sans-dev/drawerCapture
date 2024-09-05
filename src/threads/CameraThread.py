@@ -1,3 +1,9 @@
+"""
+Module: CameraThread.py
+Author: Sebastian Sander
+This module contains the definition of the CameraWorker class, which is a QThread subclass for capturing images from a camera using gphoto2.
+"""
+
 import subprocess
 import logging
 import logging.config

@@ -1,3 +1,10 @@
+"""
+Module: CameraStreamer
+Author: Sebastian Sander
+This module contains the CameraStreamer class, which is a thread that streams video from a camera device.
+"""
+
+
 import logging
 import logging.config
 import time

@@ -1,3 +1,13 @@
+"""
+Module: load_style_sheet.py
+
+This module provides a function to load a Qt style sheet from a specified style name.
+
+Author: Sebastian Sander
+
+"""
+
+
 from pathlib import Path
 
 

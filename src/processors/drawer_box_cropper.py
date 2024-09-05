@@ -1,10 +1,20 @@
+"""
+Module: drawer_box_cropper.py
+Author: Sebastian Sander
+This module contains the implementation of the DrawerBoxCropper class, which is used to process images and crop the drawer box from them. The class provides methods for selecting a region of interest (ROI) from an image, calculating the color mask from the ROI, cropping the drawer box from the image, and saving the cropped image.
+Usage:
+    python drawer_box_cropper.py --images_dir <path_to_images_dir> --output_dir <path_to_output_dir>
+Example:
+    python drawer_box_cropper.py --images_dir /path/to/images --output_dir /path/to/output
+
+"""
+
+
 import cv2
 import numpy as np
 from argparse import ArgumentParser
 from pathlib import Path
 from tqdm import tqdm
-
-from src.utils.plotting import show_image, scale_image, plot_line
 
 class DrawerBoxCropper:
     def __init__(self, images_dir: Path, output_dir: Path):
@@ -74,6 +84,19 @@ class DrawerBoxCropper:
         image_crop = image[y_l:y_r, x_l:x_r]
         return image_crop
 
+    def scale_image(self, image : np.ndarray):
+        """Scales the image to fit the screen
+
+        Args:
+            image (numpy array): image to be processed
+
+        Returns:
+            numpy array: scaled image
+        """    
+        max_height = 800
+        scale_factor = max_height / image.shape[0]
+        return cv2.resize(image, None, fx=scale_factor, fy=scale_factor), scale_factor
+    
     def get_roi(self, image : np.ndarray):
         """Selects a ROI from the image
 
@@ -83,7 +106,7 @@ class DrawerBoxCropper:
         Returns:
             numpy array: ROI
         """    
-        image_scaled, scale_factor = scale_image(image)
+        image_scaled, scale_factor = self.scale_image(image)
         roi = cv2.selectROI('Select ROI containing the drawer frame',image_scaled)
         cv2.destroyAllWindows()
         roi = (np.array(roi) / scale_factor).astype(int)

@@ -1,3 +1,22 @@
+
+"""
+Module: CameraFetcher
+Author: Sebastian Sander
+This module contains the `CameraFetcher` class, which is a subclass of `QThread`. It fetches connected cameras using gphoto2.
+    - finished: A signal that is emitted when the camera fetching process is finished. The signal carries a list of connected cameras.
+    - WAIT_TIME_MS (int): The maximum time to wait for the camera fetching process to finish.
+    - proc (QProcess): The QProcess instance that runs the camera fetching process.
+    - cameras_data (list): A list of strings containing information about connected cameras.
+Methods:
+    - run(): Starts the camera fetching process and emits the 'finished' signal when the process is done.
+    - append_output(): Appends the standard output of the process to the `output` list.
+    - append_error(): Appends the standard error of the process to the `error` list.
+    - procFinished(): Resets the 'proc' attribute to None when the camera fetching process is finished.
+    - getCameraData(camera: str) -> str: Returns the camera data for the specified camera.
+    - quit(): Stops the camera fetching process and emits the 'finished' signal with a 'No cameras found' message.
+
+"""
+
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)

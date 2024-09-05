@@ -1,9 +1,31 @@
+"""
+Module: CaptureView.py
+Author: Sebastian Sander
+This module contains the implementation of the CaptureView class, which is a QWidget subclass.
+CaptureView is responsible for displaying the capture mode interface and handling user interactions.
+Classes:
+- CaptureView: A QWidget subclass that represents the capture mode interface.
+Signals:
+- close_signal: A pyqtSignal emitted when the capture view is closed.
+Methods:
+- __init__(self, db_adapter, panel): Initializes a new instance of the CaptureView class.
+- init_ui(self): Initializes the user interface of the capture view.
+- create_button_layout(self): Creates the layout for the buttons in the capture view.
+- connect_signals(self): Connects signals to their respective slots.
+- enable_save_button(self, img): Enables the save button when an image is captured.
+- set_camera_data(self, camera_data): Sets the camera data for the capture view.
+- capture_image(self): Captures an image using the panel.
+- show_error_dialog(self, msg): Displays an error dialog with the given message.
+- closeEvent(self, event): Overrides the closeEvent method to emit the close_signal when the capture view is closed.
+
+"""
+
+
 import logging
 import logging.config
 
-from PyQt6.QtWidgets import QWidget, QPushButton, QHBoxLayout, QMessageBox, QSpacerItem, QSizePolicy, QGridLayout
+from PyQt6.QtWidgets import QWidget, QPushButton, QHBoxLayout, QMessageBox, QGridLayout
 from PyQt6.QtCore import Qt, pyqtSignal
-from src.widgets.PreviewPanel import PreviewPanel
 
 logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)
 logger = logging.getLogger(__name__)

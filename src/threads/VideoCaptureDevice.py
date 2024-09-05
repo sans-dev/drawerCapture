@@ -1,3 +1,10 @@
+"""
+Module: VideoCaptureDevice
+Author: Sebastian Sander
+This module contains the `VideoCaptureDevice` class, which represents a video capture device.
+"""
+
+
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)

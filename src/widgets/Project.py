@@ -1,3 +1,32 @@
+"""
+Module: Project.py
+Author: Sebastian Sander
+This module contains classes and functions related to project management and manipulation. It provides functionality for creating, loading, merging, and validating projects. It also includes various helper classes and functions for input validation and error handling.
+Classes:
+- OpenDirThread: A QThread subclass for opening a directory in the file explorer.
+- ValidatorFactory: A factory class for creating input validators.
+- ValidationRules: A class that defines various validation rules for input fields.
+- ValidationRule: A class representing a single validation rule.
+- InputValidator: A class for validating input fields based on a set of validation rules.
+- ErrorLabel: A QLabel subclass for displaying error messages.
+- ProjectMerger: A QWidget subclass for merging projects.
+- ProjectCreator: A QWidget subclass for creating projects.
+- ProjectLoader: A QWidget subclass for loading projects.
+Functions:
+- create_password_validator: Creates a password validator.
+- create_name_validator: Creates a name validator.
+- create_authors_validator: Creates an authors validator.
+- get_password_rule: Returns a validation rule for passwords.
+- get_password_message: Returns an error message for password validation.
+- get_confirm_password_rule: Returns a validation rule for confirming passwords.
+- get_confirm_password_message: Returns an error message for confirming passwords.
+- get_admin_rule: Returns a validation rule for admin names.
+- get_project_rule: Returns a validation rule for project names.
+- get_authors_rule: Returns a validation rule for authors.
+- get_description_rule: Returns a validation rule for project descriptions.
+"""
+
+
 from datetime import datetime
 from pathlib import Path
 import platform

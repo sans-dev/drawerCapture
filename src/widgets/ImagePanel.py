@@ -1,3 +1,20 @@
+"""
+Module: ImagePanel.py
+Author: Sebastian Sander
+This module contains the definition of the ImagePanel class, which is a widget that displays an image and allows for image processing and saving.
+The ImagePanel class provides the following methods:
+- __init__(self, emitter): Initializes the ImagePanel widget.
+- initUI(self): Initializes the user interface for the ImagePanel widget.
+- connectSignals(self): Connects signals for the ImagePanel widget.
+- emptyPreview(self): Clears the preview panel.
+- close(self): Closes the ImagePanel widget.
+- loadImage(self, image_dir): Loads an image from a file and displays it in the ImagePanel widget.
+- processImage(self, processor: str): Processes the current image using the specified image processing algorithm.
+- saveImage(self): Saves the current image to a file.
+- get_image(self): Returns the current image.
+"""
+
+
 import logging
 import logging.config
 import rawpy

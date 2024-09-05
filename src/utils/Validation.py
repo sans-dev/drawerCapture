@@ -1,3 +1,10 @@
+"""
+Module: Validation
+This module provides classes and methods for data validation.
+Author: Sebastian Sander
+"""
+
+
 from pathlib import Path
 
 class DataValidator:

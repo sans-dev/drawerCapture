@@ -1,3 +1,18 @@
+"""
+Module: SpinnerWidget.py
+
+Author: Sebastian Sander
+
+This module contains the definition of the LoadingSpinner class, which is a widget that displays a loading spinner animation.
+
+The LoadingSpinner class provides the following methods:
+- __init__(self, parent=None): Initializes the LoadingSpinner widget.
+- init_ui(self): Initializes the user interface of the LoadingSpinner widget.
+- start(self): Starts the loading spinner animation.
+- stop(self): Stops the loading spinner animation.
+"""
+
+
 import logging
 import logging.config
 

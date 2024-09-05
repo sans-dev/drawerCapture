@@ -1,3 +1,12 @@
+"""
+A widget that displays a list of available cameras and allows the user to select one.
+Author: Sebastian Sander
+Attributes:
+    selectedCameraChanged (pyqtSignal): A signal emitted when the selected camera changes.
+    closed (pyqtSignal): A signal emitted when the widget is closed.
+    refreshing (pyqtSignal): A signal emitted when the camera list is being refreshed.
+"""
+
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)

@@ -1,6 +1,31 @@
+"""
+Module: fetch_gbif.py
+Author: Sebastian Sander
+
+This module fetches taxonomic data from the GBIF API and saves it to a JSON file.
+
+Functions:
+- fetch_orders: Fetches orders from the GBIF API.
+- fetch_families: Fetches families for a given order from the GBIF API.
+- fetch_genera: Fetches genera for a given family from the GBIF API.
+- fetch_species: Fetches species for a given genus from the GBIF API.
+- delete_keys: Deletes specified keys from a dictionary.
+- save_taxonomy: Saves the taxonomic data to a JSON file.
+
+Usage:
+1. Import the module:
+
+2. Call the functions to fetch and save the taxonomic data:
+    fetch_gbif.fetch_orders()
+    fetch_gbif.save_taxonomy()
+
+"""
+
+
 import requests
 import json
 from tqdm import tqdm
+from utils import fetch_gbif
 
 keys_to_delete = [
     "nubKey",

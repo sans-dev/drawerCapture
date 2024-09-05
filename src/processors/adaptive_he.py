@@ -1,3 +1,11 @@
+"""
+Module: adaptive_he.py
+This module contains the AdaptiveHE class which applies contrast limited adaptive histogram equalization to an input image.
+Author: Sebastian Sander
+
+"""
+
+
 import logging
 import logging.config
 

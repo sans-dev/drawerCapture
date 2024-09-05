@@ -1,3 +1,26 @@
+"""
+Module: ImageCapture
+Author: Sebastian Sander
+A module for capturing images from a camera.
+This module provides a thread-based approach to capturing images from a camera. It utilizes the PyQt6 library for handling signals and threads. The captured images can be saved to a specified directory with a unique name based on the current timestamp.
+Classes:
+- ImageCapture: A thread for capturing images from a camera.
+Functions:
+- handle_capture: A function for handling the captured images.
+Usage:
+1. Import the module:
+2. Create an instance of the ImageCapture class:
+3. Set the camera data and image directory:
+    capture.set_camera_data(camera_name, camera_id)
+    capture.set_image_dir(directory)
+4. Connect the imageCaptured signal to the handle_capture function:
+5. Start the image capture thread:
+    capture.start()
+6. Quit the image capture thread:
+    capture.quit()
+"""
+
+
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)

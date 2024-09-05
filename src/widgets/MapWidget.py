@@ -1,3 +1,111 @@
+'''
+"""
+Module: MapWidget.py
+Author: Sebastian Sander
+This module contains the MapWindow class, which represents a PyQt6 widget for displaying an offline world map. It provides functionality for searching and displaying country data on the map, as well as obtaining coordinates by right-clicking on the map.
+Usage:
+    To use this module, create an instance of the MapWindow class and pass the necessary parameters. The map will be displayed in a PyQt6 window.
+Example:
+"""
+    """
+    A PyQt6 widget for displaying an offline world map and interacting with it.
+    Args:
+        server_api (str): The API address for the map server. Default is 'http://localhost:3650/api/maps/'.
+        map_id (str): The ID of the map to be displayed. Default is 'openmap-basic'.
+        region_data (None or dict): Data for regions. Default is None.
+        search_bar (None or QLineEdit): The search bar widget for entering country names. Default is None.
+    Signals:
+        new_coords_signal (tuple): Signal emitted when new coordinates are obtained.
+    """
+        """
+        Initialize the MapWindow widget.
+        Args:
+            server_api (str): The API address for the map server.
+            map_id (str): The ID of the map to be displayed.
+            region_data (None or dict): Data for regions.
+            search_bar (None or QLineEdit): The search bar widget for entering country names.
+        """
+        pass
+        """
+        Initialize the user interface of the MapWindow widget.
+        Args:
+            search_bar (None or QLineEdit): The search bar widget for entering country names.
+        """
+        pass
+        """
+        Event filter for handling right-click events on the map.
+        Args:
+            source (QObject): The source object that triggered the event.
+            event (QEvent): The event object.
+        Returns:
+            bool: True if the event was handled, False otherwise.
+        """
+        pass
+        """
+        Get the coordinates of a point on the map.
+        Args:
+            position (QPoint): The position of the point.
+        """
+        pass
+        """
+        Calculate the height of a map tile in degrees.
+        Args:
+            lat_deg (float): The latitude in degrees.
+            zoom (float): The zoom level.
+        Returns:
+            float: The height of a map tile in degrees.
+        """
+        pass
+        """
+        Convert pixel coordinates to geographic coordinates.
+        Args:
+            zoom (float): The zoom level.
+            pixel_x (int): The x-coordinate of the pixel.
+            pixel_y (int): The y-coordinate of the pixel.
+            center_lat (float): The latitude of the center of the map.
+            center_lon (float): The longitude of the center of the map.
+        Returns:
+            tuple: The latitude and longitude of the converted coordinates.
+        """
+        pass
+        """
+        Load country data from a CSV file.
+        """
+        pass
+        """
+        Search for a country and update the map.
+        """
+        pass
+        """
+        Get the bounding box coordinates of a country.
+        Args:
+            country_name (str): The name of the country.
+        Returns:
+            list or None: The bounding box coordinates if found, None otherwise.
+        """
+        pass
+        """
+        Update the map with new bounding box coordinates.
+        Args:
+            bbox (list): The bounding box coordinates.
+        """
+        pass
+        """
+        Calculate the starting zoom level for the map.
+        Args:
+            bounds (list): The bounding box coordinates.
+        Returns:
+            float: The starting zoom level.
+        """
+        pass
+        """
+        Handle key press events.
+        Args:
+            event (QKeyEvent): The key event.
+        """
+        pass
+
+'''
 import sys
 import pandas as pd
 import numpy as np

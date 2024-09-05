@@ -1,3 +1,15 @@
+"""
+Module for downloading OpenStreetMap tiles.
+
+Author: Sebastian Sander
+
+This module provides functions for downloading OpenStreetMap tiles within a specified area and zoom levels.
+The `download_tiles` function takes the minimum and maximum zoom levels, latitude and longitude boundaries, and an output directory as parameters.
+It creates the necessary directory structure and downloads the tiles using the `download_tile` function.
+
+Example usage:
+"""
+
 import os
 import requests
 from tqdm import tqdm

@@ -1,3 +1,11 @@
+
+'''
+This module contains the DBAdapter and FileAgnosticDB classes for interacting with the database.
+Author: Sebastian Sander
+'''
+
+
+
 import yaml
 import uuid
 import hashlib

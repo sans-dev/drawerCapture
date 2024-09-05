@@ -1,3 +1,10 @@
+"""
+Module: DataCollection.py
+This module contains classes and functions related to data collection.
+Author: Sebastian Sander
+"""
+
+
 import json
 import pandas as pd
 import numpy as np
