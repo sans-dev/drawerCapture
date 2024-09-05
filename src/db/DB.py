@@ -383,10 +383,15 @@ class FileAgnosticDB:
         self._save_credentials(encrypted_data)
 
     def load_project(self, project_dir):
+        # handle white spaces in project_dir
         self.project_root_dir = Path(project_dir)
         project_info = self.get_project_info()
         if not DataValidator.validate_project_config(project_info):
             raise ValueError(f"Project data are not valid for {project_dir}")
+        # update dir in case project was moved
+        project_info['project_dir'] = self.project_root_dir.as_posix()
+        # update project info
+        self._save_project_info(project_info)
         self._initialize_key()
         return project_info
         
