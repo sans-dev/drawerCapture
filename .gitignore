@@ -16,9 +16,7 @@ env*
 .env*
 venv*
 .venv*
-resources/flows
-resources/click_dummy
 
-resources/taxonomy
+resources/*
 tests/data
-profiling/
+profiling/*
