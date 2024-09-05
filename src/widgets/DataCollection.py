@@ -195,6 +195,30 @@ class GeoDataField(ListWidget):
         #self.map.search_bar.region_changed.connect(
         #    self.region_field.set_region)
 
+        self.region_field.region_changed.connect(
+            self.on_region_changed)
+        self.geo_coords.coords_changed.connect(
+            self.on_coords_changed)
+        self.signals_enabled = True
+        self.region_field.set_region("Germany")
+        self.on_region_changed("Germany")
+
+    def disable_signals(func):
+        def wrapper(self, *args, **kwargs):
+            self.signals_enabled = False
+            func(self, *args, **kwargs)
+            self.signals_enabled = True
+        return wrapper
+
+    @disable_signals
+    def on_coords_changed(self, coords):
+        self.region_field.set_region_by_coords(coords)
+
+    @disable_signals
+    def on_region_changed(self, region):
+        coords = self.region_field.get_coords_by_region(region)
+        self.geo_coords.set_coords(coords)
+
     def map_button_clicked(self):
         self.map.show()
 
@@ -233,11 +257,12 @@ class RegionField(QWidget):
 
     def __init__(self, region_data):
         super().__init__()
-        # TODO: irgendwo anders angeben...
         self.regions = pd.read_csv(
             region_data, delimiter=',')
+        # drop nans
+        self.regions = self.regions.dropna()
+        self.regions[['min_lon', 'min_lat', 'max_lon', 'max_lat']] = self.regions['bbox'].str.split(' ', expand=True).astype(float)
         self.init_ui()
-        self.set_region("Germany")
 
     def init_ui(self):
         layout = QVBoxLayout()
@@ -260,6 +285,7 @@ class RegionField(QWidget):
         self.region_input.addItems(self.regions['name'])
         self.region_input.setCompleter(region_completer)
         self.region_input.currentIndexChanged.connect(self.on_region_changed)
+
         layout.addWidget(label)
         layout.addWidget(self.region_input)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -269,33 +295,41 @@ class RegionField(QWidget):
         region = self.region_input.currentText()
         self.region_changed.emit(region)
 
+    def set_region_by_coords(self, coords):
+        region = self.get_region_by_coords(coords)
+        self.set_region(region)
+
     def set_region(self, region):
-        self.region_input.currentIndexChanged.disconnect(
-            self.on_region_changed)
         self.region_input.setCurrentText(region)
-        self.region_input.currentIndexChanged.connect(self.on_region_changed)
 
     def get_data(self):
         return self.region_input.currentText()
 
-    def get_country_by_coords(self, coords):
-        min_long = self.regions['bbox'].apply(
-            lambda x: float(x.split()[0])).values
-        max_long = self.regions['bbox'].apply(
-            lambda x: float(x.split()[2])).values
-        min_lat = self.regions['bbox'].apply(
-            lambda x: float(x.split()[1])).values
-        max_lat = self.regions['bbox'].apply(
-            lambda x: float(x.split()[3])).values
+    def get_region_by_coords(self, coords):
+        lon, lat = coords
+        mask = (self.regions['min_lon'] <= lon) & (self.regions['max_lon'] >= lon) & (self.regions['min_lat'] <= lat) & (self.regions['max_lat'] >= lat)
+        region = self.regions.loc[mask, 'name']
+        if not region.empty:
+            return region.values[0]
+        return 'Unknown'
 
-        closest_idx = ((min_long <= coords[0]) & (max_long >= coords[0]) & (
-            min_lat <= coords[1]) & (max_lat >= coords[1])).argmax()
-        region = self.regions.loc[closest_idx, 'name']
-        self.set_region(region)
-        return region
+    def get_coords_by_region(self, region):
+        bbox = self.regions[self.regions['name'] == region]['bbox'].values[0]
+        return self.get_center_coords(bbox)
 
+    def get_center_coords(self, bbox):
+        coords = bbox.split()
+        min_long = float(coords[0])
+        min_lat = float(coords[1])
+        max_long = float(coords[2])
+        max_lat = float(coords[3])
+        center_long = (min_long + max_long) / 2
+        center_lat = (min_lat + max_lat) / 2
+        return (center_long, center_lat)
 
 class GeoCoordinatesField(QWidget):
+    coords_changed = pyqtSignal(tuple)
+
     def __init__(self, mandatory=True):
         super().__init__()
         self.mandatory = mandatory
@@ -337,6 +371,9 @@ class GeoCoordinatesField(QWidget):
         geo_layout.addLayout(radius_layout)
         self.setLayout(geo_layout)
 
+        self.lattitude_input.textChanged.connect(self.on_coords_changed)
+        self.longitude_input.textChanged.connect(self.on_coords_changed)
+
     def get_data(self):
         if self.mandatory:
             if self.longitude_input.text() == '' or self.lattitude_input.text() == '':
@@ -358,6 +395,12 @@ class GeoCoordinatesField(QWidget):
         }
 
         return data
+
+    def on_coords_changed(self):
+        longitude = self.longitude_input.text().replace(",",".")
+        lattitude = self.lattitude_input.text().replace(",",".")
+        if longitude and lattitude:
+            self.coords_changed.emit((float(longitude), float(lattitude)))
 
     def set_coords(self, coords):
         self.longitude_input.setValue(coords[0])
@@ -390,6 +433,8 @@ class GeoCoordinatesField(QWidget):
         }
         
         return bbox
+    
+
 class SynonymSearch(QWidget):
     name_signal = pyqtSignal(str)
 
