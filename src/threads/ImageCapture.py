@@ -90,7 +90,7 @@ class ImageCapture(CameraWorker):
         if not self.proc.waitForFinished(ImageCapture.WAIT_TIME_MS):
             # try to load image anyway
             self.signals.img_captured.emit(f"{self.config['--image_dir']}/{self.config['--image_name']}{self.config['--image_format']}")
-            self._handle_failure(f"image capture process did not finish in {ImageCapture.WAIT_TIME_MS} ms")
+            self._handle_failure(f"image capture process did not finish in {ImageCapture.WAIT_TIME_MS} ms. {self.get_std_err()}")
             return
 
         if self.proc.exitCode() != 0 and not any("Saving file as " in err for err in self.get_std_err()):
@@ -108,7 +108,7 @@ class ImageCapture(CameraWorker):
         self.config['--image_name'] = datetime.now().isoformat().replace(':','_').replace('.','-')
 
     def set_image_dir(self, dir):
-        self.config['--image_dir'] = dir
+        self.config['--image_dir'] = dir.as_posix()
 
     def quit(self):
         """

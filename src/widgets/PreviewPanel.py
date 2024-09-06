@@ -16,6 +16,7 @@ from PyQt6.QtCore import QTimer, pyqtSignal, Qt, QThreadPool, pyqtSlot
 from PyQt6.QtGui import QImage, QPixmap
 import cv2
 import numpy as np
+from pathlib import Path
 
 from src.threads.CameraStreamer import CameraStreamer
 from src.threads.VideoCaptureDevice import VideoCaptureDevice
@@ -182,6 +183,8 @@ class PreviewPanel(QLabel):
     def on_image_captured(self, img_dir):
         try:
             img = cv2.imread(img_dir)
+            if img is None:
+                raise FileNotFoundError("Could not load image for panel")
             self.panel.set_image(img)
             self.image_captured.emit(img_dir)
         except FileNotFoundError as fne:
@@ -189,7 +192,9 @@ class PreviewPanel(QLabel):
 
     def set_image_dir(self, project_info):
         # when project is loaded, set this dir
-        self.img_dir = project_info['project_dir'] + "/.project/.tmp_cap"
+        self.img_dir = Path(project_info['project_dir'] + "/.project/.tmp_cap")
+        if not self.img_dir.is_dir():
+            self.img_dir.mkdir() # TODO: should not be neccessary and should be handled by the backend... for now its ok!
 
     def set_camera_data(self, model=None, port=None):
         """

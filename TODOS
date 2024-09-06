@@ -8,4 +8,19 @@ Features:
 
 Installation:
   - upload assets and bigger files into cloud service from where is is downloaded into the container/repo during installation
-  
+
+
+
+ No Focus Error handling:
+  Error:
+     Traceback (most recent call last):
+  File "/app/src/widgets/PreviewPanel.py", line 176, in on_image_captured
+    self.panel.set_image(img)
+  File "/app/src/widgets/PreviewPanel.py", line 38, in set_image
+    self.frame = cv2.resize(frame, self.resolution, interpolation=cv2.INTER_AREA)
+
+  try catch und stdout controllieren
+
+
+  Bug in Container nautilus session viewer:
+    pfad scheint nicht zu stimmen (project module)

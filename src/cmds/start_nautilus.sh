@@ -4,7 +4,7 @@
 directory="$1"
 
 # Construct the command
-command="echo \"nautilus $directory\" > /hostpipe/drawercapture_host"
+command="echo \"nautilus '$directory'\" > /hostpipe/drawercapture_host"
 
 # Execute the command
 eval "$command"

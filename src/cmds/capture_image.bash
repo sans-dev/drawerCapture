@@ -16,12 +16,16 @@ for ((i=0; i<${#args[@]}; i++)); do
 
     esac
 done
+
+
+
+
 #create file name from IMAGE_DIR and IMAGE_NAME and IMAGE_FORMAT
 FILE_NAME="$IMAGE_DIR/$IMAGE_NAME$IMAGE_FORMAT"
-
 # capture image and download to image dir with full resolution
 # check if debug is enabled
-cd $IMAGE_DIR
+cd "$IMAGE_DIR"
+echo "image_dir: '$IMAGE_DIR'"
 pkill -f gphoto2
 
 gphoto2 --set-config movie=0
@@ -29,7 +33,7 @@ gphoto2 --set-config movie=0
 if [ $DEBUG == "true" ]; then
     DEBUG_LOGFILE="logs/$IMAGE_NAME-capture.log"
     echo "DEBUG_LOGFILE: $DEBUG_LOGFILE"
-    gphoto2 --camera $MODEL --port $PORT --capture-image-and-download --filename $FILE_NAME --force-overwrite --debug --debug-logfile=$DEBUG_LOGFILE
+    gphoto2 --camera $MODEL --port $PORT --capture-image-and-download --filename "$FILE_NAME" --force-overwrite --debug --debug-logfile=$DEBUG_LOGFILE
     else
-    gphoto2 --camera $MODEL --port $PORT --capture-image-and-download --filename $FILE_NAME --force-overwrite
+    gphoto2 --camera $MODEL --port $PORT --capture-image-and-download --filename "$FILE_NAME" --force-overwrite
 fi
