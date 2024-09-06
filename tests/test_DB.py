@@ -34,7 +34,7 @@ def dummy_meta():
         "order": "Burdi",
         "family": "Burdeae",
         "genus": "Burdus",
-        "species": "burdulus",
+        "species": "Burdus burdulus",
         "museum": "Senkenberg - Frankfurt",
         "capturer": "Toni",
         "directory": "path/to/file.jpg",
@@ -116,7 +116,7 @@ class TestFileAgnosticDB:
 
 
     def test_create_save_name(self, file_agnostic_db, dummy_meta):
-        file_agnostic_db._create_save_name(dummy_meta)
+        img_name, meta_name = file_agnostic_db._create_save_name(dummy_meta)
 
     def test_post_new_image(self, file_agnostic_db, dummy_post):
         sessions = file_agnostic_db.create_session(session_data)

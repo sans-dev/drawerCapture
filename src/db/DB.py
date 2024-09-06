@@ -573,8 +573,9 @@ class FileAgnosticDB:
         session_dir = Path(meta_info['sessionDir'])
         
         order_name = meta_info['order'].replace(" ", "-").lower()
-        species_name = f"{meta_info['genus']}.{meta_info['species']}".lower()
-        
+        species_name = f"{meta_info['species']}".lower().replace(" ",".")
+        family_name = f"{meta_info['family']}".lower()
+
         img_name = session_dir / f"{meta_info['sessionName']}_cap-{meta_info['captureID']:04d}_order-{order_name}_species-{species_name}.jpg"
         meta_name = img_name.with_suffix('.yml')
         

@@ -1,0 +1,4 @@
+Bugs:
+    - naming of saves files is buggy
+    - session info contains captures within capture metadata (dont save those...)
+    
