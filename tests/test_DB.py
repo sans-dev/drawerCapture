@@ -11,11 +11,11 @@ museum_data = {
 }
 
 session_data = {
-    "Session Name" : None,
+    "name" : None,
     "Capturer": 'Thomas',
     "Museum": 'Senkenberg',
-    "Collection Name": "Insects",
-    'Captures': []
+    "collection_name": "Insects",
+    'captures': []
 }
 
 project_config ={

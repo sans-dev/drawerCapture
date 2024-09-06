@@ -275,6 +275,7 @@ class FileAgnosticDB:
             raise ValueError("Session not found")
         
         meta_info['Session Info'] = session
+        
         meta_info_flat = self._flatten_dict(meta_info)
         session['num_captures'] += 1
         meta_info_flat['captureID'] = session['num_captures'] # refactor session keys...
@@ -284,9 +285,10 @@ class FileAgnosticDB:
         img_name, meta_name = self._create_save_name(meta_info_flat)
         meta_info_flat['directory'] = str(img_name)
         session['captures'].append(str(img_name))
-
+        session_info = meta_info.pop('Session Info')
         sessions_file.write_text(json.dumps(sessions, indent=2))
         (self.project_root_dir / meta_name).write_text(yaml.dump(meta_info))
+        (self.project_root_dir / Path(session_info['session_dir']) / Path("session.yml")).write_text(yaml.dump(session_info))
         shutil.copy(img_dir,str((self.project_root_dir / img_name)))
 
         self._update_captures_csv(meta_info_flat)
