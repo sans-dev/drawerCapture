@@ -1,5 +1,6 @@
 Bugs:
     - fix the action mappings and permissions
+    - handle autofocus error with qmassagebox
     
 Features:
     - write meta info into exif tags of the image!!!
