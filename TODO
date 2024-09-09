@@ -3,5 +3,6 @@ Bugs:
     - handle autofocus error with qmassagebox
     
 Features:
-    - write meta info into exif tags of the image!!!
+    - cropping tool
+    - bounding box tool
     

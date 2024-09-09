@@ -53,9 +53,9 @@ class LoadingSpinner(QWidget):
         layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Load and start the GIF animation
-        self.movie = QMovie("resources/assets/Spinner-1s-200px.gif")
+        self.movie = QMovie("assets/animations/Rhombus-nobg.gif")
         # make movie smaller
-        self.movie.setScaledSize(QSize(80, 80))
+        self.movie.setScaledSize(QSize(50, 50))
         self.label.setMovie(self.movie)
 
     def start(self):
