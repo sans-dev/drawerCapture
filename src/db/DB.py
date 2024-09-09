@@ -372,7 +372,7 @@ class FileAgnosticDB:
         return admins
 
     def change_user_role(self, user_to_change, new_role):
-        existing_users = self.get_users()
+        existing_users = self._load_credentials()
         for user in existing_users:
             if user['username'] == user_to_change:
                 user['role'] = new_role
@@ -719,9 +719,11 @@ class DummyDB:
         return False
 
     def reset_password(self, username, role, old_password, new_password):
-        for user in self.users:
+        existing_users = self._load_credentials()
+        for user in existing_users:
             if user['username'] == username and user['password'] == old_password:
                 user['password'] = new_password
+                self._save_credentials(existing_users)
                 return True
         return False
 
@@ -729,9 +731,11 @@ class DummyDB:
         return sum(1 for user in self.users if user['role'] == 'admin')
 
     def change_user_role(self, user_to_change, new_role):
-        for user in self.users:
+        existing_users = self._load_credentials()
+        for user in existing_users:
             if user['username'] == user_to_change:
                 user['role'] = new_role
+                self._save_credentials(existing_users)
                 return True
         return False
 
