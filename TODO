@@ -1,4 +1,6 @@
 Bugs:
-    - naming of saves files is buggy
-    - session info contains captures within capture metadata (dont save those...)
+    - fix the action mappings and permissions
+    
+Features:
+    - write meta info into exif tags of the image!!!
     

@@ -13,6 +13,7 @@ from pathlib import Path
 import pandas as pd
 import csv
 import shutil
+from exif import Image
 from datetime import datetime
 from cryptography.fernet import Fernet
 import json
@@ -290,11 +291,13 @@ class FileAgnosticDB:
         (self.project_root_dir / meta_name).write_text(yaml.dump(meta_info))
         (self.project_root_dir / Path(session_info['session_dir']) / Path("session.yml")).write_text(yaml.dump(session_info))
         shutil.copy(img_dir,str((self.project_root_dir / img_name)))
-
+        # add meta data to new image exif tag
         self._update_captures_csv(meta_info_flat)
         project_info = self.get_project_info()
         project_info['num_captures'] = str(int(project_info['num_captures']) + 1)
         self._save_project_info(project_info)
+        meta_info_flat.pop('captures', None)
+        self.add_exif_info(str((self.project_root_dir / img_name)), str(meta_info_flat))
         return project_info, sessions
 
     def get_project_info(self):
@@ -449,8 +452,21 @@ class FileAgnosticDB:
         # calc new total number of captures for the project
         return project_info, sessions
     
-    def add_exif_info(self, image, info):
-        pass
+    def add_exif_info(self, image_path, comment):
+        from PIL import Image
+        from PIL import ExifTags
+        try:
+            img = Image.open(image_path)
+            exif_data = img.getexif()
+
+            if exif_data:
+                exif_data[ExifTags.Base.UserComment] = comment
+                img.save(image_path, exif=exif_data)
+            else:
+                print("Bild enthält keine EXIF-Daten.")
+
+        except Exception as e:
+            print(f"Fehler beim Schreiben des Kommentars: {e}")
 
     def get_project_dir(self):
         return self.project_root_dir

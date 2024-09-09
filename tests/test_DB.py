@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import json
+import shutil
 from src.db.DB import FileAgnosticDB, DBAdapter, DummyDB
 
 museum_data = {
@@ -98,20 +99,22 @@ class TestFileAgnosticDB:
         project_config['project_dir'] = str(tmp_path)
         config = db.create_project(project_config)
         assert config['project_dir'] == str(tmp_path)
-        assert config['num_captures'] == '0'
+        assert config['num_captures'] == 0
         assert config['name'] == 'foo'
         assert config['description'] == 'bar'
         assert config['date'] == '2020-01-01'
         assert config['authors'] == 'baz'
 
     def test_ceate_session(self, file_agnostic_db):
-        session_id, _session_data = file_agnostic_db.create_session(session_data)
+        session = file_agnostic_db.create_session(session_data)
+        session_id = list(session.keys())[-1]
+        _session_data = session[session_id]
         assert _session_data['name'] == 'session-001'
-        assert _session_data['capturer'] == session_data['capturer']
-        assert _session_data['museum'] == session_data['museum']
+        assert _session_data['Capturer'] == session_data['Capturer']
+        assert _session_data['Museum'] == session_data['Museum']
         assert _session_data['collection_name'] == session_data['collection_name']
         assert _session_data['num_captures'] == 0
-        assert _session_data['session_dir'] == (file_agnostic_db.project_root_dir / 'captures' / f"{session_data['name']}").as_posix()
+        assert _session_data['session_dir'] == session_data['session_dir']
         assert session_id is not None
 
 
@@ -123,6 +126,22 @@ class TestFileAgnosticDB:
         sid = list(sessions.keys())[-1]
         dummy_post['sid'] = sid
         file_agnostic_db.post_new_image(dummy_post)
+
+    def test_add_exif_info(self, file_agnostic_db, dummy_meta):
+        from PIL import Image
+        from PIL import ExifTags
+
+        img_path = 'tests/data/test_img.jpg'
+        dummy_meta = str(dummy_meta)
+        new_path = file_agnostic_db.get_project_dir() / img_path
+        new_path.parent.mkdir(parents=True)
+        shutil.copy2(img_path, str(new_path))
+        file_agnostic_db.add_exif_info(str(new_path), dummy_meta)
+
+        img = Image.open(str(new_path))
+        exif_data = img.getexif()
+        assert dummy_meta == exif_data[ExifTags.Base.UserComment]
+
         
     def test_post_image_fail(self, file_agnostic_db, dummy_post):
         file_agnostic_db.create_session(session_data)
@@ -134,7 +153,7 @@ class TestFileAgnosticDB:
         db = FileAgnosticDB()
         db.load_project(agnostic_project_dir)
         conf = db.get_project_info()
-        assert conf['num_captures'] == '0'
+        assert conf['num_captures'] == 0
         assert conf['name'] == 'foo'
         assert conf['description'] == 'bar'
         assert conf['date'] == '2020-01-01'
