@@ -105,8 +105,8 @@ class MainWindow(QMainWindow):
         menu_bar = self.menuBar()
         self.file_menu = menu_bar.addMenu("File")
         self.user_menu = menu_bar.addMenu("User")
-        edit_menu = menu_bar.addMenu("Edit")
-        self.project_menu = edit_menu.addMenu('Project')
+        self.project_menu = menu_bar.addMenu('Project')
+        self.capture_menu = menu_bar.addMenu("Capture")
         self.help_menu = menu_bar.addMenu("Help")
 
     def create_actions(self):
@@ -118,34 +118,33 @@ class MainWindow(QMainWindow):
         self.exit_action = QAction(
             QIcon('assets/icons/close.png'), "Exit", self)
         self.new_session_action = QAction(
-            QIcon('assets/icons/add2.png'), "New Capture Session", self)
-        # self.new_session_action.setEnabled(False)
+            QIcon('assets/icons/add2.png'), "New Session", self)
 
         # Project menu actions
         self.manage_user_action = QAction(QIcon(
-            'assets/icons/user-management-icon-2048x2048-kv1zlmf8.png'), "Manage Users", self)
+            'assets/icons/manage-users.png'), "Manage Users", self)
         self.manage_museums_action = QAction(
             QIcon('assets/icons/museum.png'), "Manage Museums", self)
         self.merge_projects_action = QAction(
-            QIcon('assets/icons/add2.png'), "Merge Projects", self)
+            QIcon('assets/icons/add.png'), "Merge Projects", self)
 
         # User menu actions
         self.login_action = QAction(
-            QIcon('assets/icons/user.png'), "Change User", self)
+            QIcon('assets/icons/enter.png'), "Login", self)
         self.user_settings = QAction(
-            QIcon('assets/icons/user_settings.png'), "User Settings", self)
+            QIcon('assets/icons/profile.png'), "Settings", self)
         
         # Camera Settings
         self.add_camera_action = QAction(
-            QIcon("assets/icons/camera_off.png"), "Connect Camera", self)
+            QIcon("assets/icons/add-camera.png"), "Select Camera", self)
 
         # Capture mode actions
         self.capture_image = QAction(
-            QIcon("assets/icons/capture_image.png"), "Capture Image", self)
-        self.start_live_preview = QAction(
-            QIcon("assets/icons/play.png"), "Capture Image", self)
+            QIcon("assets/icons/take-a-photo.png"), "Capture Image", self)
+        self.start_live_preview_action = QAction(
+            QIcon("assets/icons/play.png"), "Start Preview", self)
         self.stop_live_preview = QAction(
-            QIcon("assets/icons/stop.png"), "Capture Image", self)
+            QIcon("assets/icons/pause.png"), "Pause Preview", self)
 
         # Add actions to menus
         self.file_menu.addAction(self.new_project_action)
@@ -165,6 +164,14 @@ class MainWindow(QMainWindow):
         self.user_menu.addSeparator()
         self.user_menu.addAction(self.user_settings)
 
+        self.capture_menu.addAction(self.new_session_action)
+        self.capture_menu.addSeparator()
+        self.capture_menu.addAction(self.add_camera_action)
+        self.capture_menu.addSeparator()
+        self.capture_menu.addAction(self.start_live_preview_action)
+        self.capture_menu.addAction(self.stop_live_preview)
+        self.capture_menu.addSeparator()
+        self.capture_menu.addAction(self.capture_image)
         self.set_enabled_user_actions(False)
 
     def setup_toolbar(self):
@@ -175,13 +182,17 @@ class MainWindow(QMainWindow):
         toolbar.addAction(self.new_project_action)
         toolbar.addAction(self.open_project_action)
         toolbar.addSeparator()
+        toolbar.addAction(self.login_action)
+        toolbar.addAction(self.user_settings)
+        toolbar.addSeparator()
         toolbar.addAction(self.manage_user_action)
         toolbar.addAction(self.manage_museums_action)
+        toolbar.addAction(self.merge_projects_action)
         toolbar.addSeparator()
         toolbar.addAction(self.new_session_action)
         toolbar.addAction(self.add_camera_action)
         toolbar.addSeparator()
-        toolbar.addAction(self.start_live_preview)
+        toolbar.addAction(self.start_live_preview_action)
         toolbar.addAction(self.stop_live_preview)
         toolbar.addAction(self.capture_image)
         toolbar.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
@@ -203,6 +214,11 @@ class MainWindow(QMainWindow):
         self.db_adapter.project_changed_signal.connect(self.capture_view.panel.set_image_dir)
         self.image_view.close_signal.connect(self.on_data_collected)
         self.merge_projects_action.triggered.connect(self.merge_projects)
+        self.start_live_preview_action.triggered.connect(self.start_live_preview)
+
+    def start_live_preview(self):
+        # self.capture_view.panel.start_stream()
+        pass
 
     def exit_application(self):
         self.close()
@@ -273,22 +289,35 @@ class MainWindow(QMainWindow):
         if self.mode =='Default Mode': # no project loaded
             self.set_enabled_project_features(True)
             self.set_enabled_capture_features(False)
+            self.set_enabled_user_features(False)
         if self.mode == 'Project Mode': # Project loaded
             self.set_enabled_project_features(True)
             self.set_enabled_capture_features(True)
+            self.set_enabled_user_features(True)
             self.stacked_widget.setCurrentWidget(self.project_view)
         elif self.mode == 'Data Collection Mode': # image view active
             self.set_enabled_project_features(False)
             self.set_enabled_capture_features(False)
+            self.set_enabled_user_features(False)
+            self.set_enabled_admin_features(False)
+            self.new_session_action.setEnabled(False)
             self.stacked_widget.setCurrentWidget(self.image_view)
         elif self.mode == 'Capture Mode': # capture view is active
             self.set_enabled_project_features(False)
             self.set_enabled_capture_features(True)
+            self.set_enabled_user_features(False)
+            self.set_enabled_admin_features(False)
+            self.new_session_action.setEnabled(False)
             self.stacked_widget.setCurrentWidget(self.capture_view)
         self.set_window_title()
 
+    def set_enabled_user_features(self, is_enabled):
+        self.login_action.setEnabled(is_enabled)
+        self.user_settings.setEnabled(is_enabled)
+        self.manage_user_action.setEnabled(is_enabled)
+
     def set_enabled_capture_features(self, is_enabled):
-        self.start_live_preview.setEnabled(is_enabled)
+        self.start_live_preview_action.setEnabled(is_enabled)
         self.stop_live_preview.setEnabled(is_enabled)
         self.capture_image.setEnabled(is_enabled)
         self.add_camera_action.setEnabled(is_enabled)
@@ -303,6 +332,7 @@ class MainWindow(QMainWindow):
         # Show admin-only buttons, menus, etc.
         self.manage_museums_action.setEnabled(is_enabled)
         self.manage_user_action.setEnabled(is_enabled)
+        self.merge_projects_action.setEnabled(is_enabled)
 
     def set_enabled_user_actions(self, is_enabled):
         self.login_action.setEnabled(is_enabled)

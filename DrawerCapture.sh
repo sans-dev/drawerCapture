@@ -5,6 +5,7 @@ if [[ "$1" == "--local" ]]; then
   image_name="drawer-capture-app:dev"
 else
   image_name="containerseb/drawer-capture-app:latest"
+  docker image pull $image_name
 fi
 
 mkdir -p "$HOME"/named_pipes # Create directory if it doesn't exist
