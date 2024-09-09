@@ -126,6 +126,8 @@ class TestFileAgnosticDB:
         sid = list(sessions.keys())[-1]
         dummy_post['sid'] = sid
         file_agnostic_db.post_new_image(dummy_post)
+        file_agnostic_db.post_new_image(dummy_post)
+        file_agnostic_db.post_new_image(dummy_post)
 
     def test_add_exif_info(self, file_agnostic_db, dummy_meta):
         from PIL import Image

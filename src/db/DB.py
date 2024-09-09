@@ -289,7 +289,7 @@ class FileAgnosticDB:
         session_info = meta_info.pop('Session Info')
         sessions_file.write_text(json.dumps(sessions, indent=2))
         (self.project_root_dir / meta_name).write_text(yaml.dump(meta_info))
-        (self.project_root_dir / Path(session_info['session_dir']) / Path("session.yml")).write_text(yaml.dump(session_info))
+        (self.project_root_dir / Path(session_info['session_dir']) / Path(f"{session['name']}.yml")).write_text(yaml.dump(session_info))
         shutil.copy(img_dir,str((self.project_root_dir / img_name)))
         # add meta data to new image exif tag
         self._update_captures_csv(meta_info_flat)
