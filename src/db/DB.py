@@ -13,7 +13,8 @@ from pathlib import Path
 import pandas as pd
 import csv
 import shutil
-from exif import Image
+from PIL import Image
+from PIL import ExifTags
 from datetime import datetime
 from cryptography.fernet import Fernet
 import json
@@ -453,8 +454,6 @@ class FileAgnosticDB:
         return project_info, sessions
     
     def add_exif_info(self, image_path, comment):
-        from PIL import Image
-        from PIL import ExifTags
         try:
             img = Image.open(image_path)
             exif_data = img.getexif()

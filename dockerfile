@@ -45,19 +45,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Upgrade pip
 RUN python3 -m pip install --upgrade pip
 
-# Installieren Sie die Python-Pakete einzeln
-RUN pip3 install --no-cache-dir gphoto2
-RUN pip3 install --no-cache-dir PyQt6
-RUN pip3 install --no-cache-dir PyQt6-WebEngine
-RUN pip3 install --no-cache-dir opencv-python
-RUN pip3 install --no-cache-dir pandas
-RUN pip3 install --no-cache-dir rawpy
-RUN pip3 install --no-cache-dir pyyaml
-RUN pip3 install --no-cache-dir cryptography
-RUN pip3 install --no-cache-dir matplotlib
 # Arbeitsverzeichnis erstellen
-
+COPY requirements.txt /app/requirements.txt
 WORKDIR /app
+RUN pip install --no-cache-dir -r requirements.txt
 COPY . /app
 
 #USER ssander
