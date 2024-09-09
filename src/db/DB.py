@@ -48,6 +48,7 @@ class DBAdapter(QObject):
         try:
             response = self.db_manager.create_project(project_info)
             self.project_changed_signal.emit(response)
+            self.sessions_signal.emit({})
             return response
         except Exception as e:
             logger.info(f"{e}")
