@@ -17,7 +17,7 @@ echo "Exec=$INSTALL_DIR/DrawerCapture.sh" >> "$DESKTOP_FILE"
 echo "Icon=$INSTALL_DIR/assets/icons/app_icon.png" >> "$DESKTOP_FILE"
 echo "Type=Application" >> "$DESKTOP_FILE"
 echo "Categories=Graphics;" >> "$DESKTOP_FILE"
-echo "StartupWMClass=DrawerCapture.py" >> "$DESKTOP_FILE"
+echo "StartupWMClass=DrawerCapture.py, DrawerCapture.py" >> "$DESKTOP_FILE"
 # Setze die Berechtigungen für die .desktop-Datei
 chmod +x "$DESKTOP_FILE"
 
