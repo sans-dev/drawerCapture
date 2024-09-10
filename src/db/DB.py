@@ -339,12 +339,12 @@ class FileAgnosticDB:
 
     def edit_museum(self, original, updated):
         museums = self.get_museums()
+        m_string = self._create_string_from_dict_values(updated)
+        new_id = self._create_uuid_from_string(m_string)
+        museums[new_id] = updated        
         m_string = self._create_string_from_dict_values(original)
         old_id = self._create_uuid_from_string(m_string)
         del museums[old_id]
-        m_string = self._create_string_from_dict_values(original)
-        new_id = self._create_uuid_from_string(m_string)
-        museums[new_id] = updated
         self.save_musems(museums)
 
     def remove_museum(self, museum):

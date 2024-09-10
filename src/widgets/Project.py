@@ -1136,7 +1136,7 @@ class MuseumManager(QWidget):
         self.db_adapter = db_adapter
         self.current_user = current_user
         self.original_data = []  # To store the original data for comparison
-
+        self.data_changed = False
         self.init_ui()
 
     def init_ui(self):
@@ -1176,6 +1176,8 @@ class MuseumManager(QWidget):
         
         self.refresh_museum_list()
 
+        self.model.dataChanged.connect(self.on_data_changed)
+
     def refresh_museum_list(self):
         self.model.clear()
         self.model.setHorizontalHeaderLabels(["Museum Name", "City", "Street", "Number"])
@@ -1191,6 +1193,9 @@ class MuseumManager(QWidget):
             self.model.appendRow(row)
             self.original_data.append(museum)
         self.museum_table.resizeColumnsToContents()
+
+    def on_data_changed(self, data):
+        self.data_changed = True
 
     def add_museum(self):
         dialog = AddMuseumDialog(self)
@@ -1265,10 +1270,16 @@ class MuseumManager(QWidget):
             self.refresh_museum_list()
             self.museum_updated.emit()
             QMessageBox.information(self, "Success", f"{len(changes)} museum(s) updated successfully.")
+        except KeyError as e:
+            QMessageBox.critical(self, "Error", f"Failed to update museums: {str(e)}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to update museums: {str(e)}")
 
     def closeEvent(self, event):
+        if self.data_changed:
+            confirm = QMessageBox.question(self, "Confirm Close", "There are unsaved changes in Museum data. Do you want to save them?")
+            if confirm == QMessageBox.StandardButton.Yes:
+                self.save_changes()
         self.close_signal.emit(True)
         super().closeEvent(event)
 
