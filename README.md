@@ -25,7 +25,7 @@ chmod +x drawerCapture.sh
 ./drawerCapture.sh --local # start application from local build. By ommit --local the latest build on docker hub is used
 ```
 
-### From source -dev - (Local, tested on Ubuntu only) 
+### From source - dev - (Local, tested on Ubuntu only) 
 To install from source clone this repo an install the following dependencies.
 1. Install pkg dependencies:
 
