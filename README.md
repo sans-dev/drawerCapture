@@ -6,7 +6,7 @@ Drawer Capture is an GUI based application for remote photo capturing and and ac
 - Docker:
     - To install docker follow this link (https://docs.docker.com/engine/install/ubuntu/)
 
-### Via install.sh - easy - (Docker required, tested on Ubuntu only)
+### Via install.sh - run - (Docker required, tested on Ubuntu only)
 Clone this repo, open a terminal in its directory and run the following:
 
 ```sh
