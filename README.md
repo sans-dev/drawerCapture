@@ -21,6 +21,7 @@ Clone this repo, open a terminal in its directory and run the following:
 
 ```.sh
 docker compose build
+chmod +x drawerCapture.sh
 ./drawerCapture.sh --local # start application from local build. By ommit --local the latest build on docker hub is used
 ```
 
