@@ -265,12 +265,12 @@ class ProjectCreator(QWidget):
             },
 
             'project_name': {
-                'type': 'line', 'label': 'Project Name', 'max_length': 16, 'validator': 'name',
+                'type': 'line', 'label': 'Project Name', 'max_length': 30, 'validator': 'name',
                 'error_rule': lambda: ValidationRules.get_project_rule(self.project_name),
                 'error_message': "Project name cannot be empty"
             },
             'authors': {
-                'type': 'line', 'label': 'Authors', 'max_length': 40, 'validator': 'authors',
+                'type': 'line', 'label': 'Authors', 'max_length': 80, 'validator': 'authors',
                 'error_rule': lambda: ValidationRules.get_authors_rule(self.authors) ,
                 'error_message': "Author name cannot be empty"
             },
