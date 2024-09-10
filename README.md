@@ -23,7 +23,7 @@ Clone this repo, open a terminal in its directory and run the following:
     ./drawerCapture.sh --local # start application from local build. By ommit --local the latest build on docker hub is used
     ```
 
-### From source -dev - (Global) 
+### From source -dev - (local) 
 To install from source clone this repo an install the following dependencies.
 1. Install pkg dependencies:
 ```
