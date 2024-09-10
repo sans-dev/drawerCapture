@@ -578,11 +578,14 @@ class SessionViewer(QWidget):
             return
         if user['role'] != 'admin':
             delete_action.setEnabled(False)
+        self.context_menu_row = self.table_view.rowAt(position.y())
         # Zeige das Menü an der angeklickten Position
         menu.exec(self.table_view.mapToGlobal(position))
 
     def open_in_file_browser(self):
-            row = self.table_view.currentIndex().row()
+            row = self.context_menu_row
+            if row == -1:
+                return
             column = self.fields.index("Session Dir")
             relative_dir = self.table_model.item(row, column).text()
             project_dir = self.db_adapter.get_project_dir() / relative_dir
@@ -595,14 +598,16 @@ class SessionViewer(QWidget):
             self.open_dir_thread.start()
 
     def delete_session(self):
-        row = self.table_view.currentIndex().row()
+        row = self.context_menu_row
+        if row == -1:
+            return
         session_id = self.row_ids[row]
         session_name = self.table_model.item(row,0).text()
         captures_column = self.fields.index('# Captures')
         num_captures = self.table_model.item(row, captures_column).text()
         confirm = QMessageBox.question(self, "Confirm Deletion",
                                        f"{session_name} contains {num_captures} captures! Are you shure you want to delete it?")
-        if not confirm:
+        if not confirm == QMessageBox.StandardButton.Yes:
             return                             
         try:
             self.db_adapter.delete_session(session_id)
