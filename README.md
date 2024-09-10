@@ -10,6 +10,8 @@ Drawer Capture is an GUI based application for remote photo capturing and and ac
 Clone this repo, open a terminal in its directory and run the following:
 
 ```sh
+git clone https://github.com/sans-dev/drawerCapture.git
+cd drawerCapture
 chmod +x install.sh
 ./install.sh
 ```
@@ -20,6 +22,8 @@ The application should be findable in launcher under DrawerCapture. It runs the 
 Clone this repo, open a terminal in its directory and run the following:
 
 ```.sh
+git clone https://github.com/sans-dev/drawerCapture.git
+cd drawerCapture
 docker compose build
 chmod +x drawerCapture.sh
 ./drawerCapture.sh --local # start application from local build. By ommit --local the latest build on docker hub is used
@@ -57,15 +61,21 @@ apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 ```
 
-2. Create a Python environment, activate it, and install the requirements:
+2. Clone the repo:
+```sh
+git clone https://github.com/sans-dev/drawerCapture.git
+cd drawerCapture
+```
+
+3. Create a Python environment, activate it, and install the requirements:
 
 ```sh
-python -m venv env
-source env/bin/activate
+python -m venv .env
+source .env/bin/activate
 pip install -r requirements.txt
 ```
 
-Run with:
+Run via:
 
 ```sh
 python3 -m src.drawerCapture
