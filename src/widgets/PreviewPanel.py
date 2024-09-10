@@ -192,7 +192,10 @@ class PreviewPanel(QLabel):
 
     def set_image_dir(self, project_info):
         # when project is loaded, set this dir
-        self.img_dir = Path(project_info['project_dir'] + "/.project/.tmp_cap")
+        project_dir = project_info.pop('project_dir', None)
+        if not project_dir:
+            return
+        self.img_dir = Path(project_dir + "/.project/.tmp_cap")
         if not self.img_dir.is_dir():
             self.img_dir.mkdir() # TODO: should not be neccessary and should be handled by the backend... for now its ok!
 

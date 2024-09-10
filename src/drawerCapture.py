@@ -62,11 +62,11 @@ class MainWindow(QMainWindow):
         self.mode = "Default Mode"
         self.current_user = None
         self.project_name = ''
-        self.is_creating_project = False
         self.camera_connected = False
         self.initUI()
-        self.set_enabled_admin_features(False)
         self.update_ui_based_on_mode()
+        self.set_enabled_admin_features(False)
+        self.set_enabled_user_features(False)
         self.connect_signals()
 
     def initUI(self):
@@ -172,7 +172,6 @@ class MainWindow(QMainWindow):
         self.capture_menu.addAction(self.stop_live_preview)
         self.capture_menu.addSeparator()
         self.capture_menu.addAction(self.capture_image)
-        self.set_enabled_user_actions(False)
 
     def setup_toolbar(self):
         toolbar = QToolBar("Main Toolbar")
@@ -252,6 +251,7 @@ class MainWindow(QMainWindow):
 
     def create_project(self):
         self.setEnabled(False)
+        self.current_user = None
         self.is_creating_project = True
         self.project_creator = ProjectCreator(self.db_adapter)
         self.project_creator.close_signal.connect(self.setEnabled)
@@ -267,11 +267,18 @@ class MainWindow(QMainWindow):
         self.loader.show()
 
     def login(self):
+        self.setEnabled(False)
         self.login_widget = LoginWidget(self.db_adapter)
         self.login_widget.login_successful.connect(self.on_login_successful)
+        self.login_widget.login_unsuccessful.connect(self.on_login_unsuccessful)
         self.login_widget.close_signal.connect(self.setEnabled)
         self.login_widget.show()
-        self.setEnabled(False)
+        
+    def on_login_unsuccessful(self):
+        # reset project view
+        self.db_adapter.clear_project()
+        self.mode = "Default Mode"
+        self.update_ui_based_on_mode()
 
     def open_user_manager(self):
         self.user_manager = UserManager(self.db_adapter, self.current_user)
@@ -279,7 +286,6 @@ class MainWindow(QMainWindow):
         self.user_manager.show()
 
     def update_ui_based_on_role(self):
-        self.new_session_action.setEnabled(True)
         if self.current_user['role'] == 'admin':
             self.set_enabled_admin_features(True)
         else:
@@ -290,10 +296,13 @@ class MainWindow(QMainWindow):
             self.set_enabled_project_features(True)
             self.set_enabled_capture_features(False)
             self.set_enabled_user_features(False)
+            self.new_session_action.setEnabled(False)
+            self.stacked_widget.setCurrentWidget(self.project_view)
         if self.mode == 'Project Mode': # Project loaded
             self.set_enabled_project_features(True)
-            self.set_enabled_capture_features(True)
+            self.set_enabled_capture_features(False)
             self.set_enabled_user_features(True)
+            self.new_session_action.setEnabled(True)
             self.stacked_widget.setCurrentWidget(self.project_view)
         elif self.mode == 'Data Collection Mode': # image view active
             self.set_enabled_project_features(False)
@@ -314,42 +323,32 @@ class MainWindow(QMainWindow):
     def set_enabled_user_features(self, is_enabled):
         self.login_action.setEnabled(is_enabled)
         self.user_settings.setEnabled(is_enabled)
-        self.manage_user_action.setEnabled(is_enabled)
 
     def set_enabled_capture_features(self, is_enabled):
         self.start_live_preview_action.setEnabled(is_enabled)
         self.stop_live_preview.setEnabled(is_enabled)
         self.capture_image.setEnabled(is_enabled)
         self.add_camera_action.setEnabled(is_enabled)
-        self.new_session_action.setEnabled(is_enabled) #Enable later. leave now for testing
-
+        
     def set_enabled_project_features(self, is_enabled):
         self.new_project_action.setEnabled(is_enabled)
         self.open_project_action.setEnabled(is_enabled)
         self.exit_action.setEnabled(is_enabled)
-
+        
     def set_enabled_admin_features(self, is_enabled):
         # Show admin-only buttons, menus, etc.
         self.manage_museums_action.setEnabled(is_enabled)
         self.manage_user_action.setEnabled(is_enabled)
         self.merge_projects_action.setEnabled(is_enabled)
 
-    def set_enabled_user_actions(self, is_enabled):
-        self.login_action.setEnabled(is_enabled)
-        self.user_settings.setEnabled(is_enabled)
-
     def on_login_successful(self, user):
         # enable project edit options
         self.current_user = user
-        print(
-            f"Login successful! Welcome, {user['username']} ({user['role']})")
+        logger.info(f"Login successful! Welcome, {user['username']} ({user['role']})")
+        self.mode = "Project Mode"
+        self.update_ui_based_on_mode()
         self.update_ui_based_on_role()
         self.set_window_title()
-
-        if self.is_creating_project:
-            self.open_user_manager_for_project()
-        else:
-            self.set_enabled_user_actions(True)
 
     def add_camera(self):
         self.setEnabled(False)
@@ -375,11 +374,15 @@ class MainWindow(QMainWindow):
         self.project_name = self.loader.get_project_name()
         self.loader.close()
         self.login()
-        self.set_enabled_user_actions(True)
+        self.set_enabled_user_features(True)
 
     def on_create_successful(self):
+        self.mode = "Default Mode"
+        self.update_ui_based_on_mode()
+        self.set_enabled_admin_features(False)
         self.project_name = self.project_creator.get_project_name()
         self.project_creator.close()
+        del self.project_creator
         self.login()
 
     def on_save_image(self):
@@ -393,15 +396,6 @@ class MainWindow(QMainWindow):
     def on_capture_mode_ended(self):
         self.mode = "Project Mode"
         self.update_ui_based_on_mode()
-
-    def open_user_manager_for_project(self):
-        self.user_manager = UserManager(self.db_adapter, self.current_user)
-        self.user_manager.close_signal.connect(self.finish_project_creation)
-        self.user_manager.show()
-
-    def finish_project_creation(self):
-        self.is_creating_project = False
-        self.set_enabled_user_actions(True)
 
 if __name__ == '__main__':
     from src.configs.DataCollection import *

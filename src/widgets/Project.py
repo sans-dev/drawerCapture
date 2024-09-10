@@ -456,10 +456,12 @@ class ProjectLoader(QWidget):
 
 class LoginWidget(QWidget):
     login_successful = pyqtSignal(dict)
+    login_unsuccessful = pyqtSignal()
     close_signal = pyqtSignal(bool)
 
     def __init__(self, db_adapter):
         super().__init__()
+        self.is_sucessful = False
         self.db_adapter = db_adapter
         self.init_ui()
 
@@ -499,11 +501,14 @@ class LoginWidget(QWidget):
         user = self.db_adapter.verify_credentials(username, password)
         if user:
             self.login_successful.emit(user)
+            self.is_sucessful = True
             self.close()
         else:
             QMessageBox.warning(self, "Login Failed", "Invalid username or password.")
 
     def closeEvent(self, event):
+        if not self.is_sucessful:
+            self.login_unsuccessful.emit()
         self.close_signal.emit(True)
         super().closeEvent(event)
         

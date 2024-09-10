@@ -59,6 +59,11 @@ class DBAdapter(QObject):
         self.project_changed_signal.emit(project_info)
         self.sessions_signal.emit(sessions)
 
+    def clear_project(self):
+        self.db_manager.clear()
+        self.project_changed_signal.emit({})
+        self.sessions_signal.emit({})
+
     def get_project_dir(self):
         return self.db_manager.get_project_dir()
     
@@ -164,6 +169,13 @@ class FileAgnosticDB:
         self.current_user = None
         self.captures_csv_header = FileAgnosticDB._get_csv_header()
 
+    def clear(self):
+        self.project_root_dir = None
+        self.current_session = None
+        self.fernet = None
+        self.current_user = None
+        self.captures_csv_header = FileAgnosticDB._get_csv_header()
+        
     def merge_project(self, source_adapter, keep_emty_sessions):
         source_sessions = source_adapter.load_sessions()
         if not keep_emty_sessions:
