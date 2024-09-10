@@ -175,8 +175,8 @@ class MainWindow(QMainWindow):
         self.set_enabled_user_actions(False)
 
     def setup_toolbar(self):
-        toolbar = QToolBar("My main toolbar")
-        toolbar.setIconSize(QSize(16, 16))
+        toolbar = QToolBar("Main Toolbar")
+        toolbar.setIconSize(QSize(20, 20))
         self.addToolBar(toolbar)
 
         toolbar.addAction(self.new_project_action)
