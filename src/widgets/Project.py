@@ -36,7 +36,7 @@ from PyQt6.QtCore import pyqtSignal, Qt, QDir, QRegularExpression, QAbstractTabl
 from PyQt6.QtGui import QIcon, QRegularExpressionValidator, QStandardItemModel, QStandardItem, QAction
 from PyQt6.QtWidgets import (QApplication, QDialog, QWidget, QVBoxLayout, QLineEdit, QPushButton, QFileDialog, QLabel, 
                              QListWidget, QHBoxLayout, QTableView, QAbstractItemView, QHeaderView, 
-                             QCheckBox, QGridLayout, QMessageBox, QInputDialog, QComboBox, QTextEdit, QDialogButtonBox, QMenu, QProgressBar)
+                             QCheckBox, QGridLayout, QMessageBox, QInputDialog, QComboBox, QTextEdit, QDialogButtonBox, QMenu, QSizePolicy)
 import logging
 import logging.config
 logging.config.fileConfig('configs/logging/logging.conf', disable_existing_loggers=False)
@@ -1140,13 +1140,24 @@ class MuseumManager(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        layout = QVBoxLayout()
+        main_layout = QVBoxLayout(self)
         self.setWindowTitle("Manage Museums")
+        
+        table_container = QWidget()
+        table_layout = QVBoxLayout(table_container)
+        table_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
         self.museum_table = QTableView()
         self.model = QStandardItemModel()
         self.museum_table.setModel(self.model)
-        layout.addWidget(self.museum_table)
-        
+        table_layout.addWidget(self.museum_table)
+
+        self.museum_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.museum_table.horizontalHeader().setStretchLastSection(True)
+        self.museum_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
+        main_layout.addWidget(table_container, 1)
+
         button_layout = QHBoxLayout()
         add_button = QPushButton("Add Museum")
         remove_button = QPushButton("Remove Museum")
@@ -1160,8 +1171,8 @@ class MuseumManager(QWidget):
         button_layout.addWidget(remove_button)
         button_layout.addWidget(save_button)
         
-        layout.addLayout(button_layout)
-        self.setLayout(layout)
+        main_layout.addLayout(button_layout)
+        self.setLayout(main_layout)
         
         self.refresh_museum_list()
 
