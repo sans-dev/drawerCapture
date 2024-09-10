@@ -8,9 +8,9 @@ Drawer Capture is an GUI based application for remote photo capturing and and ac
 
 ### Via install.sh - easy - (Docker required, tested on Ubuntu only)
 Clone this repo, open a terminal in its directory and run the following:
-    ```
-    chmod +x install.sh
 
+    ```sh
+    chmod +x install.sh
     ./install.sh
     ```
 
@@ -26,7 +26,8 @@ Clone this repo, open a terminal in its directory and run the following:
 ### From source -dev - (local) 
 To install from source clone this repo an install the following dependencies.
 1. Install pkg dependencies:
-```
+
+```sh
 apt-get update && apt-get install -y \
     python3 \
     python3.12-venv \
@@ -56,7 +57,7 @@ apt-get update && apt-get install -y \
 
 2. Create a Python environment, activate it, and install the requirements:
 
-```
+```sh
 python -m venv env
 source env/bin/activate
 pip install -r requirements.txt
@@ -64,6 +65,6 @@ pip install -r requirements.txt
 
 Run with:
 
-```
+```sh
 python3 -m src.drawerCapture
 ```
