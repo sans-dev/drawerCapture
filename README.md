@@ -10,6 +10,7 @@ Drawer Capture is an GUI based application for remote photo capturing and and ac
 Clone this repo, open a terminal in its directory and run the following:
     ```
     chmod +x install.sh
+    
     ./install.sh
     ```
 
