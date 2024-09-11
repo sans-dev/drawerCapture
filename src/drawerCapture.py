@@ -107,7 +107,7 @@ class MainWindow(QMainWindow):
         self.user_menu = menu_bar.addMenu("User")
         self.project_menu = menu_bar.addMenu('Project')
         self.capture_menu = menu_bar.addMenu("Capture")
-        self.view_menu = menu_bar.addMenu("View")
+        self.view_menu = menu_bar.addMenu("Theme")
 
     def create_actions(self):
         # File menu actions
