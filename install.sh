@@ -6,15 +6,15 @@ INSTALL_DIR="$HOME/.local/share/drawerCapture"
 # Erstelle das Installationsverzeichnis
 mkdir -p "$INSTALL_DIR"
 
-# Kopiere die Projektdateien in das Installationsverzeichnis
-cp -r * "$INSTALL_DIR"
+cp  DrawerCapture.sh "$INSTALL_DIR"
+cp  assets/icons/app_icon.png "$INSTALL_DIR"
 
 # Erstelle die .desktop-Datei
 DESKTOP_FILE="$HOME/.local/share/applications/drawerCapture.desktop"
 echo "[Desktop Entry]" > "$DESKTOP_FILE"
 echo "Name=DrawerCapture" >> "$DESKTOP_FILE"
 echo "Exec=$INSTALL_DIR/DrawerCapture.sh" >> "$DESKTOP_FILE"
-echo "Icon=$INSTALL_DIR/assets/icons/app_icon.png" >> "$DESKTOP_FILE"
+echo "Icon=$INSTALL_DIR/app_icon.png" >> "$DESKTOP_FILE"
 echo "Type=Application" >> "$DESKTOP_FILE"
 echo "Categories=Graphics;" >> "$DESKTOP_FILE"
 echo "StartupWMClass=DrawerCapture.py, DrawerCapture.py" >> "$DESKTOP_FILE"
