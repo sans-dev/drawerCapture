@@ -107,7 +107,7 @@ class MainWindow(QMainWindow):
         self.user_menu = menu_bar.addMenu("User")
         self.project_menu = menu_bar.addMenu('Project')
         self.capture_menu = menu_bar.addMenu("Capture")
-        self.help_menu = menu_bar.addMenu("Help")
+        self.view_menu = menu_bar.addMenu("View")
 
     def create_actions(self):
         # File menu actions
@@ -145,6 +145,8 @@ class MainWindow(QMainWindow):
             QIcon("assets/icons/play.png"), "Start Preview", self)
         self.stop_live_preview = QAction(
             QIcon("assets/icons/pause.png"), "Pause Preview", self)
+        self.dark_mode_action = QAction("Combinear (Dark)", self)
+        self.light_mode_action = QAction("PicPax (Light)", self)
 
         # Add actions to menus
         self.file_menu.addAction(self.new_project_action)
@@ -163,6 +165,9 @@ class MainWindow(QMainWindow):
         self.user_menu.addAction(self.login_action)
         self.user_menu.addSeparator()
         self.user_menu.addAction(self.user_settings)
+
+        self.view_menu.addAction(self.dark_mode_action)
+        self.view_menu.addAction(self.light_mode_action)
 
         self.capture_menu.addAction(self.new_session_action)
         self.capture_menu.addSeparator()
@@ -214,6 +219,15 @@ class MainWindow(QMainWindow):
         self.image_view.close_signal.connect(self.on_data_collected)
         self.merge_projects_action.triggered.connect(self.merge_projects)
         self.start_live_preview_action.triggered.connect(self.start_live_preview)
+        self.dark_mode_action.triggered.connect(self.set_dark_mode)
+        self.light_mode_action.triggered.connect(self.set_light_mode)
+
+
+    def set_dark_mode(self):
+        QApplication.instance().setStyleSheet(load_style_sheet('Combinear'))
+
+    def set_light_mode(self):
+        QApplication.instance().setStyleSheet(load_style_sheet('PicPax'))
 
     def start_live_preview(self):
         # self.capture_view.panel.start_stream()
@@ -428,7 +442,6 @@ if __name__ == '__main__':
     app.setWindowIcon(QIcon('assets/icons/app_icon.png'))
     if args.style != styles[0]:
         app.setStyleSheet(load_style_sheet(args.style))
-
     mainWindow = MainWindow(
         taxonomy, geo_data_dir=geo_data_dir, fs=args.fs, db=db)
     mainWindow.show()

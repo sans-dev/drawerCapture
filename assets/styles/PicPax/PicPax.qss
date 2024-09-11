@@ -119,6 +119,12 @@ QToolBar
 
 }
 
+QToolBar::separator
+{
+	background-color: #2e2e2e;
+	width: 1px;
+
+}
 
 /*-----QToolButton-----*/
 QToolButton 
@@ -131,6 +137,11 @@ QToolButton
 	margin-left: 5px
 }
 
+QToolButton:disabled
+{
+	background-color:  #a6acaf;
+	
+}
 
 QToolButton:hover
 {
