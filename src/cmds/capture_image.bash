@@ -27,7 +27,8 @@ FILE_NAME="$IMAGE_DIR/$IMAGE_NAME$IMAGE_FORMAT"
 cd "$IMAGE_DIR"
 echo "image_dir: '$IMAGE_DIR'"
 pkill -f gphoto2
-
+command="echo \"pkill -f gphoto2\" > /hostpipe/drawercapture_host"
+eval "$command"
 gphoto2 --set-config movie=0
 
 if [ $DEBUG == "true" ]; then
