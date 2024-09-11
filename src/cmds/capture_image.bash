@@ -24,7 +24,7 @@ done
 FILE_NAME="$IMAGE_DIR/$IMAGE_NAME$IMAGE_FORMAT"
 # capture image and download to image dir with full resolution
 # check if debug is enabled
-cd "$IMAGE_DIR"g
+cd "$IMAGE_DIR"
 echo "image_dir: '$IMAGE_DIR'"
 pkill -f gphoto2
 command="echo \"pkill -f gphoto2\" > /hostpipe/drawercapture_host"
