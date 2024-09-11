@@ -300,8 +300,11 @@ class MainWindow(QMainWindow):
         self.user_manager.show()
 
     def update_ui_based_on_role(self):
+        if not self.current_user:
+            self.set_enabled_admin_features(False)
+            return
         if self.current_user['role'] == 'admin':
-            self.set_enabled_admin_features(True)
+                self.set_enabled_admin_features(True)
         else:
             self.set_enabled_admin_features(False)
 
@@ -332,6 +335,7 @@ class MainWindow(QMainWindow):
             self.set_enabled_admin_features(False)
             self.new_session_action.setEnabled(False)
             self.stacked_widget.setCurrentWidget(self.capture_view)
+        self.update_ui_based_on_role()
         self.set_window_title()
 
     def set_enabled_user_features(self, is_enabled):
