@@ -19,6 +19,10 @@ echo "Started pipe evaluation on host"
 # Trap signal SIGTERM (sent when Docker container stops)
 trap "kill -SIGTERM $eval_pipe_pid" TERM
 
+# stop all services blocking camera access
+pkill -f gphoto2
+systemctl –user stop gvfs-gphoto2-volume-monitor 
+
 echo "Starting app container"
 # Remove any existing container with the same name
 docker rm -f Drawer-Capture 2>/dev/null || true
